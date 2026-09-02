@@ -31,6 +31,6 @@ public class UserRegisterDTO {
 
     @NotBlank(message = "邮箱不能为空")
     @Pattern(regexp = "^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)+$", message = "邮箱格式不正确")
-    @Size(max = 100, message = "邮箱长度不能超过100个字符")
+    @Size(max = 254, message = "邮箱长度不能超过254个字符")
     private String email;
 }

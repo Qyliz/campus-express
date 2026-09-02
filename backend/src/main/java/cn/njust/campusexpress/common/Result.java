@@ -1,5 +1,7 @@
 package cn.njust.campusexpress.common;
 
+import cn.njust.campusexpress.common.enums.ResultCodeEnum;
+import cn.njust.campusexpress.common.exception.BusinessException;
 import lombok.Data;
 
 @Data
@@ -18,22 +20,22 @@ public class Result<T> {
     }
 
     public static <T> Result<T> success() {
-        return new Result<>(200, "操作成功", null);
+        return new Result<>(ResultCodeEnum.SUCCESS.getCode(), ResultCodeEnum.SUCCESS.getMessage(), null);
     }
 
     public static <T> Result<T> success(T data) {
-        return new Result<>(200, "操作成功", data);
+        return new Result<>(ResultCodeEnum.SUCCESS.getCode(), ResultCodeEnum.SUCCESS.getMessage(), data);
     }
 
-    public static <T> Result<T> success(String message) {
-        return new Result<>(200, message, null);
+    public static <T> Result<T> fail(ResultCodeEnum resultCode) {
+        return new Result<>(resultCode.getCode(), resultCode.getMessage(), null);
     }
 
-    public static <T> Result<T> success(String message, T data) {
-        return new Result<>(200, message, data);
+    public static <T> Result<T> fail(ResultCodeEnum resultCode, String message) {
+        return new Result<>(resultCode.getCode(), message, null);
     }
 
-    public static <T> Result<T> error(Integer code, String message) {
-        return new Result<>(code, message, null);
+    public static <T> Result<T> fail(BusinessException e) {
+        return new Result<>(e.getCode(), e.getMessage(), null);
     }
 }
