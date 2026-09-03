@@ -2,10 +2,7 @@ package cn.njust.campusexpress.dto;
 
 import cn.njust.campusexpress.common.enums.UserGenderEnum;
 import cn.njust.campusexpress.common.enums.UserRoleEnum;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Data;
 
 @Data
@@ -25,12 +22,10 @@ public class UserRegisterDTO {
     @NotNull(message = "性别不能为空")
     private UserGenderEnum gender;
 
-    @NotBlank(message = "手机号不能为空")
     @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
     private String phone;
 
-    @NotBlank(message = "邮箱不能为空")
-    @Pattern(regexp = "^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)+$", message = "邮箱格式不正确")
+    @Email(message = "邮箱格式不正确")
     @Size(max = 254, message = "邮箱长度不能超过254个字符")
     private String email;
 }

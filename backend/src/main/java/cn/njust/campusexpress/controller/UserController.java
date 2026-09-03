@@ -1,10 +1,10 @@
 package cn.njust.campusexpress.controller;
 
+import cn.dev33.satoken.stp.StpUtil;
 import cn.njust.campusexpress.common.Result;
 import cn.njust.campusexpress.dto.UserLoginDTO;
 import cn.njust.campusexpress.dto.UserRegisterDTO;
 import cn.njust.campusexpress.service.UserService;
-import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,9 +26,12 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    Result<Void> login(@Valid @RequestBody UserLoginDTO loginDTO, HttpSession session) {
+    Result<Void> login(@Valid @RequestBody UserLoginDTO loginDTO) {
         Long userId = userService.login(loginDTO);
-        session.setAttribute("userId", userId);
+        StpUtil.login(userId);
+        StpUtil.getSession().set("role", loginDTO.getRole().getCode());
         return Result.success();
     }
+
+    //TODO: 注销、账号信息维护、封禁账号、账号审核
 }

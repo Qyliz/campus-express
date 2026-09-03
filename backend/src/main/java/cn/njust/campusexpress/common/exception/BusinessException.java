@@ -4,16 +4,12 @@ import cn.njust.campusexpress.common.enums.ResultCodeEnum;
 import lombok.Getter;
 
 @Getter
-public class BusinessException extends RuntimeException {
-    private final Integer code;
-
+public class BusinessException extends BaseException {
     public BusinessException(ResultCodeEnum resultCode) {
-        super(resultCode.getMessage());
-        this.code = resultCode.getCode();
+        super(resultCode);
     }
 
     public BusinessException(ResultCodeEnum resultCode, String message) {
-        super(message);
-        this.code = resultCode.getCode();
+        super(resultCode, message);
     }
 }

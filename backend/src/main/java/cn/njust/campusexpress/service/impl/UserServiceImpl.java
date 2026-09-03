@@ -31,44 +31,86 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         if (registerDTO.getRole() == UserRoleEnum.ADMIN) {
             throw new BusinessException(ResultCodeEnum.PARAM_ERROR, "角色不能为管理员");
         }
-        String hashPassword = BCrypt.hashpw(registerDTO.getPassword(), BCrypt.gensalt());
-        User user = new User();
-        user.setPhone(registerDTO.getPhone());
-        user.setEmail(registerDTO.getEmail());
-        user.setPassword(hashPassword);
-        save(user);
 
+        User user = new User();
+        //验证手机号是否重复
+        String phone = registerDTO.getPhone();
+        if (phone != null) {
+            LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+            wrapper.select(User::getPhone).eq(User::getPhone, phone);
+            User temp = getOne(wrapper);
+            if (temp != null) {
+                throw new BusinessException(ResultCodeEnum.PHONE_ALREADY_BIND);
+            }
+            user.setPassword(phone);
+        }
+        //验证邮箱是否重复
+        String email = registerDTO.getEmail();
+        if (email != null) {
+            LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+            wrapper.select(User::getEmail).eq(User::getEmail, email);
+            User temp = getOne(wrapper);
+            if (temp != null) {
+                throw new BusinessException(ResultCodeEnum.EMAIL_ALREADY_BIND);
+            }
+            user.setEmail(email);
+        }
+        //加密密码
+        String hashPassword = BCrypt.hashpw(registerDTO.getPassword(), BCrypt.gensalt());
+        user.setPassword(hashPassword);
+        //存入user表
+        save(user);
+        //存入user_role表
         UserRole userRole = new UserRole();
         userRole.setUserId(user.getId());
         userRole.setUsername(registerDTO.getUsername());
         userRole.setRole(registerDTO.getRole());
         userRole.setGender(registerDTO.getGender());
-        userRole.setStatus(UserStatusEnum.REVIEWING);
+        //收寄件人初始账号状态为正常，否则为审核中
+        if (registerDTO.getRole() == UserRoleEnum.CUSTOMER) {
+            userRole.setStatus(UserStatusEnum.NORMAL);
+        } else {
+            userRole.setStatus(UserStatusEnum.REVIEWING);
+        }
         userRoleService.save(userRole);
     }
 
     @Override
     public Long login(UserLoginDTO loginDTO) {
         String account = loginDTO.getAccount();
-        User user;
-        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        wrapper.select(User::getPassword);
+        LambdaQueryWrapper<User> wrapper1 = new LambdaQueryWrapper<>();
         //邮箱登录
         if (account.contains("@") && account.length() < 255) {
-            wrapper.eq(User::getEmail, account);
+            wrapper1.eq(User::getEmail, account);
         }
         //手机号登录
         else if (account.matches("^1[3-9]\\d{9}$")) {
-            wrapper.eq(User::getPhone, account);
+            wrapper1.eq(User::getPhone, account);
         }
         //账号格式错误
         else {
             throw new BusinessException(ResultCodeEnum.PARAM_ERROR, "账号格式错误");
         }
-        user = getOne(wrapper);
+        //获取账号信息
+        wrapper1.select(User::getId, User::getPassword);
+        User user = getOne(wrapper1);
         //账号不存在
         if (user == null) {
             throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
+        }
+        //获取账号状态
+        Long userId = user.getId();
+        LambdaQueryWrapper<UserRole> wrapper2 = new LambdaQueryWrapper<>();
+        wrapper2.select(UserRole::getStatus).eq(UserRole::getUserId, userId);
+        UserRole userRole = userRoleService.getOne(wrapper2);
+        //处理异常账号状态
+        switch (userRole.getStatus()) {
+            case REVIEWING ->
+                    throw new BusinessException(ResultCodeEnum.ACCOUNT_REVIEWING);
+            case REJECTED ->
+                    throw new BusinessException(ResultCodeEnum.ACCOUNT_REJECTED);
+            case DISABLED ->
+                    throw new BusinessException(ResultCodeEnum.ACCOUNT_DISABLED);
         }
         //密码错误
         if (!BCrypt.checkpw(loginDTO.getPassword(), user.getPassword())) {

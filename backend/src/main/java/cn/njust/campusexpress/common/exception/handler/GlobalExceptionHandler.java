@@ -1,7 +1,8 @@
-package cn.njust.campusexpress.common.exception;
+package cn.njust.campusexpress.common.exception.handler;
 
 import cn.njust.campusexpress.common.Result;
 import cn.njust.campusexpress.common.enums.ResultCodeEnum;
+import cn.njust.campusexpress.common.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -12,6 +13,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
     //处理参数校验异常
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Result<Void> handleValidException(MethodArgumentNotValidException e) {
@@ -31,7 +33,7 @@ public class GlobalExceptionHandler {
 
     //处理未知异常
     @ExceptionHandler(Exception.class)
-    public Result<?> handleException(Exception e) {
+    public Result<Void> handleException(Exception e) {
         log.error("系统内部异常: ", e);
         return Result.fail(ResultCodeEnum.SYSTEM_ERROR);
     }

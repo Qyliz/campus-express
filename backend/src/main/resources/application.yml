@@ -10,6 +10,14 @@ spring:
     url: jdbc:mysql://localhost:3306/campus_express?serverTimezone=GMT%2B8&characterEncoding=utf-8&useSSL=false
     username: root
     password: Root
+
 mybatis-plus:
   configuration:
+    #输出日志
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+sa-token:
+  #允许多人登录
+  is-concurrent: false
+  #输出日志
+  is-log: true

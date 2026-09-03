@@ -24,6 +24,6 @@ public class UserRole {
     @TableField(fill = FieldFill.UPDATE)
     private Date updateTime;
 
-    @TableLogic
+    @TableLogic(value = "0", delval = "id")
     private Integer deleted;
 }

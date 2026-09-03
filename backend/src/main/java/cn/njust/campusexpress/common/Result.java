@@ -1,9 +1,10 @@
 package cn.njust.campusexpress.common;
 
 import cn.njust.campusexpress.common.enums.ResultCodeEnum;
-import cn.njust.campusexpress.common.exception.BusinessException;
+import cn.njust.campusexpress.common.exception.BaseException;
 import lombok.Data;
 
+@SuppressWarnings("unused")
 @Data
 public class Result<T> {
     private Integer code;
@@ -35,7 +36,7 @@ public class Result<T> {
         return new Result<>(resultCode.getCode(), message, null);
     }
 
-    public static <T> Result<T> fail(BusinessException e) {
+    public static <T> Result<T> fail(BaseException e) {
         return new Result<>(e.getCode(), e.getMessage(), null);
     }
 }
