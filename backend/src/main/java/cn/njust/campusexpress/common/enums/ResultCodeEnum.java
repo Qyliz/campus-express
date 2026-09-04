@@ -18,12 +18,17 @@ public enum ResultCodeEnum {
     NO_PERMISSION(1004, "没有操作权限"),
     //用户模块
     USER_NOT_FOUND(2001, "用户不存在"),
-    PASSWORD_ERROR(2002, "密码错误"),
+    LOGIN_ERROR(2002, "用户不存在或密码错误"),
     PHONE_ALREADY_BIND(2003, "该手机号已被注册"),
     EMAIL_ALREADY_BIND(2004, "该邮箱已被注册"),
     ACCOUNT_REVIEWING(2005, "账号申请中"),
     ACCOUNT_REJECTED(2006, "账号申请被驳回，请联系管理员"),
     ACCOUNT_DISABLED(2007, "账号已被禁用"),
+    // 文件模块
+    FILE_EMPTY(3001, "请选择文件"),
+    FILE_TOO_LARGE(3002, "文件过大，请重试"),
+    FILE_TYPE_ERROR(3003, "文件类型不支持"),
+    FILE_UPLOAD_ERROR(3004, "文件上传失败"),
     //系统错误
     SYSTEM_ERROR(9999, "系统繁忙，请稍候再试");
 

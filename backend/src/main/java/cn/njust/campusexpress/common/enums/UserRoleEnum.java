@@ -15,8 +15,8 @@ public enum UserRoleEnum {
     private final Integer code;
     private final String description;
 
-    //Sa-Token鉴权的常量
-    public static final String ROLE_ADMIN = "0";
-    public static final String ROLE_CUSTOMER = "1";
-    public static final String ROLE_COURIER = "2";
+    //用于Sa-Token鉴权的静态常量
+    public static final String ROLE_ADMIN = "ADMIN";
+    public static final String ROLE_CUSTOMER = "CUSTOMER";
+    public static final String ROLE_COURIER = "COURIER";
 }

@@ -5,6 +5,7 @@ import cn.dev33.satoken.exception.NotRoleException;
 import cn.njust.campusexpress.common.Result;
 import cn.njust.campusexpress.common.enums.ResultCodeEnum;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -12,11 +13,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @Slf4j
 @RestControllerAdvice
+@Order(0)
 public class SaTokenExceptionHandler {
 
     //处理未登录异常
-    @ResponseStatus(HttpStatus.UNAUTHORIZED)
     @ExceptionHandler(NotLoginException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public Result<Void> handleNotLoginException(NotLoginException e) {
         ResultCodeEnum codeEnum;
         String type = e.getType();
@@ -32,8 +34,8 @@ public class SaTokenExceptionHandler {
     }
 
     //处理角色认证异常
-    @ResponseStatus(HttpStatus.FORBIDDEN)
     @ExceptionHandler(NotRoleException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
     public Result<Void> handleNotRoleException(NotRoleException e) {
         log.warn("角色认证异常: {}", e.getMessage());
         return Result.fail(ResultCodeEnum.NO_PERMISSION);

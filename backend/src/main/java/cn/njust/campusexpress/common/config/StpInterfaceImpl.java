@@ -17,7 +17,7 @@ public class StpInterfaceImpl implements StpInterface {
 
     @Override
     public List<String> getRoleList(Object loginId, String loginType) {
-        String role = (String) StpUtil.getSession().get("role");
+        String role = (String) StpUtil.getTokenSession().get("role");
         if (role == null) {
             return List.of();
         }

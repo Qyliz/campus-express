@@ -29,6 +29,7 @@ backend/*.war
 backend/*.log
 backend/logs/
 backend/.mvn/wrapper/maven-wrapper.jar
+backend/upload/
 
 # ==============================
 # 前端 Vue 忽略规则
