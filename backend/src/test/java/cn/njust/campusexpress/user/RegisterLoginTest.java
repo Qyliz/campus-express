@@ -26,7 +26,7 @@ public class RegisterLoginTest {
     @Test
     void RegisterTest() throws Exception {
         //注册成功
-        String Json1 = """
+        String json1 = """
                 {
                     "username":"zhangsan",
                     "password":"1234567",
@@ -38,11 +38,11 @@ public class RegisterLoginTest {
                 """;
         mockMvc.perform(post("/api/user/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(Json1))
+                        .content(json1))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
         //手机号已绑定
-        String Json2 = """
+        String json2 = """
                 {
                     "username":"lisi",
                     "password":"1234567",
@@ -53,11 +53,11 @@ public class RegisterLoginTest {
                 """;
         mockMvc.perform(post("/api/user/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(Json2))
+                        .content(json2))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.PHONE_ALREADY_BIND.getCode()));
         //不能注册管理员
-        String Json3 = """
+        String json3 = """
                 {
                     "username":"lisi",
                     "password":"1234567",
@@ -68,7 +68,7 @@ public class RegisterLoginTest {
                 """;
         mockMvc.perform(post("/api/user/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(Json3))
+                        .content(json3))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.PARAM_ERROR.getCode()));
     }
@@ -76,7 +76,7 @@ public class RegisterLoginTest {
     @Test
     public void LoginTest() throws Exception {
         //注册
-        String Json1 = """
+        String json1 = """
                 {
                     "username":"zhangsan",
                     "password":"1234567",
@@ -88,11 +88,11 @@ public class RegisterLoginTest {
                 """;
         mockMvc.perform(post("/api/user/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(Json1))
+                        .content(json1))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
         //登录成功
-        String Json2 = """
+        String json2 = """
                 {
                     "account":"13788888888",
                     "password":"1234567",
@@ -101,11 +101,11 @@ public class RegisterLoginTest {
                 """;
         mockMvc.perform(post("/api/user/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(Json2))
+                        .content(json2))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
         //参数错误
-        String Json3 = """
+        String json3 = """
                 {
                     "account":"",
                     "password":"1234567",
@@ -114,11 +114,11 @@ public class RegisterLoginTest {
                 """;
         mockMvc.perform(post("/api/user/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(Json3))
+                        .content(json3))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.PARAM_ERROR.getCode()));
         //账号不存在、身份不正确
-        String Json4 = """
+        String json4 = """
                 {
                     "account":"13788888888",
                     "password":"1234567",
@@ -127,11 +127,11 @@ public class RegisterLoginTest {
                 """;
         mockMvc.perform(post("/api/user/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(Json4))
+                        .content(json4))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.LOGIN_ERROR.getCode()));
         //密码错误
-        String Json5 = """
+        String json5 = """
                 {
                     "account":"13788888888",
                     "password":"12345678",
@@ -140,11 +140,11 @@ public class RegisterLoginTest {
                 """;
         mockMvc.perform(post("/api/user/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(Json5))
+                        .content(json5))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.LOGIN_ERROR.getCode()));
         //账号状态异常
-        String Json6 = """
+        String json6 = """
                 {
                     "username":"lisi",
                     "password":"1234567",
@@ -155,10 +155,10 @@ public class RegisterLoginTest {
                 """;
         mockMvc.perform(post("/api/user/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(Json6))
+                        .content(json6))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
-        String Json7 = """
+        String json7 = """
                 {
                     "account":"13888888888",
                     "password":"1234567",
@@ -167,7 +167,7 @@ public class RegisterLoginTest {
                 """;
         mockMvc.perform(post("/api/user/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(Json7))
+                        .content(json7))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.ACCOUNT_REVIEWING.getCode()));
     }

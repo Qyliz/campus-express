@@ -1,16 +1,21 @@
 package cn.njust.campusexpress.controller;
 
 import cn.dev33.satoken.annotation.SaCheckLogin;
+import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.njust.campusexpress.common.Result;
 import cn.njust.campusexpress.common.enums.ResultCodeEnum;
 import cn.njust.campusexpress.common.enums.UserGenderEnum;
+import cn.njust.campusexpress.common.enums.UserRoleEnum;
 import cn.njust.campusexpress.common.exception.BusinessException;
-import cn.njust.campusexpress.dto.UserLoginDTO;
-import cn.njust.campusexpress.dto.UserRegisterDTO;
-import cn.njust.campusexpress.dto.UserUpdateDTO;
+import cn.njust.campusexpress.dto.*;
+import cn.njust.campusexpress.service.UserAuditRecordService;
+import cn.njust.campusexpress.service.UserBanRecordService;
 import cn.njust.campusexpress.service.UserService;
+import cn.njust.campusexpress.vo.UserAuditRecordVO;
+import cn.njust.campusexpress.vo.UserProfileAdminVO;
 import cn.njust.campusexpress.vo.UserProfileVO;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -18,12 +23,14 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 
-@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/user")
+@RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
+    private final UserAuditRecordService userAuditRecordService;
+    private final UserBanRecordService userBanRecordService;
 
     //注册
     @PostMapping("/register")
@@ -65,7 +72,7 @@ public class UserController {
     Result<UserProfileVO> updateUsername(@Valid @RequestBody UserUpdateDTO userUpdateDTO) {
         String username = userUpdateDTO.getUsername();
         if (username == null || username.isBlank()) {
-            throw new BusinessException(ResultCodeEnum.PARAM_ERROR);
+            throw new BusinessException(ResultCodeEnum.PARAM_MISSING);
         }
         Long userRoleId = StpUtil.getLoginIdAsLong();
         UserProfileVO profile = userService.updateUsername(userRoleId, username);
@@ -78,7 +85,7 @@ public class UserController {
     Result<UserProfileVO> updateGender(@Valid @RequestBody UserUpdateDTO userUpdateDTO) {
         UserGenderEnum gender = userUpdateDTO.getGender();
         if (gender == null) {
-            throw new BusinessException(ResultCodeEnum.PARAM_ERROR);
+            throw new BusinessException(ResultCodeEnum.PARAM_MISSING);
         }
         Long userRoleId = StpUtil.getLoginIdAsLong();
         UserProfileVO profile = userService.updateGender(userRoleId, gender);
@@ -93,5 +100,37 @@ public class UserController {
         UserProfileVO profile = userService.updateAvatar(userRoleId, file);
         return Result.success(profile);
     }
-    //TODO: 账号信息维护、封禁账号、账号审核、验证码
+
+    //获取审核记录
+    @GetMapping("/audit")
+    @SaCheckRole(UserRoleEnum.ROLE_ADMIN)
+    Result<Page<UserAuditRecordVO>> getAuditRecord(@Valid @RequestBody UserAuditQueryDTO dto) {
+        Page<UserAuditRecordVO> page = userAuditRecordService.getRecordPage(dto);
+        return Result.success(page);
+    }
+
+    //审核账号
+    @PutMapping("/audit")
+    @SaCheckRole(UserRoleEnum.ROLE_ADMIN)
+    Result<Void> auditUser(@Valid @RequestBody UserAuditDTO dto) {
+        userAuditRecordService.auditUser(dto);
+        return Result.success();
+    }
+
+    //获取所有账号信息
+    @GetMapping("/all-users")
+    @SaCheckRole(UserRoleEnum.ROLE_ADMIN)
+    Result<Page<UserProfileAdminVO>> getAllUsers(@Valid @RequestBody UserQueryDTO dto) {
+        Page<UserProfileAdminVO> page = userService.getAllUsers(dto);
+        return Result.success(page);
+    }
+
+    //封禁账号
+    @PostMapping("/ban")
+    @SaCheckRole(UserRoleEnum.ROLE_ADMIN)
+    Result<Void> banUser(@Valid @RequestBody UserBanDTO dto) {
+        userBanRecordService.banUser(dto);
+        return Result.success();
+    }
+    //TODO: 忘记密码、找回用户名、验证码、账户审核图片版
 }

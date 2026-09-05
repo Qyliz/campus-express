@@ -2,7 +2,6 @@ package cn.njust.campusexpress.dto;
 
 import cn.njust.campusexpress.common.enums.UserGenderEnum;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -16,7 +15,6 @@ public class UserUpdateDTO {
     @Size(min = 6, max = 20, message = "密码长度必须在6-20之间")
     private String password;
 
-    @NotNull(message = "性别不能为空")
     private UserGenderEnum gender;
 
     @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")

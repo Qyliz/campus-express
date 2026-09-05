@@ -1,19 +1,21 @@
 package cn.njust.campusexpress.service.impl;
 
-import cn.njust.campusexpress.common.enums.ResultCodeEnum;
-import cn.njust.campusexpress.common.enums.UserGenderEnum;
-import cn.njust.campusexpress.common.enums.UserRoleEnum;
-import cn.njust.campusexpress.common.enums.UserStatusEnum;
+import cn.njust.campusexpress.common.enums.*;
 import cn.njust.campusexpress.common.exception.BusinessException;
 import cn.njust.campusexpress.dto.UserLoginDTO;
+import cn.njust.campusexpress.dto.UserQueryDTO;
 import cn.njust.campusexpress.dto.UserRegisterDTO;
 import cn.njust.campusexpress.entity.User;
+import cn.njust.campusexpress.entity.UserAuditRecord;
 import cn.njust.campusexpress.entity.UserRole;
 import cn.njust.campusexpress.mapper.UserMapper;
+import cn.njust.campusexpress.service.UserAuditRecordService;
 import cn.njust.campusexpress.service.UserRoleService;
 import cn.njust.campusexpress.service.UserService;
+import cn.njust.campusexpress.vo.UserProfileAdminVO;
 import cn.njust.campusexpress.vo.UserProfileVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.repository.CrudRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +37,8 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         implements UserService {
 
     private final UserRoleService userRoleService;
+    private final UserAuditRecordService userAuditRecordService;
+    private final UserMapper userMapper;
 
     //注册
     @Override
@@ -79,13 +83,19 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         userRole.setUsername(registerDTO.getUsername());
         userRole.setRole(registerDTO.getRole());
         userRole.setGender(registerDTO.getGender());
-        //收寄件人初始账号状态为正常，否则为审核中
+
+        //角色为收寄件人，初始账号状态为正常，否则为审核中
         if (registerDTO.getRole() == UserRoleEnum.CUSTOMER) {
             userRole.setStatus(UserStatusEnum.NORMAL);
         } else {
             userRole.setStatus(UserStatusEnum.REVIEWING);
         }
         userRoleService.save(userRole);
+
+        //将待审核的账号加入审核记录表
+        UserAuditRecord record = new UserAuditRecord();
+        record.setUserRoleId(userRole.getId());
+        userAuditRecordService.save(record);
     }
 
     //登录
@@ -160,6 +170,7 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         return profile;
     }
 
+    //更新用户名
     @Override
     public UserProfileVO updateUsername(Long userRoleId, String username) {
         UserRole userRole = userRoleService.getById(userRoleId);
@@ -171,6 +182,7 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         return getProfile(userRoleId);
     }
 
+    //更新性别
     @Override
     public UserProfileVO updateGender(Long userRoleId, UserGenderEnum gender) {
         UserRole userRole = userRoleService.getById(userRoleId);
@@ -210,6 +222,50 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         return getProfile(userRoleId);
     }
 
+    //获取所有账号信息
+    @SuppressWarnings("DuplicatedCode")
+    @Override
+    public Page<UserProfileAdminVO> getAllUsers(UserQueryDTO dto) {
+        Page<UserProfileAdminVO> page = new Page<>(dto.getCurrentPage(), 10);
+        LambdaQueryWrapper<UserProfileAdminVO> wrapper = new LambdaQueryWrapper<>();
+        //搜索内容
+        //TODO: 尝试把搜索提取为工具类
+        if (dto.getUsername() != null) {
+            wrapper.eq(UserProfileAdminVO::getUsername, dto.getUsername());
+        }
+        if (dto.getPhone() != null) {
+            wrapper.eq(UserProfileAdminVO::getPhone, dto.getPhone());
+        }
+        if (dto.getEmail() != null) {
+            wrapper.eq(UserProfileAdminVO::getEmail, dto.getEmail());
+        }
+        UserStatusEnum status = dto.getUserStatus();
+        if (status != null) {
+            switch (status) {
+                case DISABLED ->
+                        wrapper.eq(UserProfileAdminVO::getStatus, UserStatusEnum.DISABLED);
+                case NORMAL ->
+                        wrapper.eq(UserProfileAdminVO::getStatus, UserStatusEnum.NORMAL);
+                case REVIEWING ->
+                        wrapper.eq(UserProfileAdminVO::getStatus, UserStatusEnum.REVIEWING);
+                case REJECTED ->
+                        wrapper.eq(UserProfileAdminVO::getStatus, UserStatusEnum.REJECTED);
+            }
+        }
+        OrderEnum order = dto.getOrder();
+        switch (order) {
+            case CREATE_TIME_ASC ->
+                    wrapper.orderByAsc(UserProfileAdminVO::getCreateTime);
+            case CREATE_TIME_DESC ->
+                    wrapper.orderByDesc(UserProfileAdminVO::getCreateTime);
+            default -> throw new BusinessException(ResultCodeEnum.PARAM_ERROR);
+        }
+        //mapper
+
+        return page;
+    }
+
+    //TODO:提取为工具类
     //存储头像文件
     private String saveAvatar(MultipartFile file) {
         //检查文件类型

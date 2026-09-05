@@ -6,6 +6,7 @@ import cn.njust.campusexpress.common.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -17,6 +18,13 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 @Order
 public class GlobalExceptionHandler {
+
+    //处理参数反序列异常
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public Result<?> handle(HttpMessageNotReadableException e) {
+        log.warn("参数反序列异常: {}", e.getMessage());
+        return Result.fail(ResultCodeEnum.PARAM_ERROR);
+    }
 
     //处理参数校验异常
     @ExceptionHandler(MethodArgumentNotValidException.class)

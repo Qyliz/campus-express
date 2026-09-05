@@ -2,9 +2,12 @@ package cn.njust.campusexpress.service;
 
 import cn.njust.campusexpress.common.enums.UserGenderEnum;
 import cn.njust.campusexpress.dto.UserLoginDTO;
+import cn.njust.campusexpress.dto.UserQueryDTO;
 import cn.njust.campusexpress.dto.UserRegisterDTO;
 import cn.njust.campusexpress.entity.User;
+import cn.njust.campusexpress.vo.UserProfileAdminVO;
 import cn.njust.campusexpress.vo.UserProfileVO;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.repository.IRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -23,4 +26,5 @@ public interface UserService extends IRepository<User> {
 
     UserProfileVO updateAvatar(Long userRoleId, MultipartFile file);
 
+    Page<UserProfileAdminVO> getAllUsers(UserQueryDTO dto);
 }

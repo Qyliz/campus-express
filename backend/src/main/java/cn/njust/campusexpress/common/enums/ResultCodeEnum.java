@@ -24,6 +24,7 @@ public enum ResultCodeEnum {
     ACCOUNT_REVIEWING(2005, "账号申请中"),
     ACCOUNT_REJECTED(2006, "账号申请被驳回，请联系管理员"),
     ACCOUNT_DISABLED(2007, "账号已被禁用"),
+    ACCOUNT_REVIEWED(2008, "账号已审核"),
     // 文件模块
     FILE_EMPTY(3001, "请选择文件"),
     FILE_TOO_LARGE(3002, "文件过大，请重试"),

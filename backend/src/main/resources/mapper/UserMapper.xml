@@ -6,22 +6,16 @@
 
     <resultMap id="BaseResultMap" type="cn.njust.campusexpress.entity.User">
         <id property="id" column="id"/>
-        <result property="username" column="username"/>
-        <result property="password" column="password"/>
-        <result property="role" column="role"/>
-        <result property="gender" column="gender"/>
         <result property="phone" column="phone"/>
         <result property="email" column="email"/>
-        <result property="avatar" column="avatar"/>
-        <result property="status" column="status"/>
+        <result property="password" column="password"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
         <result property="deleted" column="deleted"/>
-        <result property="version" column="version"/>
     </resultMap>
+
     <sql id="Base_Column_List">
-        id,username,password,role,gender,phone,
-        email,avatar,status,create_time,update_time,
-        deleted,version
+        id,phone,email,password,create_time,update_time,
+        deleted
     </sql>
 </mapper>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.njust.campusexpress.mapper.UserAuditRecordMapper">
+
+    <resultMap id="BaseResultMap" type="cn.njust.campusexpress.entity.UserAuditRecord">
+        <id property="id" column="id"/>
+        <result property="userRoleId" column="user_role_id"/>
+        <result property="status" column="status"/>
+        <result property="reason" column="reason"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,user_role_id,status,reason,create_time,update_time
+    </sql>
+
+    <select id="selectAuditRecord" resultType="cn.njust.campusexpress.vo.UserAuditRecordVO">
+        SELECT r.id, ur.username, ur.gender, u.phone, u.email,
+        r.status, r.reason, r.create_time, r.update_time
+        FROM user_audit_record r
+        INNER JOIN user_role ur ON r.user_role_id = ur.id
+        INNER JOIN user u ON ur.user_id = u.id
+        ${ew.customSqlSegment}
+    </select>
+</mapper>
