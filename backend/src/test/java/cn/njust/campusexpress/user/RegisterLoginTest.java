@@ -8,9 +8,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -23,52 +27,40 @@ public class RegisterLoginTest {
     @Autowired
     private MockMvc mockMvc;
 
+    //构造注册（multipart）请求；配送员需带审核材料，收寄件人不带
+    private MockMultipartHttpServletRequestBuilder register(String username, String phone, String email, String role, boolean withMaterial) {
+        MockMultipartHttpServletRequestBuilder builder = multipart("/api/user/register");
+        builder.param("username", username);
+        builder.param("password", "1234567");
+        builder.param("role", role);
+        builder.param("gender", "MALE");
+        builder.param("phone", phone);
+        if (email != null) {
+            builder.param("email", email);
+        }
+        if (withMaterial) {
+            builder.file(new MockMultipartFile("material", "m.png", "image/png", new byte[]{1, 2, 3}));
+        }
+        return builder;
+    }
+
+    private MockHttpServletRequestBuilder login(String account, String password, String role) {
+        String body = String.format("{\"account\":\"%s\",\"password\":\"%s\",\"role\":\"%s\"}", account, password, role);
+        return post("/api/user/login").contentType(MediaType.APPLICATION_JSON).content(body);
+    }
+
     @Test
     void RegisterTest() throws Exception {
-        //注册成功
-        String json1 = """
-                {
-                    "username":"zhangsan",
-                    "password":"1234567",
-                    "role":"CUSTOMER",
-                    "gender":"MALE",
-                    "phone":"13788888888",
-                    "email":"qwert@email.com"
-                }
-                """;
-        mockMvc.perform(post("/api/user/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json1))
+        //注册成功（收寄件人，无需材料）
+        mockMvc.perform(register("zhangsan", "13788888888", "qwert@email.com", "CUSTOMER", false))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
-        //手机号已绑定
-        String json2 = """
-                {
-                    "username":"lisi",
-                    "password":"1234567",
-                    "role":"COURIER",
-                    "gender":"MALE",
-                    "phone":"13788888888"
-                }
-                """;
-        mockMvc.perform(post("/api/user/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json2))
+        //手机号已绑定（配送员，但在手机号查重处即失败，无需材料）
+        mockMvc.perform(register("lisi", "13788888888", null, "COURIER", false))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.PHONE_ALREADY_BIND.getCode()));
         //不能注册管理员
-        String json3 = """
-                {
-                    "username":"lisi",
-                    "password":"1234567",
-                    "role":"ADMIN",
-                    "gender":"MALE",
-                    "phone":"13888888888"
-                }
-                """;
-        mockMvc.perform(post("/api/user/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json3))
+        mockMvc.perform(register("lisi", "13888888888", null, "ADMIN", false))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.PARAM_ERROR.getCode()));
     }
@@ -76,98 +68,31 @@ public class RegisterLoginTest {
     @Test
     public void LoginTest() throws Exception {
         //注册
-        String json1 = """
-                {
-                    "username":"zhangsan",
-                    "password":"1234567",
-                    "role":"CUSTOMER",
-                    "gender":"MALE",
-                    "phone":"13788888888",
-                    "email":"qwert@email.com"
-                }
-                """;
-        mockMvc.perform(post("/api/user/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json1))
+        mockMvc.perform(register("zhangsan", "13788888888", "qwert@email.com", "CUSTOMER", false))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
         //登录成功
-        String json2 = """
-                {
-                    "account":"13788888888",
-                    "password":"1234567",
-                    "role":"CUSTOMER"
-                }
-                """;
-        mockMvc.perform(post("/api/user/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json2))
+        mockMvc.perform(login("13788888888", "1234567", "CUSTOMER"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
         //参数错误
-        String json3 = """
-                {
-                    "account":"",
-                    "password":"1234567",
-                    "role":"CUSTOMER"
-                }
-                """;
-        mockMvc.perform(post("/api/user/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json3))
+        mockMvc.perform(login("", "1234567", "CUSTOMER"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.PARAM_ERROR.getCode()));
         //账号不存在、身份不正确
-        String json4 = """
-                {
-                    "account":"13788888888",
-                    "password":"1234567",
-                    "role":"COURIER"
-                }
-                """;
-        mockMvc.perform(post("/api/user/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json4))
+        mockMvc.perform(login("13788888888", "1234567", "COURIER"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.LOGIN_ERROR.getCode()));
         //密码错误
-        String json5 = """
-                {
-                    "account":"13788888888",
-                    "password":"12345678",
-                    "role":"CUSTOMER"
-                }
-                """;
-        mockMvc.perform(post("/api/user/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json5))
+        mockMvc.perform(login("13788888888", "12345678", "CUSTOMER"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.LOGIN_ERROR.getCode()));
-        //账号状态异常
-        String json6 = """
-                {
-                    "username":"lisi",
-                    "password":"1234567",
-                    "role":"COURIER",
-                    "gender":"MALE",
-                    "phone":"13888888888"
-                }
-                """;
-        mockMvc.perform(post("/api/user/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json6))
+        //注册配送员（需材料）-> 审核中
+        mockMvc.perform(register("lisi", "13888888888", null, "COURIER", true))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
-        String json7 = """
-                {
-                    "account":"13888888888",
-                    "password":"1234567",
-                    "role":"COURIER"
-                }
-                """;
-        mockMvc.perform(post("/api/user/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json7))
+        //账号状态异常（审核中不可登录）
+        mockMvc.perform(login("13888888888", "1234567", "COURIER"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.ACCOUNT_REVIEWING.getCode()));
     }

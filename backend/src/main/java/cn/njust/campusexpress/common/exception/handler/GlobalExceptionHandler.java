@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -26,9 +26,9 @@ public class GlobalExceptionHandler {
         return Result.fail(ResultCodeEnum.PARAM_ERROR);
     }
 
-    //处理参数校验异常
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public Result<Void> handleValidException(MethodArgumentNotValidException e) {
+    //处理参数校验异常（涵盖请求体与查询参数两种绑定校验）
+    @ExceptionHandler(BindException.class)
+    public Result<Void> handleValidException(BindException e) {
         String message = e.getBindingResult().getFieldErrors().stream()
                 .map(error -> (error.getField() + ": " + error.getDefaultMessage()))
                 .collect(Collectors.joining("; "));

@@ -10,6 +10,15 @@ spring:
     url: jdbc:mysql://localhost:3306/campus_express?serverTimezone=GMT%2B8&characterEncoding=utf-8&useSSL=false
     username: root
     password: Root
+  #启动时执行建表脚本（幂等），保证数据库结构可复现
+  sql:
+    init:
+      #对非内嵌库（MySQL）也执行初始化
+      mode: always
+      schema-locations: classpath:db/schema.sql
+      data-locations: classpath:db/data.sql
+      #显式指定 UTF-8，避免 Windows 平台默认 GBK 导致脚本中的中文注释乱码
+      encoding: UTF-8
   #最大文件大小
   servlet:
     multipart:

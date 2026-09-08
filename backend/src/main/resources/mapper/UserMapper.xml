@@ -2,9 +2,10 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="cn.njust.campusexpress.mapper.UserMapper">
+<!--suppress XmlUnresolvedReference -->
+<mapper namespace="cn.njust.campusexpress.model.user.mapper.UserMapper">
 
-    <resultMap id="BaseResultMap" type="cn.njust.campusexpress.entity.User">
+    <resultMap id="BaseResultMap" type="cn.njust.campusexpress.model.user.entity.User">
         <id property="id" column="id"/>
         <result property="phone" column="phone"/>
         <result property="email" column="email"/>
@@ -18,4 +19,56 @@
         id,phone,email,password,create_time,update_time,
         deleted
     </sql>
+
+    <!-- 分页查询管理端用户列表：user 关联 user_role，动态拼接查询条件与排序 -->
+    <select id="selectUserPage" resultType="cn.njust.campusexpress.model.user.vo.UserProfileAdminVO">
+        SELECT ur.id AS userRoleId,
+        ur.username,
+        ur.role,
+        ur.gender,
+        u.phone,
+        u.email,
+        ur.avatar,
+        ur.status,
+        ur.create_time AS createTime
+        FROM user u
+        INNER JOIN user_role ur ON ur.user_id = u.id
+        <where>
+            <!-- deleted 为空则不过滤（完整留痕）；true 仅已注销；false 仅活跃 -->
+            <if test="dto.deleted != null">
+                <choose>
+                    <when test="dto.deleted">
+                        AND (u.deleted != 0 OR ur.deleted != 0)
+                    </when>
+                    <otherwise>
+                        AND u.deleted = 0 AND ur.deleted = 0
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="dto.username != null and dto.username != ''">
+                AND ur.username LIKE CONCAT('%', #{dto.username}, '%')
+            </if>
+            <if test="dto.phone != null and dto.phone != ''">
+                AND u.phone LIKE CONCAT(#{dto.phone}, '%')
+            </if>
+            <if test="dto.email != null and dto.email != ''">
+                AND u.email LIKE CONCAT(#{dto.email}, '%')
+            </if>
+            <if test="dto.userStatus != null">
+                AND ur.status = #{dto.userStatus}
+            </if>
+        </where>
+        <choose>
+            <when test="dto.sort != null and dto.sort.name() == 'CREATE_TIME_ASC'">
+                ORDER BY ur.create_time ASC, ur.id ASC
+            </when>
+            <when test="dto.sort != null and dto.sort.name() == 'CREATE_TIME_DESC'">
+                ORDER BY ur.create_time DESC, ur.id DESC
+            </when>
+            <!-- sort 为空或不适用时，默认按创建时间倒序，并以唯一主键 ur.id 兜底，保证分页顺序稳定 -->
+            <otherwise>
+                ORDER BY ur.create_time DESC, ur.id DESC
+            </otherwise>
+        </choose>
+    </select>
 </mapper>
