@@ -1,0 +1,43 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #f5f7fa;
+  font-family:
+    'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 认证类页面（登录 / 注册 / 找回密码）共用的居中窄卡片 */
+.auth-card {
+  width: 100%;
+  margin: 48px auto;
+}
+
+.page-card + .page-card {
+  margin-top: 16px;
+}
+
+.muted {
+  color: #909399;
+}
+
+.mono {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+.pager {
+  margin-top: 16px;
+  justify-content: flex-end;
+}
