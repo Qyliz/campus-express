@@ -36,7 +36,7 @@ public class UserController {
     private final UserBanRecordService userBanRecordService;
     private final VerifyCodeService verifyCodeService;
 
-    //注册
+    //注册（手机号或邮箱已存在且密码正确时，为本人追加一个新角色）
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     Result<Void> register(@Valid @ModelAttribute UserRegisterDTO registerDTO,
                           @RequestPart(value = "material", required = false) MultipartFile material) {
@@ -44,11 +44,11 @@ public class UserController {
         return Result.success();
     }
 
-    //登录
+    //登录：loginId 即 user.id，本次登录所选的角色存入 token session
     @PostMapping("/login")
     Result<Void> login(@Valid @RequestBody UserLoginDTO loginDTO) {
-        Long userRoleId = userService.login(loginDTO);
-        StpUtil.login(userRoleId);
+        Long userId = userService.login(loginDTO);
+        StpUtil.login(userId);
         StpUtil.getTokenSession().set("role", loginDTO.getRole().name());
         return Result.success();
     }
@@ -66,8 +66,7 @@ public class UserController {
     @GetMapping("/profile")
     @SaCheckLogin
     Result<UserProfileVO> getProfile() {
-        Long userRoleId = StpUtil.getLoginIdAsLong();
-        UserProfileVO profile = userService.getProfile(userRoleId);
+        UserProfileVO profile = userService.getProfile(StpUtil.getLoginIdAsLong(), currentRole());
         return Result.success(profile);
     }
 
@@ -79,8 +78,7 @@ public class UserController {
         if (username == null || username.isBlank()) {
             throw new BusinessException(ResultCodeEnum.PARAM_MISSING);
         }
-        Long userRoleId = StpUtil.getLoginIdAsLong();
-        UserProfileVO profile = userService.updateUsername(userRoleId, username);
+        UserProfileVO profile = userService.updateUsername(StpUtil.getLoginIdAsLong(), currentRole(), username);
         return Result.success(profile);
     }
 
@@ -92,8 +90,7 @@ public class UserController {
         if (gender == null) {
             throw new BusinessException(ResultCodeEnum.PARAM_MISSING);
         }
-        Long userRoleId = StpUtil.getLoginIdAsLong();
-        UserProfileVO profile = userService.updateGender(userRoleId, gender);
+        UserProfileVO profile = userService.updateGender(StpUtil.getLoginIdAsLong(), currentRole(), gender);
         return Result.success(profile);
     }
 
@@ -101,8 +98,7 @@ public class UserController {
     @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @SaCheckLogin
     Result<UserProfileVO> updateAvatar(@RequestParam("file") MultipartFile file) {
-        Long userRoleId = StpUtil.getLoginIdAsLong();
-        UserProfileVO profile = userService.updateAvatar(userRoleId, file);
+        UserProfileVO profile = userService.updateAvatar(StpUtil.getLoginIdAsLong(), currentRole(), file);
         return Result.success(profile);
     }
 
@@ -110,17 +106,15 @@ public class UserController {
     @PutMapping("/password")
     @SaCheckLogin
     Result<Void> updatePassword(@Valid @RequestBody UserPasswordDTO dto) {
-        Long userRoleId = StpUtil.getLoginIdAsLong();
-        userService.updatePassword(userRoleId, dto);
+        userService.updatePassword(StpUtil.getLoginIdAsLong(), dto);
         return Result.success();
     }
 
-    //注销账号（仅注销当前角色）
+    //注销账号（仅注销当前角色，user 主表与其他角色账户保留）
     @DeleteMapping("/account")
     @SaCheckLogin
     Result<Void> deleteAccount() {
-        Long userRoleId = StpUtil.getLoginIdAsLong();
-        userService.deleteAccount(userRoleId);
+        userService.deleteAccount(StpUtil.getLoginIdAsLong(), currentRole());
         return Result.success();
     }
 
@@ -142,8 +136,7 @@ public class UserController {
     @PutMapping("/phone")
     @SaCheckLogin
     Result<Void> updatePhone(@Valid @RequestBody ChangePhoneDTO dto) {
-        Long userRoleId = StpUtil.getLoginIdAsLong();
-        userService.updatePhone(userRoleId, dto);
+        userService.updatePhone(StpUtil.getLoginIdAsLong(), dto);
         return Result.success();
     }
 
@@ -151,8 +144,7 @@ public class UserController {
     @PutMapping("/email")
     @SaCheckLogin
     Result<Void> updateEmail(@Valid @RequestBody ChangeEmailDTO dto) {
-        Long userRoleId = StpUtil.getLoginIdAsLong();
-        userService.updateEmail(userRoleId, dto);
+        userService.updateEmail(StpUtil.getLoginIdAsLong(), dto);
         return Result.success();
     }
 
@@ -172,7 +164,7 @@ public class UserController {
         return Result.success();
     }
 
-    //获取所有账号信息
+    //获取所有账号信息（一人持多角色时，每个角色各占一行）
     @GetMapping("/all-users")
     @SaCheckRole(UserRoleEnum.ROLE_ADMIN)
     Result<PageResult<UserProfileAdminVO>> getAllUsers(@Valid UserQueryDTO dto) {
@@ -185,8 +177,8 @@ public class UserController {
     @SaCheckRole(UserRoleEnum.ROLE_ADMIN)
     Result<Void> banUser(@Valid @RequestBody UserBanDTO dto) {
         userBanRecordService.banUser(dto);
-        //踢出被禁账号的在线会话，其后续请求将返回 KICKED_OUT
-        StpUtil.kickout(dto.getUserRoleId());
+        //踢出被禁用户的在线会话，其后续请求将返回 KICKED_OUT
+        StpUtil.kickout(dto.getUserId());
         return Result.success();
     }
 
@@ -210,7 +202,7 @@ public class UserController {
     @PostMapping("/kickout")
     @SaCheckRole(UserRoleEnum.ROLE_ADMIN)
     Result<Void> kickoutUser(@Valid @RequestBody UserKickoutDTO dto) {
-        StpUtil.kickout(dto.getUserRoleId());
+        StpUtil.kickout(dto.getUserId());
         return Result.success();
     }
 
@@ -220,5 +212,10 @@ public class UserController {
     Result<Void> adminResetPassword(@Valid @RequestBody AdminResetPasswordDTO dto) {
         userService.adminResetPassword(dto);
         return Result.success();
+    }
+
+    //当前会话登录时所选的角色，由 login 写入 token session；StpInterfaceImpl 也依赖同一个键做权限判定
+    private UserRoleEnum currentRole() {
+        return UserRoleEnum.valueOf((String) StpUtil.getTokenSession().get("role"));
     }
 }

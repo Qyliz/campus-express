@@ -10,7 +10,7 @@ import java.util.Date;
 @Data
 public class UserAuditRecord {
     private Long id;
-    private Long userRoleId;
+    private Long courierId;
     private UserStatusEnum status;
     private String reason;
     private String material;

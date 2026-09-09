@@ -1,8 +1,10 @@
 package cn.njust.campusexpress.user;
 
 import cn.njust.campusexpress.common.enums.ResultCodeEnum;
-import cn.njust.campusexpress.model.user.entity.UserRole;
-import cn.njust.campusexpress.model.user.service.UserRoleService;
+import cn.njust.campusexpress.model.user.entity.Customer;
+import cn.njust.campusexpress.model.user.entity.User;
+import cn.njust.campusexpress.model.user.service.CustomerService;
+import cn.njust.campusexpress.model.user.service.UserService;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Assertions;
@@ -30,9 +32,13 @@ public class VerifyCodeFlowTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private UserRoleService userRoleService;
+    private UserService userService;
 
-    private Long registerCustomer(String username, String phone) throws Exception {
+    @Autowired
+    private CustomerService customerService;
+
+    //注册收寄件人（NORMAL），并校验 user 主表行与 customer 角色账户行都已创建
+    private void registerCustomer(String username, String phone) throws Exception {
         mockMvc.perform(multipart("/api/user/register")
                         .param("username", username)
                         .param("password", "1234567")
@@ -41,9 +47,10 @@ public class VerifyCodeFlowTest {
                         .param("phone", phone))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
-        UserRole userRole = userRoleService.lambdaQuery().eq(UserRole::getUsername, username).one();
-        Assertions.assertNotNull(userRole);
-        return userRole.getId();
+        User user = userService.lambdaQuery().eq(User::getUsername, username).one();
+        Assertions.assertNotNull(user);
+        Customer customer = customerService.lambdaQuery().eq(Customer::getUserId, user.getId()).one();
+        Assertions.assertNotNull(customer, "收寄件人账户行应已创建");
     }
 
     private Cookie login(String account, String password) throws Exception {

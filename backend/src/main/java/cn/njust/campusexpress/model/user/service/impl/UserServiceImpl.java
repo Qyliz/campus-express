@@ -5,12 +5,12 @@ import cn.njust.campusexpress.common.enums.*;
 import cn.njust.campusexpress.common.exception.BusinessException;
 import cn.njust.campusexpress.common.util.FileUtil;
 import cn.njust.campusexpress.model.user.dto.*;
+import cn.njust.campusexpress.model.user.entity.RoleAccount;
 import cn.njust.campusexpress.model.user.entity.User;
 import cn.njust.campusexpress.model.user.entity.UserAuditRecord;
-import cn.njust.campusexpress.model.user.entity.UserRole;
 import cn.njust.campusexpress.model.user.mapper.UserMapper;
+import cn.njust.campusexpress.model.user.service.RoleAccountService;
 import cn.njust.campusexpress.model.user.service.UserAuditRecordService;
-import cn.njust.campusexpress.model.user.service.UserRoleService;
 import cn.njust.campusexpress.model.user.service.UserService;
 import cn.njust.campusexpress.model.user.service.VerifyCodeService;
 import cn.njust.campusexpress.model.user.vo.UserProfileAdminVO;
@@ -25,8 +25,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-
 @SuppressWarnings("DuplicatedCode")
 @Slf4j
 @Service
@@ -34,12 +32,12 @@ import java.util.List;
 public class UserServiceImpl extends CrudRepository<UserMapper, User>
         implements UserService {
 
-    private final UserRoleService userRoleService;
+    private final RoleAccountService roleAccountService;
     private final UserAuditRecordService userAuditRecordService;
     private final UserMapper userMapper;
     private final VerifyCodeService verifyCodeService;
 
-    //注册
+    //注册：新账号，或凭密码给已有账号追加一个新角色
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void register(UserRegisterDTO registerDTO, MultipartFile material) {
@@ -53,56 +51,62 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         if (phone == null && email == null) {
             throw new BusinessException(ResultCodeEnum.PARAM_MISSING, "手机号和邮箱请至少输入一项");
         }
-        User user = new User();
-        //验证手机号是否重复
-        if (phone != null) {
-            boolean exist = lambdaQuery().eq(User::getPhone, phone).exists();
-            if (exist) {
-                throw new BusinessException(ResultCodeEnum.PHONE_ALREADY_BIND);
-            }
+
+        //回查已有账号（逻辑删除的行查不到）。命中同一个 user 说明是本人追加角色，命中两个不同 user 则是参数冲突
+        User byPhone = phone == null ? null : lambdaQuery().eq(User::getPhone, phone).one();
+        User byEmail = email == null ? null : lambdaQuery().eq(User::getEmail, email).one();
+        if (byPhone != null && byEmail != null && !byPhone.getId().equals(byEmail.getId())) {
+            throw new BusinessException(ResultCodeEnum.PARAM_ERROR, "手机号和邮箱属于不同账号");
+        }
+
+        User existing = byPhone != null ? byPhone : byEmail;
+        User user;
+        if (existing == null) {
+            //新账号：用户名、性别、头像属于「人」的共有资料，与凭证一起存在 user 主表
+            user = new User();
+            user.setUsername(registerDTO.getUsername());
+            user.setGender(registerDTO.getGender());
             user.setPhone(phone);
-        }
-        //验证邮箱是否重复
-        if (email != null) {
-            boolean exist = lambdaQuery().eq(User::getEmail, email).exists();
-            if (exist) {
-                throw new BusinessException(ResultCodeEnum.EMAIL_ALREADY_BIND);
-            }
             user.setEmail(email);
-        }
-
-        //加密密码
-        String hashPassword = BCrypt.hashpw(registerDTO.getPassword(), BCrypt.gensalt());
-        user.setPassword(hashPassword);
-        //存入user表
-        save(user);
-        //存入user_role表
-        UserRole userRole = new UserRole();
-        userRole.setUserId(user.getId());
-        userRole.setUsername(registerDTO.getUsername());
-        userRole.setRole(registerDTO.getRole());
-        userRole.setGender(registerDTO.getGender());
-
-        //角色为收寄件人，初始账号状态为正常，否则为审核中
-        if (registerDTO.getRole() == UserRoleEnum.CUSTOMER) {
-            userRole.setStatus(UserStatusEnum.NORMAL);
+            user.setPassword(BCrypt.hashpw(registerDTO.getPassword(), BCrypt.gensalt()));
+            save(user);
         } else {
-            userRole.setStatus(UserStatusEnum.REVIEWING);
+            //追加角色：必须凭正确密码证明是本人；密码不符时沿用「已被注册」提示，不额外泄露账号是否存在
+            if (!BCrypt.checkpw(registerDTO.getPassword(), existing.getPassword())) {
+                throw new BusinessException(byPhone != null
+                        ? ResultCodeEnum.PHONE_ALREADY_BIND
+                        : ResultCodeEnum.EMAIL_ALREADY_BIND);
+            }
+            if (roleAccountService.getByUserAndRole(existing.getId(), registerDTO.getRole()) != null) {
+                throw new BusinessException(ResultCodeEnum.ROLE_ALREADY_REGISTERED);
+            }
+            //已有资料不覆盖：第二次注册填的用户名/性别一律忽略
+            user = existing;
         }
-        userRoleService.save(userRole);
 
-        //仅为需要审核的角色（配送员）建立审核记录；收寄件人状态为正常，无需审核
-        if (registerDTO.getRole() != UserRoleEnum.CUSTOMER) {
-            //审核角色必须提交材料图片；缺失/为空由 FileUtil 抛 FILE_EMPTY
+        //收寄件人注册后即可用，配送员要等管理员审核
+        UserStatusEnum status = registerDTO.getRole() == UserRoleEnum.CUSTOMER
+                ? UserStatusEnum.NORMAL
+                : UserStatusEnum.REVIEWING;
+        RoleAccount account = roleAccountService.createAccount(user.getId(), registerDTO.getRole(), status);
+
+        //仅为配送员建立审核记录；审核材料必传，缺失/为空由 FileUtil 抛 FILE_EMPTY
+        if (registerDTO.getRole() == UserRoleEnum.COURIER) {
             String materialPath = FileUtil.saveImage("upload/audit", material);
             UserAuditRecord record = new UserAuditRecord();
-            record.setUserRoleId(userRole.getId());
+            record.setCourierId(account.getId());
             record.setMaterial(materialPath);
+            //status 不显式设置，交由数据库默认值 2（审核中）
             userAuditRecordService.save(record);
         }
     }
 
-    //登录
+    /**
+     * 登录。返回 user.id 作为 Sa-Token 的 loginId，角色名由 controller 写入 token session。
+     * <p>取舍：loginId 不带角色，且 sa-token.is-concurrent=false，所以一个人同一时刻只有一个在线会话，
+     * 切换角色等于重新登录（旧 token 变为 BE_REPLACED）；同理踢下线也只能按用户整体踢，
+     * 封禁其任一角色都会让其当前会话失效。换来的是登录态各处直接用 userId，无需在三张角色表间分发。</p>
+     */
     @Override
     public Long login(UserLoginDTO loginDTO) {
         String account = loginDTO.getAccount();
@@ -126,15 +130,10 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         if (user == null) {
             throw new BusinessException(ResultCodeEnum.LOGIN_ERROR);
         }
-        //获取账号id和状态
-        Long userId = user.getId();
-        UserRole userRole = userRoleService.lambdaQuery()
-                .select(UserRole::getId, UserRole::getStatus)
-                .eq(UserRole::getUserId, userId)
-                .eq(UserRole::getRole, loginDTO.getRole())
-                .one();
+        //该用户是否持有请求的角色账户
+        RoleAccount roleAccount = roleAccountService.getByUserAndRole(user.getId(), loginDTO.getRole());
         //账号没有该角色
-        if (userRole == null) {
+        if (roleAccount == null) {
             throw new BusinessException(ResultCodeEnum.LOGIN_ERROR);
         }
         //密码错误
@@ -142,7 +141,7 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
             throw new BusinessException(ResultCodeEnum.LOGIN_ERROR);
         }
         //处理异常账号状态
-        switch (userRole.getStatus()) {
+        switch (roleAccount.getStatus()) {
             case REVIEWING ->
                     throw new BusinessException(ResultCodeEnum.ACCOUNT_REVIEWING);
             case REJECTED ->
@@ -150,70 +149,46 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
             case DISABLED ->
                     throw new BusinessException(ResultCodeEnum.ACCOUNT_DISABLED);
         }
-        return userRole.getId();
+        return user.getId();
     }
 
     //获取账号资料
     @Override
-    public UserProfileVO getProfile(Long userRoleId) {
-        UserRole userRole = userRoleService.getById(userRoleId);
-        if (userRole == null) {
-            throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
-        }
-        User user = getById(userRole.getUserId());
-        if (user == null) {
-            throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
-        }
-        UserProfileVO profile = new UserProfileVO();
-        profile.setUsername(userRole.getUsername());
-        profile.setRole(userRole.getRole());
-        profile.setGender(userRole.getGender());
-        profile.setPhone(user.getPhone());
-        profile.setEmail(user.getEmail());
-        profile.setAvatar(userRole.getAvatar());
-        return profile;
+    public UserProfileVO getProfile(Long userId, UserRoleEnum role) {
+        return toProfile(requireUser(userId), role);
     }
 
     //更新用户名
     @Override
-    public UserProfileVO updateUsername(Long userRoleId, String username) {
-        UserRole userRole = userRoleService.getById(userRoleId);
-        if (userRole == null) {
-            throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
-        }
-        userRole.setUsername(username);
-        userRoleService.updateById(userRole);
-        return getProfile(userRoleId);
+    public UserProfileVO updateUsername(Long userId, UserRoleEnum role, String username) {
+        User user = requireUser(userId);
+        user.setUsername(username);
+        updateById(user);
+        return toProfile(user, role);
     }
 
     //更新性别
     @Override
-    public UserProfileVO updateGender(Long userRoleId, UserGenderEnum gender) {
-        UserRole userRole = userRoleService.getById(userRoleId);
-        if (userRole == null) {
-            throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
-        }
-        userRole.setGender(gender);
-        userRoleService.updateById(userRole);
-        return getProfile(userRoleId);
+    public UserProfileVO updateGender(Long userId, UserRoleEnum role, UserGenderEnum gender) {
+        User user = requireUser(userId);
+        user.setGender(gender);
+        updateById(user);
+        return toProfile(user, role);
     }
 
     //更新头像
     @Override
-    public UserProfileVO updateAvatar(Long userRoleId, MultipartFile file) {
+    public UserProfileVO updateAvatar(Long userId, UserRoleEnum role, MultipartFile file) {
         //获取账号数据
-        UserRole userRole = userRoleService.getById(userRoleId);
-        if (userRole == null) {
-            throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
-        }
+        User user = requireUser(userId);
         //获取旧头像
-        String oldAvatar = userRole.getAvatar();
+        String oldAvatar = user.getAvatar();
         //存储新头像文件
         String newAvatar = FileUtil.saveImage("upload/avatar", file);
         //更新数据库
         try {
-            userRole.setAvatar(newAvatar);
-            boolean success = userRoleService.updateById(userRole);
+            user.setAvatar(newAvatar);
+            boolean success = updateById(user);
             if (!success) {
                 throw new BusinessException(ResultCodeEnum.FILE_UPLOAD_ERROR);
             }
@@ -223,21 +198,14 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         }
         //删除旧头像
         FileUtil.deleteImage(oldAvatar);
-        return getProfile(userRoleId);
+        return toProfile(user, role);
     }
 
     //修改密码
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updatePassword(Long userRoleId, UserPasswordDTO dto) {
-        UserRole userRole = userRoleService.getById(userRoleId);
-        if (userRole == null) {
-            throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
-        }
-        User user = getById(userRole.getUserId());
-        if (user == null) {
-            throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
-        }
+    public void updatePassword(Long userId, UserPasswordDTO dto) {
+        User user = requireUser(userId);
         //校验旧密码
         if (!BCrypt.checkpw(dto.getOldPassword(), user.getPassword())) {
             throw new BusinessException(ResultCodeEnum.OLD_PASSWORD_ERROR);
@@ -245,25 +213,24 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         //写入新密码
         user.setPassword(BCrypt.hashpw(dto.getNewPassword(), BCrypt.gensalt()));
         updateById(user);
-        //修改成功后退出该账号会话，强制用新密码重新登录
-        StpUtil.logout(userRoleId);
+        //修改成功后退出当前会话，强制用新密码重新登录
+        StpUtil.logout();
     }
 
-    //注销账号（仅逻辑删除当前角色账号）
+    //注销账号（仅逻辑删除当前角色账户）
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void deleteAccount(Long userRoleId) {
-        UserRole userRole = userRoleService.getById(userRoleId);
-        if (userRole == null) {
+    public void deleteAccount(Long userId, UserRoleEnum role) {
+        //只软删当前角色那一行（@TableLogic 置 deleted=id），user 主表与其他角色账户保留
+        boolean removed = roleAccountService.deleteByUserAndRole(userId, role);
+        if (!removed) {
             throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
         }
-        //仅逻辑删除当前 user_role 行（@TableLogic 置 deleted=id），user 主表保留
-        userRoleService.removeById(userRoleId);
-        //注销后退出该账号会话
-        StpUtil.logout(userRoleId);
+        //注销后退出当前会话
+        StpUtil.logout();
     }
 
-    //忘记密码：校验验证码 -> 重置密码 -> 踢出该账号所有角色会话
+    //忘记密码：校验验证码 -> 重置密码 -> 踢出在线会话
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void resetPassword(ResetPasswordDTO dto) {
@@ -274,25 +241,25 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         }
         user.setPassword(BCrypt.hashpw(dto.getNewPassword(), BCrypt.gensalt()));
         updateById(user);
-        //改密后踢出该用户名下所有角色的在线会话，强制用新密码重新登录
-        kickoutAllRoles(user.getId());
+        //密码为该用户名下所有角色共享，改密后踢下线强制重新登录
+        StpUtil.kickout(user.getId());
     }
 
-    //管理员重置他人密码：改密 -> 踢出该账号所有角色会话
+    //管理员重置他人密码：改密 -> 踢出在线会话
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void adminResetPassword(AdminResetPasswordDTO dto) {
-        User user = currentUser(dto.getUserRoleId());
+        User user = requireUser(dto.getUserId());
         user.setPassword(BCrypt.hashpw(dto.getNewPassword(), BCrypt.gensalt()));
         updateById(user);
-        kickoutAllRoles(user.getId());
+        StpUtil.kickout(user.getId());
     }
 
     //换绑手机号（登录态）：校验验证码 -> 唯一性 -> 更新
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updatePhone(Long userRoleId, ChangePhoneDTO dto) {
-        User user = currentUser(userRoleId);
+    public void updatePhone(Long userId, ChangePhoneDTO dto) {
+        User user = requireUser(userId);
         verifyCodeService.verify(dto.getNewPhone(), VerifySceneEnum.CHANGE_PHONE, dto.getCode());
         if (lambdaQuery().eq(User::getPhone, dto.getNewPhone()).ne(User::getId, user.getId()).exists()) {
             throw new BusinessException(ResultCodeEnum.PHONE_ALREADY_BIND);
@@ -304,27 +271,14 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
     //换绑邮箱（登录态）：校验验证码 -> 唯一性 -> 更新
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateEmail(Long userRoleId, ChangeEmailDTO dto) {
-        User user = currentUser(userRoleId);
+    public void updateEmail(Long userId, ChangeEmailDTO dto) {
+        User user = requireUser(userId);
         verifyCodeService.verify(dto.getNewEmail(), VerifySceneEnum.CHANGE_EMAIL, dto.getCode());
         if (lambdaQuery().eq(User::getEmail, dto.getNewEmail()).ne(User::getId, user.getId()).exists()) {
             throw new BusinessException(ResultCodeEnum.EMAIL_ALREADY_BIND);
         }
         user.setEmail(dto.getNewEmail());
         updateById(user);
-    }
-
-    //获取当前登录角色对应的 user
-    private User currentUser(Long userRoleId) {
-        UserRole userRole = userRoleService.getById(userRoleId);
-        if (userRole == null) {
-            throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
-        }
-        User user = getById(userRole.getUserId());
-        if (user == null) {
-            throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
-        }
-        return user;
     }
 
     //按手机号或邮箱解析 user（格式非法抛 PARAM_ERROR，未找到返回 null）
@@ -340,12 +294,25 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         return getOne(wrapper);
     }
 
-    //踢出某用户名下所有角色的在线会话（密码存于 user 主表，为所有角色共享）
-    private void kickoutAllRoles(Long userId) {
-        List<UserRole> roles = userRoleService.lambdaQuery().eq(UserRole::getUserId, userId).list();
-        for (UserRole role : roles) {
-            StpUtil.kickout(role.getId());
+    //获取当前登录用户，不存在则抛 USER_NOT_FOUND
+    private User requireUser(Long userId) {
+        User user = getById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
         }
+        return user;
+    }
+
+    //资料全部来自 user 主表，role 只用于回显当前登录身份
+    private UserProfileVO toProfile(User user, UserRoleEnum role) {
+        UserProfileVO profile = new UserProfileVO();
+        profile.setUsername(user.getUsername());
+        profile.setRole(role);
+        profile.setGender(user.getGender());
+        profile.setPhone(user.getPhone());
+        profile.setEmail(user.getEmail());
+        profile.setAvatar(user.getAvatar());
+        return profile;
     }
 
     //获取所有账号信息
@@ -354,9 +321,8 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         //页码为空时默认为第1页
         int currentPage = dto.getCurrentPage() == null ? 1 : dto.getCurrentPage();
         Page<UserProfileAdminVO> page = new Page<>(currentPage, 10);
-        //关联 user 与 user_role 表分页查询，查询条件与排序在 UserMapper.xml 中动态拼接
+        //一人可持多个角色，故结果一行一个 (用户, 角色账户)；查询条件与排序在 UserMapper.xml 中动态拼接
         userMapper.selectUserPage(page, dto);
         return page;
     }
 }
-

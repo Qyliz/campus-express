@@ -5,11 +5,11 @@ import cn.njust.campusexpress.common.enums.UserStatusEnum;
 import cn.njust.campusexpress.common.exception.BusinessException;
 import cn.njust.campusexpress.model.user.dto.UserAuditDTO;
 import cn.njust.campusexpress.model.user.dto.UserAuditQueryDTO;
+import cn.njust.campusexpress.model.user.entity.Courier;
 import cn.njust.campusexpress.model.user.entity.UserAuditRecord;
-import cn.njust.campusexpress.model.user.entity.UserRole;
 import cn.njust.campusexpress.model.user.mapper.UserAuditRecordMapper;
+import cn.njust.campusexpress.model.user.service.CourierService;
 import cn.njust.campusexpress.model.user.service.UserAuditRecordService;
-import cn.njust.campusexpress.model.user.service.UserRoleService;
 import cn.njust.campusexpress.model.user.vo.UserAuditRecordVO;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.spring.repository.CrudRepository;
@@ -26,7 +26,8 @@ public class UserAuditRecordServiceImpl extends CrudRepository<UserAuditRecordMa
         implements UserAuditRecordService {
 
     private final UserAuditRecordMapper mapper;
-    private final UserRoleService userRoleService;
+    //审核只针对配送员，角色是确定的，直接用 CourierService 而不走角色路由器
+    private final CourierService courierService;
 
     //获取审核记录
     @Override
@@ -34,7 +35,7 @@ public class UserAuditRecordServiceImpl extends CrudRepository<UserAuditRecordMa
         //页码为空时默认为第1页
         int currentPage = dto.getCurrentPage() == null ? 1 : dto.getCurrentPage();
         Page<UserAuditRecordVO> page = new Page<>(currentPage, 10);
-        //关联 user_audit_record、user_role 与 user 表分页查询，查询条件与排序在 UserAuditRecordMapper.xml 中动态拼接
+        //关联 user_audit_record、courier 与 user 表分页查询，查询条件与排序在 UserAuditRecordMapper.xml 中动态拼接
         mapper.selectAuditPage(page, dto);
         return page;
     }
@@ -61,25 +62,21 @@ public class UserAuditRecordServiceImpl extends CrudRepository<UserAuditRecordMa
         record.setStatus(dto.getStatus());
         record.setReason(dto.getReason());
         updateById(record);
-        //获取user_role表数据
-        UserRole userRole = userRoleService.getById(record.getUserRoleId());
-        if (userRole == null) {
+        //获取courier表数据
+        Courier courier = courierService.getById(record.getCourierId());
+        if (courier == null) {
             throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
         }
         //检查账号状态
-        UserStatusEnum oldState2 = userRole.getStatus();
+        UserStatusEnum oldState2 = courier.getStatus();
         switch (oldState2) {
             case NORMAL ->
                     throw new BusinessException(ResultCodeEnum.ACCOUNT_REVIEWED);
             case DISABLED ->
                     throw new BusinessException(ResultCodeEnum.ACCOUNT_DISABLED);
         }
-        //更新user_role表
-        userRole.setStatus(dto.getStatus());
-        userRoleService.updateById(userRole);
+        //审核结果同步到配送员账户状态
+        courier.setStatus(dto.getStatus());
+        courierService.updateById(courier);
     }
 }
-
-
-
-

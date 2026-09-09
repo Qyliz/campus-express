@@ -5,69 +5,79 @@
 <!--suppress XmlUnresolvedReference -->
 <mapper namespace="cn.njust.campusexpress.model.user.mapper.UserMapper">
 
-    <resultMap id="BaseResultMap" type="cn.njust.campusexpress.model.user.entity.User">
-        <id property="id" column="id"/>
-        <result property="phone" column="phone"/>
-        <result property="email" column="email"/>
-        <result property="password" column="password"/>
-        <result property="createTime" column="create_time"/>
-        <result property="updateTime" column="update_time"/>
-        <result property="deleted" column="deleted"/>
-    </resultMap>
-
-    <sql id="Base_Column_List">
-        id,phone,email,password,create_time,update_time,
-        deleted
-    </sql>
-
-    <!-- 分页查询管理端用户列表：user 关联 user_role，动态拼接查询条件与排序 -->
+    <!-- 分页查询管理端用户列表：一人可持多个角色，结果一行一个 (用户, 角色账户)。
+         三张角色表结构对称，故用 UNION ALL 合成派生表 t，外层再统一过滤、排序、分页。
+         role 取 UserRoleEnum 的 @EnumValue 码：1=收寄件人，2=配送员，0=管理员。
+         accountId / userDeleted / accountDeleted 只供外层 ORDER BY 与 WHERE 使用，不进入 VO。 -->
     <select id="selectUserPage" resultType="cn.njust.campusexpress.model.user.vo.UserProfileAdminVO">
-        SELECT ur.id AS userRoleId,
-        ur.username,
-        ur.role,
-        ur.gender,
+        SELECT t.userId,
+        t.role,
+        t.username,
+        t.gender,
+        t.phone,
+        t.email,
+        t.avatar,
+        t.status,
+        t.createTime
+        FROM (
+        SELECT u.id AS userId,
+        1 AS role,
+        u.username,
+        u.gender,
         u.phone,
         u.email,
-        ur.avatar,
-        ur.status,
-        ur.create_time AS createTime
+        u.avatar,
+        c.status,
+        c.create_time AS createTime,
+        c.id AS accountId,
+        u.deleted AS userDeleted,
+        c.deleted AS accountDeleted
         FROM user u
-        INNER JOIN user_role ur ON ur.user_id = u.id
+        INNER JOIN customer c ON c.user_id = u.id
+        UNION ALL
+        SELECT u.id, 2, u.username, u.gender, u.phone, u.email, u.avatar,
+        co.status, co.create_time, co.id, u.deleted, co.deleted
+        FROM user u
+        INNER JOIN courier co ON co.user_id = u.id
+        UNION ALL
+        SELECT u.id, 0, u.username, u.gender, u.phone, u.email, u.avatar,
+        a.status, a.create_time, a.id, u.deleted, a.deleted
+        FROM user u
+        INNER JOIN admin a ON a.user_id = u.id
+        ) t
         <where>
             <!-- deleted 为空则不过滤（完整留痕）；true 仅已注销；false 仅活跃 -->
             <if test="dto.deleted != null">
                 <choose>
                     <when test="dto.deleted">
-                        AND (u.deleted != 0 OR ur.deleted != 0)
+                        AND (t.userDeleted != 0 OR t.accountDeleted != 0)
                     </when>
                     <otherwise>
-                        AND u.deleted = 0 AND ur.deleted = 0
+                        AND t.userDeleted = 0 AND t.accountDeleted = 0
                     </otherwise>
                 </choose>
             </if>
             <if test="dto.username != null and dto.username != ''">
-                AND ur.username LIKE CONCAT('%', #{dto.username}, '%')
+                AND t.username LIKE CONCAT('%', #{dto.username}, '%')
             </if>
             <if test="dto.phone != null and dto.phone != ''">
-                AND u.phone LIKE CONCAT(#{dto.phone}, '%')
+                AND t.phone LIKE CONCAT(#{dto.phone}, '%')
             </if>
             <if test="dto.email != null and dto.email != ''">
-                AND u.email LIKE CONCAT(#{dto.email}, '%')
+                AND t.email LIKE CONCAT(#{dto.email}, '%')
             </if>
             <if test="dto.userStatus != null">
-                AND ur.status = #{dto.userStatus}
+                AND t.status = #{dto.userStatus}
             </if>
         </where>
         <choose>
             <when test="dto.sort != null and dto.sort.name() == 'CREATE_TIME_ASC'">
-                ORDER BY ur.create_time ASC, ur.id ASC
+                ORDER BY t.createTime ASC, t.accountId ASC
             </when>
-            <when test="dto.sort != null and dto.sort.name() == 'CREATE_TIME_DESC'">
-                ORDER BY ur.create_time DESC, ur.id DESC
-            </when>
-            <!-- sort 为空或不适用时，默认按创建时间倒序，并以唯一主键 ur.id 兜底，保证分页顺序稳定 -->
+            <!-- sort 为空或不适用时，默认按创建时间倒序；一人多角色时创建时间可能相同，
+                 故再以唯一的 accountId 兜底，保证分页顺序稳定 -->
             <otherwise>
-                ORDER BY ur.create_time DESC, ur.id DESC
+                ORDER BY t.createTime DESC, t.accountId DESC
             </otherwise>
         </choose>
     </select>

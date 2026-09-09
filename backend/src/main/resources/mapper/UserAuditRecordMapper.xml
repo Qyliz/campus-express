@@ -5,25 +5,12 @@
 <!--suppress XmlUnresolvedReference -->
 <mapper namespace="cn.njust.campusexpress.model.user.mapper.UserAuditRecordMapper">
 
-    <resultMap id="BaseResultMap" type="cn.njust.campusexpress.model.user.entity.UserAuditRecord">
-        <id property="id" column="id"/>
-        <result property="userRoleId" column="user_role_id"/>
-        <result property="status" column="status"/>
-        <result property="reason" column="reason"/>
-        <result property="material" column="material"/>
-        <result property="createTime" column="create_time"/>
-        <result property="updateTime" column="update_time"/>
-    </resultMap>
-
-    <sql id="Base_Column_List">
-        id,user_role_id,status,reason,material,create_time,update_time
-    </sql>
-
-    <!-- 分页查询审核记录列表：user_audit_record 关联 user_role 与 user，动态拼接查询条件与排序 -->
+    <!-- 分页查询审核记录列表：审核只针对配送员，故联表链为 user_audit_record -> courier -> user。
+         用户名、性别、手机号、邮箱均来自 user 主表。 -->
     <select id="selectAuditPage" resultType="cn.njust.campusexpress.model.user.vo.UserAuditRecordVO">
         SELECT r.id AS userAuditRecordId,
-        ur.username,
-        ur.gender,
+        u.username,
+        u.gender,
         u.phone,
         u.email,
         r.status,
@@ -32,22 +19,22 @@
         r.create_time AS createTime,
         r.update_time AS updateTime
         FROM user_audit_record r
-        INNER JOIN user_role ur ON r.user_role_id = ur.id
-        INNER JOIN user u ON ur.user_id = u.id
+        INNER JOIN courier co ON r.courier_id = co.id
+        INNER JOIN user u ON co.user_id = u.id
         <where>
             <!-- deleted 为空则不过滤（完整留痕）；true 仅已注销；false 仅活跃 -->
             <if test="dto.deleted != null">
                 <choose>
                     <when test="dto.deleted">
-                        AND (u.deleted != 0 OR ur.deleted != 0)
+                        AND (u.deleted != 0 OR co.deleted != 0)
                     </when>
                     <otherwise>
-                        AND u.deleted = 0 AND ur.deleted = 0
+                        AND u.deleted = 0 AND co.deleted = 0
                     </otherwise>
                 </choose>
             </if>
             <if test="dto.username != null and dto.username != ''">
-                AND ur.username LIKE CONCAT('%', #{dto.username}, '%')
+                AND u.username LIKE CONCAT('%', #{dto.username}, '%')
             </if>
             <if test="dto.phone != null and dto.phone != ''">
                 AND u.phone LIKE CONCAT(#{dto.phone}, '%')

@@ -1,7 +1,5 @@
 package cn.njust.campusexpress.model.user.entity;
 
-import cn.njust.campusexpress.common.enums.UserGenderEnum;
-import cn.njust.campusexpress.common.enums.UserRoleEnum;
 import cn.njust.campusexpress.common.enums.UserStatusEnum;
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -10,14 +8,14 @@ import lombok.Data;
 
 import java.util.Date;
 
+/**
+ * 角色账户表的公共结构，对应 customer / courier / admin 三张同构表。
+ * 抽象基类不能加 @TableName，表名由各具体子类按驼峰转下划线推导。
+ */
 @Data
-public class UserRole {
+public abstract class RoleAccount {
     private Long id;
     private Long userId;
-    private UserRoleEnum role;
-    private String username;
-    private UserGenderEnum gender;
-    private String avatar;
     private UserStatusEnum status;
     private Date createTime;
 
@@ -25,5 +23,5 @@ public class UserRole {
     private Date updateTime;
 
     @TableLogic(value = "0", delval = "id")
-    private Integer deleted;
+    private Long deleted;
 }

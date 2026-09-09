@@ -11,7 +11,8 @@ public interface UserMapper extends BaseMapper<User> {
 
     /**
      * 分页查询管理端用户列表
-     * <p>关联 user 与 user_role 表，按 {@link UserQueryDTO} 中的条件动态过滤与排序。</p>
+     * <p>user 主表与 customer / courier / admin 三张角色表 UNION ALL 后分页，
+     * 结果一行一个 (用户, 角色账户)，按 {@link UserQueryDTO} 中的条件动态过滤与排序。</p>
      *
      * @param page 分页参数
      * @param dto  查询条件（用户名、手机号、邮箱、状态、删除状态、排序方式）

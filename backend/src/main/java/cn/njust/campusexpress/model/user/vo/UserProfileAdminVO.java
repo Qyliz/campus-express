@@ -9,7 +9,7 @@ import java.util.Date;
 
 @Data
 public class UserProfileAdminVO {
-    private Long userRoleId;
+    private Long userId;
     private String username;
     private UserRoleEnum role;
     private UserGenderEnum gender;

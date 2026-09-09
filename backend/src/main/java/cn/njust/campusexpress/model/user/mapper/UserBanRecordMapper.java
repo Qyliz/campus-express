@@ -12,7 +12,8 @@ public interface UserBanRecordMapper extends BaseMapper<UserBanRecord> {
 
     /**
      * 分页查询封禁记录列表
-     * <p>关联 user_ban_record、user_role 与 user 表，按 {@link UserBanQueryDTO} 中的条件动态过滤与排序。</p>
+     * <p>关联 user_ban_record 与 user 表（被封禁账户的角色是记录表自己的 role 列），
+     * 按 {@link UserBanQueryDTO} 中的条件动态过滤与排序。</p>
      *
      * @param page 分页参数
      * @param dto  查询条件（用户名、手机号、邮箱、解封状态、删除状态、排序方式）
