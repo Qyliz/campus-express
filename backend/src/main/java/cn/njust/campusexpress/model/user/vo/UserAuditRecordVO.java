@@ -1,7 +1,7 @@
 package cn.njust.campusexpress.model.user.vo;
 
 import cn.njust.campusexpress.common.enums.UserGenderEnum;
-import cn.njust.campusexpress.common.enums.UserStatusEnum;
+import cn.njust.campusexpress.common.enums.AuditStatusEnum;
 import lombok.Data;
 
 import java.util.Date;
@@ -13,7 +13,7 @@ public class UserAuditRecordVO {
     private UserGenderEnum gender;
     private String phone;
     private String email;
-    private UserStatusEnum status;
+    private AuditStatusEnum status;
     private String reason;
     private String material;
     private Date createTime;

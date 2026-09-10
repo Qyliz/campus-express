@@ -1,3 +1,4 @@
+import ExceptionsView from '@/views/admin/ExceptionsView.vue'
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
@@ -12,6 +13,11 @@ import ProfileView from '@/views/ProfileView.vue'
 import AdminUsersView from '@/views/admin/UsersView.vue'
 import AdminAuditsView from '@/views/admin/AuditsView.vue'
 import AdminBansView from '@/views/admin/BansView.vue'
+import CreateOrderView from '@/views/order/CreateOrderView.vue'
+import OrderListView from '@/views/order/OrderListView.vue'
+import OrderDetailView from '@/views/order/OrderDetailView.vue'
+import type { OrderScope } from '@/api/order'
+import type { RoleEnum } from '@/types'
 
 /** 让 to.meta.xxx 有类型，而不是 unknown */
 declare module 'vue-router' {
@@ -20,6 +26,8 @@ declare module 'vue-router' {
     requiresAuth?: boolean
     requiresAdmin?: boolean
     guestOnly?: boolean
+    role?: RoleEnum
+    orderScope?: OrderScope
   }
 }
 
@@ -28,6 +36,36 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     component: DefaultLayout,
     children: [
+      {
+        path: 'order/create',
+        name: 'order-create',
+        component: CreateOrderView,
+        meta: { title: '发布订单', requiresAuth: true, role: 'CUSTOMER' },
+      },
+      {
+        path: 'order/mine',
+        name: 'orders-mine',
+        component: OrderListView,
+        meta: { title: '我的订单', requiresAuth: true, role: 'CUSTOMER', orderScope: 'mine' },
+      },
+      {
+        path: 'order/available',
+        name: 'orders-available',
+        component: OrderListView,
+        meta: { title: '接单大厅', requiresAuth: true, role: 'COURIER', orderScope: 'available' },
+      },
+      {
+        path: 'order/assigned',
+        name: 'orders-assigned',
+        component: OrderListView,
+        meta: { title: '我的配送', requiresAuth: true, role: 'COURIER', orderScope: 'assigned' },
+      },
+      {
+        path: 'order/:id',
+        name: 'order-detail',
+        component: OrderDetailView,
+        meta: { title: '订单详情', requiresAuth: true },
+      },
       { path: '', name: 'home', component: HomeView, meta: { title: '首页' } },
       {
         path: 'login',
@@ -66,6 +104,24 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, requiresAdmin: true },
     children: [
       { path: '', redirect: { name: 'admin-users' } },
+      {
+        path: 'exceptions',
+        name: 'admin-exceptions',
+        component: ExceptionsView,
+        meta: { title: '异常管理' },
+      },
+      {
+        path: 'orders',
+        name: 'admin-orders',
+        component: OrderListView,
+        meta: { title: '订单管理', orderScope: 'admin' },
+      },
+      {
+        path: 'orders/:id',
+        name: 'admin-order-detail',
+        component: OrderDetailView,
+        meta: { title: '订单详情' },
+      },
       {
         path: 'users',
         name: 'admin-users',
@@ -107,7 +163,7 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
 
-  // 首次导航真正发一次 GET /api/user/profile，之后复用同一个 Promise。
+  // 首次导航查询 GET /api/user/session，匿名访问返回空数据，之后复用同一个 Promise。
   // 守卫是 async 的 → 首屏在探测结束前不渲染任何路由组件，因此不会闪一下未登录的样子。
   await auth.init()
 
@@ -118,6 +174,11 @@ router.beforeEach(async (to) => {
   // 后端 @SaCheckRole("ADMIN") 本来也会回 403，这里只是提前拦住，体验更好
   if (to.meta.requiresAdmin && !auth.isAdmin) {
     ElMessage.warning('该功能仅管理员可用')
+    return { name: 'home' }
+  }
+
+  if (to.meta.role && auth.role !== to.meta.role) {
+    ElMessage.warning('当前身份不能访问此页面')
     return { name: 'home' }
   }
 

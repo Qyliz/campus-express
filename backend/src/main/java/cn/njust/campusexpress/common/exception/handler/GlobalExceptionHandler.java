@@ -19,6 +19,12 @@ import java.util.stream.Collectors;
 @Order
 public class GlobalExceptionHandler {
 
+    // 路径或查询参数中的 ID、角色等格式无效时，返回参数错误而不是系统错误。
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    public Result<Void> handleTypeMismatch(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException e) {
+        return Result.fail(ResultCodeEnum.PARAM_ERROR, "参数格式不正确：" + e.getName());
+    }
+
     //处理参数反序列异常
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public Result<?> handle(HttpMessageNotReadableException e) {

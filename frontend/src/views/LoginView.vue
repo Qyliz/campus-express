@@ -51,7 +51,7 @@ async function onSubmit() {
     if (e instanceof ApiError && e.code === 2005) {
       reviewTip.value = '该配送员账号还在审核中，需要管理员审核通过后才能登录。'
     } else if (e instanceof ApiError && e.code === 2006) {
-      reviewTip.value = '该账号的审核申请已被驳回，请联系管理员，或重新注册。'
+      reviewTip.value = e.message
     }
   } finally {
     submitting.value = false

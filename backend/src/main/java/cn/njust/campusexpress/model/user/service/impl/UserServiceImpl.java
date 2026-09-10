@@ -52,6 +52,9 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
             throw new BusinessException(ResultCodeEnum.PARAM_MISSING, "手机号和邮箱请至少输入一项");
         }
 
+        // 新注册及追加角色都验证所填写联系方式，两项均填写时必须全部校验成功。
+        verifyCodeService.verifyRegistration(phone, registerDTO.getPhoneCode(), email, registerDTO.getEmailCode());
+
         //回查已有账号（逻辑删除的行查不到）。命中同一个 user 说明是本人追加角色，命中两个不同 user 则是参数冲突
         User byPhone = phone == null ? null : lambdaQuery().eq(User::getPhone, phone).one();
         User byEmail = email == null ? null : lambdaQuery().eq(User::getEmail, email).one();
@@ -144,8 +147,17 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         switch (roleAccount.getStatus()) {
             case REVIEWING ->
                     throw new BusinessException(ResultCodeEnum.ACCOUNT_REVIEWING);
-            case REJECTED ->
-                    throw new BusinessException(ResultCodeEnum.ACCOUNT_REJECTED);
+            case REJECTED -> {
+                UserAuditRecord record = userAuditRecordService.lambdaQuery()
+                        .eq(UserAuditRecord::getCourierId, roleAccount.getId())
+                        .eq(UserAuditRecord::getStatus, AuditStatusEnum.REJECTED)
+                        .orderByDesc(UserAuditRecord::getId).last("LIMIT 1").one();
+                String reason = record == null ? null : record.getReason();
+                throw new BusinessException(ResultCodeEnum.ACCOUNT_REJECTED,
+                        reason == null || reason.isBlank()
+                                ? "审核被驳回，管理员未填写驳回原因，请联系管理员"
+                                : "审核被驳回，原因：" + reason);
+            }
             case DISABLED ->
                     throw new BusinessException(ResultCodeEnum.ACCOUNT_DISABLED);
         }
@@ -248,8 +260,8 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
     //管理员重置他人密码：改密 -> 踢出在线会话
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void adminResetPassword(AdminResetPasswordDTO dto) {
-        User user = requireUser(dto.getUserId());
+    public void adminResetPassword(Long userId, AdminResetPasswordDTO dto) {
+        User user = requireUser(userId);
         user.setPassword(BCrypt.hashpw(dto.getNewPassword(), BCrypt.gensalt()));
         updateById(user);
         StpUtil.kickout(user.getId());

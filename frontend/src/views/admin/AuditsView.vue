@@ -7,13 +7,13 @@ import {
   allSortOptions,
   genderLabel,
   PAGE_SIZE,
-  statusLabel,
-  statusOptions,
-  statusTagType,
+  auditStatusLabel,
+  auditStatusOptions,
+  auditStatusTagType,
 } from '@/constants'
 import { formatDateTime } from '@/utils/date'
 import { imageUrl } from '@/utils/image'
-import type { GenderEnum, SortEnum, StatusEnum, UserAuditRecordVO } from '@/types'
+import type { GenderEnum, SortEnum, AuditStatusEnum, UserAuditRecordVO } from '@/types'
 
 /**
  * 三态/枚举筛选一律用字符串承载，'' 表示「全部」。
@@ -25,7 +25,7 @@ const filters = reactive({
   phone: '',
   email: '',
   /** 这个查询 DTO 里的字段叫 auditStatus（账号管理页那个叫 userStatus） */
-  auditStatus: '' as StatusEnum | '',
+  auditStatus: '' as AuditStatusEnum | '',
   deleted: '' as '' | 'false' | 'true',
   sort: '' as SortEnum | '',
 })
@@ -128,8 +128,7 @@ async function submitAudit() {
   <div>
     <el-alert type="info" :closable="false" show-icon class="page-card">
       <template #title>审核记录只为「配送员」注册创建</template>
-      收寄件人和管理员注册后立即可用，不需要审核。所以这里的列表只会出现配送员申请；空列表是正常的，不是出了
-      bug。
+      仅展示配送员提交的审核申请。审核状态独立于账号状态，账号被封禁不会改变已通过的审核结果。
     </el-alert>
 
     <el-card shadow="never" class="page-card">
@@ -152,7 +151,7 @@ async function submitAudit() {
           <el-select v-model="filters.auditStatus" placeholder="全部" style="width: 130px">
             <el-option label="全部" value="" />
             <el-option
-              v-for="o in statusOptions"
+              v-for="o in auditStatusOptions"
               :key="o.value"
               :label="o.label"
               :value="o.value"
@@ -217,10 +216,10 @@ async function submitAudit() {
           <template #default="{ row }">{{ row.email || '—' }}</template>
         </el-table-column>
 
-        <el-table-column label="状态" width="100">
+        <el-table-column label="审核状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="statusTagType[row.status as StatusEnum]" size="small">
-              {{ statusLabel[row.status as StatusEnum] }}
+            <el-tag :type="auditStatusTagType[row.status as AuditStatusEnum]" size="small">
+              {{ auditStatusLabel[row.status as AuditStatusEnum] }}
             </el-tag>
           </template>
         </el-table-column>
@@ -322,7 +321,7 @@ async function submitAudit() {
         v-model="dialog.reason"
         type="textarea"
         :rows="3"
-        maxlength="200"
+        maxlength="100"
         show-word-limit
         placeholder="驳回原因（必填，会展示给申请人）"
       />
@@ -331,7 +330,7 @@ async function submitAudit() {
         v-model="dialog.reason"
         type="textarea"
         :rows="2"
-        maxlength="200"
+        maxlength="100"
         show-word-limit
         placeholder="备注（可选）"
       />

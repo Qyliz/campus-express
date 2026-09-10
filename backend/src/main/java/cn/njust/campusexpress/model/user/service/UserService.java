@@ -49,7 +49,7 @@ public interface UserService extends IRepository<User> {
 
     void resetPassword(ResetPasswordDTO dto);
 
-    void adminResetPassword(AdminResetPasswordDTO dto);
+    void adminResetPassword(Long userId, AdminResetPasswordDTO dto);
 
     void updatePhone(Long userId, ChangePhoneDTO dto);
 

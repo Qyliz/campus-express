@@ -1,4 +1,5 @@
 -- 用户模块建表脚本（角色账户三表拆分版）
+-- 订单表附于本文件末尾，启动时幂等创建。
 -- 幂等：统一使用 CREATE TABLE IF NOT EXISTS，应用重复启动不会报错。
 -- 说明：
 --   1) 主键 id 为 BIGINT 且非自增，由 MyBatis-Plus 雪花算法(ASSIGN_ID)在应用侧生成。
@@ -84,3 +85,67 @@ CREATE TABLE IF NOT EXISTS `user_ban_record` (
   KEY `fk_user_ban_record` (`user_id`),
   CONSTRAINT `fk_user_ban_record` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='账户封禁记录表';
+
+-- 配送订单：地址和联系人保留下单时的值。节点时间统一保存在状态记录中。
+CREATE TABLE IF NOT EXISTS express_order (
+  id BIGINT NOT NULL,
+  customer_id BIGINT NOT NULL,
+  courier_id BIGINT DEFAULT NULL,
+  pickup_address VARCHAR(255) NOT NULL,
+  pickup_name VARCHAR(50) NOT NULL,
+  pickup_phone VARCHAR(20) NOT NULL,
+  delivery_address VARCHAR(255) NOT NULL,
+  delivery_name VARCHAR(50) NOT NULL,
+  delivery_phone VARCHAR(20) DEFAULT NULL,
+  delivery_email VARCHAR(255) DEFAULT NULL,
+  item_description VARCHAR(255) NOT NULL,
+  remark VARCHAR(255) DEFAULT NULL,
+  fee DECIMAL(6,2) NOT NULL,
+  order_status TINYINT NOT NULL DEFAULT 0 COMMENT '0待支付 1待接单 2待揽收 3配送中 4待取件 5已完成 6已取消',
+  payment_status TINYINT NOT NULL DEFAULT 0 COMMENT '0未支付 1已支付 2已退款',
+  version INT NOT NULL DEFAULT 0,
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_order_customer_time (customer_id, create_time),
+  KEY idx_order_courier_time (courier_id, create_time),
+  KEY idx_order_status_time (order_status, create_time),
+  KEY idx_order_delivery_phone (delivery_phone, create_time),
+  KEY idx_order_delivery_email (delivery_email, create_time),
+  CONSTRAINT fk_order_customer FOREIGN KEY (customer_id) REFERENCES customer(id),
+  CONSTRAINT fk_order_courier FOREIGN KEY (courier_id) REFERENCES courier(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS delivery_exception (
+  id BIGINT NOT NULL PRIMARY KEY,
+  order_id BIGINT NOT NULL,
+  courier_id BIGINT NOT NULL,
+  type VARCHAR(20) NOT NULL,
+  description VARCHAR(255) NOT NULL,
+  status TINYINT NOT NULL DEFAULT 0 COMMENT '0待处理 1已处理',
+  admin_id BIGINT DEFAULT NULL,
+  resolution VARCHAR(20) DEFAULT NULL,
+  resolution_description VARCHAR(255) DEFAULT NULL,
+  create_time DATETIME NOT NULL,
+  resolved_time DATETIME DEFAULT NULL,
+  KEY idx_exception_order (order_id, create_time, id),
+  KEY idx_exception_status (status, create_time, id),
+  CONSTRAINT fk_exception_order FOREIGN KEY (order_id) REFERENCES express_order(id),
+  CONSTRAINT fk_exception_courier FOREIGN KEY (courier_id) REFERENCES courier(id),
+  CONSTRAINT fk_exception_admin FOREIGN KEY (admin_id) REFERENCES admin(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE IF NOT EXISTS order_status_record (
+  id BIGINT NOT NULL,
+  order_id BIGINT NOT NULL,
+  from_status TINYINT DEFAULT NULL,
+  to_status TINYINT NOT NULL,
+  operator_id BIGINT NOT NULL,
+  operator_role TINYINT NOT NULL,
+  description VARCHAR(255) DEFAULT NULL,
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_order_record_time (order_id, create_time, id),
+  CONSTRAINT fk_order_record_order FOREIGN KEY (order_id) REFERENCES express_order(id),
+  CONSTRAINT fk_order_record_operator FOREIGN KEY (operator_id) REFERENCES user(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

@@ -12,5 +12,5 @@ public interface UserAuditRecordService extends IRepository<UserAuditRecord> {
 
     Page<UserAuditRecordVO> getRecordPage(UserAuditQueryDTO dto);
 
-    void auditUser(UserAuditDTO dto);
+    void auditUser(Long recordId, UserAuditDTO dto);
 }

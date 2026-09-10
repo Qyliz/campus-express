@@ -1,6 +1,7 @@
 package cn.njust.campusexpress.model.user.service.impl;
 
 import cn.njust.campusexpress.common.enums.ResultCodeEnum;
+import cn.njust.campusexpress.common.enums.AuditStatusEnum;
 import cn.njust.campusexpress.common.enums.UserStatusEnum;
 import cn.njust.campusexpress.common.exception.BusinessException;
 import cn.njust.campusexpress.model.user.dto.UserAuditDTO;
@@ -43,19 +44,19 @@ public class UserAuditRecordServiceImpl extends CrudRepository<UserAuditRecordMa
     //审核账号
     @Override
     @Transactional
-    public void auditUser(UserAuditDTO dto) {
+    public void auditUser(Long recordId, UserAuditDTO dto) {
         //审核结果只能是通过或驳回
-        UserStatusEnum result = dto.getStatus();
-        if (result != UserStatusEnum.NORMAL && result != UserStatusEnum.REJECTED) {
+        AuditStatusEnum result = dto.getStatus();
+        if (result != AuditStatusEnum.NORMAL && result != AuditStatusEnum.REJECTED) {
             throw new BusinessException(ResultCodeEnum.PARAM_ERROR, "审核结果只能为通过或驳回");
         }
-        UserAuditRecord record = getById(dto.getUserAuditRecordId());
+        UserAuditRecord record = getById(recordId);
         if (record == null) {
             throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
         }
         //账号已审核
-        UserStatusEnum oldState1 = record.getStatus();
-        if (Objects.requireNonNull(oldState1) == UserStatusEnum.NORMAL) {
+        AuditStatusEnum oldState1 = record.getStatus();
+        if (Objects.requireNonNull(oldState1) == AuditStatusEnum.NORMAL) {
             throw new BusinessException(ResultCodeEnum.ACCOUNT_REVIEWED);
         }
         //更新user_audit_record表
@@ -76,7 +77,7 @@ public class UserAuditRecordServiceImpl extends CrudRepository<UserAuditRecordMa
                     throw new BusinessException(ResultCodeEnum.ACCOUNT_DISABLED);
         }
         //审核结果同步到配送员账户状态
-        courier.setStatus(dto.getStatus());
+        courier.setStatus(result == AuditStatusEnum.NORMAL ? UserStatusEnum.NORMAL : UserStatusEnum.REJECTED);
         courierService.updateById(courier);
     }
 }

@@ -43,6 +43,7 @@
                 AND u.email LIKE CONCAT(#{dto.email}, '%')
             </if>
             <if test="dto.auditStatus != null">
+                <!-- 筛选审核记录状态，而不是 co.status 账户状态；封禁不改变历史审核结果。 -->
                 AND r.status = #{dto.auditStatus}
             </if>
         </where>

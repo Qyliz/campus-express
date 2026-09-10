@@ -1,7 +1,7 @@
 package cn.njust.campusexpress.model.user.dto;
 
 import cn.njust.campusexpress.common.enums.SortEnum;
-import cn.njust.campusexpress.common.enums.UserStatusEnum;
+import cn.njust.campusexpress.common.enums.AuditStatusEnum;
 import jakarta.validation.constraints.Min;
 import lombok.Data;
 
@@ -12,7 +12,7 @@ public class UserAuditQueryDTO {
     private String phone;
     private String email;
     //审核状态
-    private UserStatusEnum auditStatus;
+    private AuditStatusEnum auditStatus;
     //删除状态筛选：null=全部（完整留痕），false=仅未删除，true=仅已删除
     private Boolean deleted;
 

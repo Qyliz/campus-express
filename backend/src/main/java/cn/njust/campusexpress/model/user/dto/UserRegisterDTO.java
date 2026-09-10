@@ -30,6 +30,12 @@ public class UserRegisterDTO {
     @Size(max = 254, message = "邮箱长度不能超过254个字符")
     private String email;
 
+    @Pattern(regexp = "^\\d{6}$", message = "手机验证码必须为6位数字")
+    private String phoneCode;
+
+    @Pattern(regexp = "^\\d{6}$", message = "邮箱验证码必须为6位数字")
+    private String emailCode;
+
     public void setUsername(String username) {
         this.username = username == null ? null : username.trim();
     }

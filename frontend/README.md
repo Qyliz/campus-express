@@ -41,13 +41,13 @@ npm run dev                     # → http://localhost:5173
 ## 几个不看代码就想不到的设计
 
 **登录态只存在于 cookie 里，前端没有 token。**
-`POST /api/user/login` 返回 `Result<Void>`，响应体里没有 token；Sa-Token 通过 `Set-Cookie: satoken=...` 下发。实测这个 cookie **没有** HttpOnly（`document.cookie` 读得到），但我们刻意不读它 —— 「浏览器里有个 token」既不能说明它还有效，也不告诉你是哪个角色在登录。所以 `stores/auth.ts` 不存任何 token，判断是否登录的唯一办法是调一次 `GET /api/user/profile`。路由守卫是 `async` 的并 `await auth.init()`，因此首屏渲染时状态已就绪，不会闪一下「未登录」。刷新页面能保持登录，因为 `satoken` 是会话 cookie；`POST /api/user/logout` 会把它清掉。
+`POST /api/user/login` 返回 `Result<Void>`，响应体里没有 token；Sa-Token 通过 `Set-Cookie: satoken=...` 下发。实测这个 cookie **没有** HttpOnly（`document.cookie` 读得到），但我们刻意不读它 —— 「浏览器里有个 token」既不能说明它还有效，也不告诉你是哪个角色在登录。所以 `stores/auth.ts` 不存任何 token，首次加载时调用 `GET /api/user/session` 查询登录状态；匿名或失效会话返回成功响应及空数据，已登录时返回用户资料。路由守卫是 `async` 的并 `await auth.init()`，因此首屏渲染时状态已就绪，不会闪一下「未登录」。刷新页面能保持登录，因为 `satoken` 是会话 cookie；`POST /api/user/logout` 会把它清掉。
 
 **所有请求走相对路径 + Vite 代理。**
 `vite.config.ts` 把 `/api` 和 `/upload` 都转发到 `:8080`。浏览器眼中一切都是同源(`:5173`)，cookie 自动携带，因此既不需要 `withCredentials`，后端也不需要任何 CORS 配置。`/upload` 这条不能漏：它不在 Sa-Token 拦截器的排除名单里，图片本身也要登录态，漏配会得到 404（比 401 更难查）。
 
 **业务错误是 HTTP 200。**
-`api/request.ts` 的响应拦截器在**成功分支**里判 `code`：`code === 0` 才解包出 `data`，否则弹提示并 reject 一个 `ApiError`。只有 401（未登录 / 被顶号 / 被踢）、403（角色不对）、500 才用真实的 HTTP 状态码。`silent: true` 可以让某个请求跳过全局提示和跳转 —— 启动时的 `/profile` 探测对匿名访客必然 401，靠的就是它。
+`api/request.ts` 的响应拦截器在**成功分支**里判 `code`：`code === 0` 才解包出 `data`，否则弹提示并 reject 一个 `ApiError`。只有 401（未登录 / 被顶号 / 被踢）、403（角色不对）、500 才用真实的 HTTP 状态码。`silent: true` 可以让某个请求跳过全局提示和跳转 —— 启动时的 `/session` 查询允许匿名访问，不会因未登录产生 401；`/profile` 仍要求登录。
 
 **后端主键是雪花 ID，以字符串下发。**
 19 位 Long 超出 JS 的 `Number.MAX_SAFE_INTEGER`，直接当数字接收会被 `JSON.parse` 舍位，管理端就会拿着错的 id 去封禁 / 踢人。后端 `common/config/JacksonConfig.java` 把 `Long` 序列化成字符串，前端一律用 `EntityId = string` 承载，只原样回传、从不做算术。注意那里**只注册了 `Long.class`**：`PageResult` 的 `total/current/size/pages` 是原始 `long`，一起注册会让分页组件收到字符串。
@@ -74,7 +74,7 @@ src/
   types/       与后端 DTO / VO 一一对应的类型；两个 *.d.ts 由插件生成
   constants/   枚举中文 label、el-tag 配色、下拉 options、PAGE_SIZE
   utils/       date / image / patterns（正则与后端校验注解逐字符一致）
-  stores/      auth.ts —— /profile 的镜像，没有 token
+  stores/      auth.ts —— /session 初始化登录状态，没有 token
   composables/ useVerifyCode.ts —— 发码 + 60s 倒计时 + 展示后端返回的模拟验证码
   router/      路由表 + RouteMeta 声明 + 守卫
   layouts/     DefaultLayout（顶部导航）、AdminLayout（侧边栏）

@@ -26,6 +26,7 @@ export function useVerifyCode(
   const sending = ref(false)
   const countdown = ref(0)
   let timer: number | undefined
+  let requestVersion = 0
 
   const disabled = computed(() => sending.value || countdown.value > 0)
   const buttonText = computed(() =>
@@ -42,24 +43,31 @@ export function useVerifyCode(
   }
 
   async function send() {
+    if (disabled.value) return
     const problem = canSend?.() ?? null
     if (problem) {
       ElMessage.warning(problem)
       return
     }
+    const account = getAccount()
+    const version = ++requestVersion
     sending.value = true
     try {
-      mockCode.value = await sendVerifyCode({ account: getAccount(), scene })
+      const code = await sendVerifyCode({ account, scene })
+      if (version !== requestVersion || account !== getAccount()) return
+      mockCode.value = code
       startCountdown()
     } catch {
       // 拦截器已经提示过了
     } finally {
-      sending.value = false
+      if (version === requestVersion) sending.value = false
     }
   }
 
   /** 验证码过期(2012)时由页面调用，清掉旧码让用户重新获取 */
   function reset() {
+    requestVersion += 1
+    sending.value = false
     mockCode.value = ''
     window.clearInterval(timer)
     countdown.value = 0

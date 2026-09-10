@@ -6,7 +6,6 @@ import cn.njust.campusexpress.common.enums.UserStatusEnum;
 import cn.njust.campusexpress.common.exception.BusinessException;
 import cn.njust.campusexpress.model.user.dto.UserBanDTO;
 import cn.njust.campusexpress.model.user.dto.UserBanQueryDTO;
-import cn.njust.campusexpress.model.user.dto.UserUnbanDTO;
 import cn.njust.campusexpress.model.user.entity.RoleAccount;
 import cn.njust.campusexpress.model.user.entity.UserBanRecord;
 import cn.njust.campusexpress.model.user.mapper.UserBanRecordMapper;
@@ -30,9 +29,7 @@ public class UserBanRecordServiceImpl extends CrudRepository<UserBanRecordMapper
 
     @Override
     @Transactional
-    public void banUser(UserBanDTO dto) {
-        Long userId = dto.getUserId();
-        UserRoleEnum role = dto.getRole();
+    public void banUser(Long userId, UserRoleEnum role, UserBanDTO dto) {
         RoleAccount account = roleAccountService.getByUserAndRole(userId, role);
         if (account == null) {
             throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
@@ -50,9 +47,7 @@ public class UserBanRecordServiceImpl extends CrudRepository<UserBanRecordMapper
 
     @Override
     @Transactional
-    public void unbanUser(UserUnbanDTO dto) {
-        Long userId = dto.getUserId();
-        UserRoleEnum role = dto.getRole();
+    public void unbanUser(Long userId, UserRoleEnum role) {
         RoleAccount account = roleAccountService.getByUserAndRole(userId, role);
         if (account == null) {
             throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);

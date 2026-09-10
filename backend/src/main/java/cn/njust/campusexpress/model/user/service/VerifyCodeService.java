@@ -26,7 +26,12 @@ public class VerifyCodeService {
     /**
      * 生成并存储验证码。桩版直接返回该码，由前端展示以模拟"发送成功"。
      */
-    public String send(String account, VerifySceneEnum scene) {
+    public synchronized String send(String account, VerifySceneEnum scene) {
+        if (scene == VerifySceneEnum.REGISTER && (account == null ||
+                !(account.matches("^1[3-9]\\d{9}$") ||
+                        (account.length() <= 254 && account.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"))))) {
+            throw new BusinessException(ResultCodeEnum.PARAM_ERROR, "请填写正确的手机号或邮箱");
+        }
         String code = generate();
         dao().set(key(scene, account), code, EXPIRE_SECONDS);
         return code;
@@ -35,7 +40,24 @@ public class VerifyCodeService {
     /**
      * 校验验证码，通过后立即删除（一次性）。不存在/过期抛 EXPIRED，不匹配抛 ERROR。
      */
-    public void verify(String account, VerifySceneEnum scene, String code) {
+    public synchronized void verify(String account, VerifySceneEnum scene, String code) {
+        check(account, scene, code);
+        dao().delete(key(scene, account));
+    }
+
+    /** 注册时先检查全部验证码，再统一消费，避免第二项错误导致第一项验证码丢失。 */
+    public synchronized void verifyRegistration(String phone, String phoneCode, String email, String emailCode) {
+        if (phone != null) check(phone, VerifySceneEnum.REGISTER, phoneCode);
+        if (email != null) check(email, VerifySceneEnum.REGISTER, emailCode);
+        if (phone != null) dao().delete(key(VerifySceneEnum.REGISTER, phone));
+        if (email != null) dao().delete(key(VerifySceneEnum.REGISTER, email));
+    }
+
+    // 校验但不消费验证码，由调用方决定何时删除。
+    private void check(String account, VerifySceneEnum scene, String code) {
+        if (code == null || code.isBlank()) {
+            throw new BusinessException(ResultCodeEnum.PARAM_MISSING, "请填写验证码");
+        }
         String saved = dao().get(key(scene, account));
         if (saved == null) {
             throw new BusinessException(ResultCodeEnum.VERIFY_CODE_EXPIRED);
@@ -43,7 +65,6 @@ public class VerifyCodeService {
         if (!saved.equals(code)) {
             throw new BusinessException(ResultCodeEnum.VERIFY_CODE_ERROR);
         }
-        dao().delete(key(scene, account));
     }
 
     private SaTokenDao dao() {

@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import { getProfile, login as loginApi, logout as logoutApi } from '@/api/user'
+import { getProfile, getSession, login as loginApi, logout as logoutApi } from '@/api/user'
 import type { RoleEnum, UserLoginDTO, UserProfileVO } from '@/types'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -10,7 +10,7 @@ export const useAuthStore = defineStore('auth', () => {
    * 这里没有任何 token：登录态只存在于 satoken cookie 里。
    * 实测这个 cookie 并没有 HttpOnly（document.cookie 读得到），但我们刻意不去读它 ——
    * 「浏览器里有个 token」既不能说明它还有效，也不告诉你是哪个角色在登录，
-   * 判断登录态唯一可靠的办法就是问一次 /profile。
+   * 首次进入页面通过 /session 查询服务端确认的登录状态。
    */
   const profile = ref<UserProfileVO | null>(null)
   /** 首次探测是否已完成。App 首屏不闪「未登录」就是靠守卫 await 了它 */
@@ -34,11 +34,11 @@ export const useAuthStore = defineStore('auth', () => {
     initialized.value = true
   }
 
-  /** 静默探测。匿名访客会拿到 401，这是预期行为，所以 silent，不能弹提示也不能跳登录 */
+  /** 静默探测登录状态；匿名访客正常得到 null，网络异常交由后续业务请求提示。 */
   async function fetchProfile() {
     loading.value = true
     try {
-      applyProfile(await getProfile({ silent: true }))
+      profile.value = await getSession({ silent: true })
     } catch {
       profile.value = null
     } finally {

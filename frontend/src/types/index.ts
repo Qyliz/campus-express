@@ -26,7 +26,8 @@ export interface PageResult<T> {
 export type RoleEnum = 'ADMIN' | 'CUSTOMER' | 'COURIER'
 export type GenderEnum = 'UNKNOWN' | 'MALE' | 'FEMALE'
 export type StatusEnum = 'DISABLED' | 'NORMAL' | 'REVIEWING' | 'REJECTED'
-export type VerifySceneEnum = 'FORGOT_PASSWORD' | 'CHANGE_PHONE' | 'CHANGE_EMAIL'
+export type AuditStatusEnum = 'REVIEWING' | 'NORMAL' | 'REJECTED'
+export type VerifySceneEnum = 'REGISTER' | 'FORGOT_PASSWORD' | 'CHANGE_PHONE' | 'CHANGE_EMAIL'
 export type SortEnum =
   'CREATE_TIME_ASC' | 'CREATE_TIME_DESC' | 'UPDATE_TIME_ASC' | 'UPDATE_TIME_DESC'
 
@@ -79,7 +80,7 @@ export interface UserAuditRecordVO {
   gender: GenderEnum
   phone: string | null
   email: string | null
-  status: StatusEnum
+  status: AuditStatusEnum
   reason: string | null
   /** 形如 "/upload/audit/uuid.jpg" */
   material: string | null
@@ -114,6 +115,8 @@ export interface UserRegisterDTO {
   gender: GenderEnum
   phone?: string
   email?: string
+  phoneCode?: string
+  emailCode?: string
 }
 
 export interface UserLoginDTO {
@@ -203,7 +206,7 @@ export interface UserAuditQueryDTO extends PageQuery {
   username?: string
   phone?: string
   email?: string
-  auditStatus?: StatusEnum
+  auditStatus?: AuditStatusEnum
   deleted?: boolean
 }
 

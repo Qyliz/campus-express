@@ -27,6 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Transactional
 public class AdminUserTest {
+    @Autowired private cn.njust.campusexpress.model.user.service.VerifyCodeService registrationCodes;
 
     @Autowired
     private MockMvc mockMvc;
@@ -45,7 +46,7 @@ public class AdminUserTest {
 
     //注册收寄件人（初始状态 NORMAL），返回其 userId（管理端接口按 userId + role 定位账号）
     private Long registerCustomer(String username, String phone) throws Exception {
-        mockMvc.perform(multipart("/api/user/register")
+        mockMvc.perform(cn.njust.campusexpress.user.RegistrationTestSupport.registration(registrationCodes)
                         .param("username", username)
                         .param("password", "1234567")
                         .param("role", "CUSTOMER")
@@ -91,7 +92,7 @@ public class AdminUserTest {
     //一人持多角色时管理端列表每个角色各占一行；同时验证 UNION 派生表下 MP 自动生成的 COUNT 正确
     @Test
     void getAllUsersCountsOneRowPerRole() throws Exception {
-        mockMvc.perform(multipart("/api/user/register")
+        mockMvc.perform(cn.njust.campusexpress.user.RegistrationTestSupport.registration(registrationCodes)
                         .param("username", "dual_role")
                         .param("password", "1234567")
                         .param("role", "CUSTOMER")
@@ -101,7 +102,7 @@ public class AdminUserTest {
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
 
         //同手机号 + 同密码追加配送员角色；此处填的用户名/性别应被忽略
-        mockMvc.perform(multipart("/api/user/register")
+        mockMvc.perform(cn.njust.campusexpress.user.RegistrationTestSupport.registration(registrationCodes)
                         .file(new MockMultipartFile("material", "m.png", "image/png", new byte[]{1, 2, 3}))
                         .param("username", "ignored")
                         .param("password", "1234567")
@@ -159,9 +160,9 @@ public class AdminUserTest {
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
 
         //管理员封禁
-        mockMvc.perform(post("/api/user/ban")
+        mockMvc.perform(post("/api/user/{userId}/roles/CUSTOMER/ban", userId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(String.format("{\"userId\":%d,\"role\":\"CUSTOMER\",\"reason\":\"违规操作\"}", userId))
+                        .content("{\"reason\":\"违规操作\"}")
                         .cookie(adminCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
@@ -181,9 +182,9 @@ public class AdminUserTest {
                 .andExpect(jsonPath("$.data.total").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)));
 
         //解封
-        mockMvc.perform(post("/api/user/unban")
+        mockMvc.perform(post("/api/user/{userId}/roles/CUSTOMER/unban", userId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(String.format("{\"userId\":%d,\"role\":\"CUSTOMER\"}", userId))
+
                         .cookie(adminCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
@@ -200,9 +201,9 @@ public class AdminUserTest {
     @Test
     void unbanNotBannedAccount() throws Exception {
         Long userId = registerCustomer("cus_notban", "13900000103");
-        mockMvc.perform(post("/api/user/unban")
+        mockMvc.perform(post("/api/user/{userId}/roles/CUSTOMER/unban", userId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(String.format("{\"userId\":%d,\"role\":\"CUSTOMER\"}", userId))
+
                         .cookie(adminCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.ACCOUNT_NOT_BANNED.getCode()));
@@ -211,9 +212,10 @@ public class AdminUserTest {
     //封禁不存在的账号 -> USER_NOT_FOUND（验证 S1 NPE 修复）
     @Test
     void banNonexistentUser() throws Exception {
-        mockMvc.perform(post("/api/user/ban")
+        Long userId = 999999999999L;
+        mockMvc.perform(post("/api/user/{userId}/roles/CUSTOMER/ban", userId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"userId\":999999999999,\"role\":\"CUSTOMER\",\"reason\":\"x\"}")
+                        .content("{\"reason\":\"x\"}")
                         .cookie(adminCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.USER_NOT_FOUND.getCode()));
@@ -222,9 +224,9 @@ public class AdminUserTest {
     //审核结果非通过/驳回 -> PARAM_ERROR（验证 A3 入口守卫）
     @Test
     void auditInvalidStatus() throws Exception {
-        mockMvc.perform(put("/api/user/audit")
+        mockMvc.perform(put("/api/user/audit/12345")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"userAuditRecordId\":12345,\"status\":\"REVIEWING\"}")
+                        .content("{\"status\":\"REVIEWING\"}")
                         .cookie(adminCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.PARAM_ERROR.getCode()));
@@ -233,9 +235,9 @@ public class AdminUserTest {
     //合法审核结果 + 不存在的记录 -> USER_NOT_FOUND
     @Test
     void auditValidStatusNotFound() throws Exception {
-        mockMvc.perform(put("/api/user/audit")
+        mockMvc.perform(put("/api/user/audit/12345")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"userAuditRecordId\":12345,\"status\":\"NORMAL\"}")
+                        .content("{\"status\":\"NORMAL\"}")
                         .cookie(adminCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.USER_NOT_FOUND.getCode()));
@@ -244,7 +246,7 @@ public class AdminUserTest {
     //C1：收寄件人不产生审核记录，配送员产生一条
     @Test
     void auditRecordOnlyForReviewRoles() throws Exception {
-        mockMvc.perform(multipart("/api/user/register")
+        mockMvc.perform(cn.njust.campusexpress.user.RegistrationTestSupport.registration(registrationCodes)
                         .param("username", "cust_noaud")
                         .param("password", "1234567")
                         .param("role", "CUSTOMER")
@@ -261,7 +263,7 @@ public class AdminUserTest {
                 .andExpect(jsonPath("$.data.total").value(0));
 
         MockMultipartFile material = new MockMultipartFile("material", "m.png", "image/png", new byte[]{1, 2, 3});
-        mockMvc.perform(multipart("/api/user/register")
+        mockMvc.perform(cn.njust.campusexpress.user.RegistrationTestSupport.registration(registrationCodes)
                         .file(material)
                         .param("username", "cour_audit")
                         .param("password", "1234567")
@@ -283,7 +285,7 @@ public class AdminUserTest {
     //F7：配送员注册未提交材料 -> FILE_EMPTY
     @Test
     void courierRegisterRequiresMaterial() throws Exception {
-        mockMvc.perform(multipart("/api/user/register")
+        mockMvc.perform(cn.njust.campusexpress.user.RegistrationTestSupport.registration(registrationCodes)
                         .param("username", "cour_nomat")
                         .param("password", "1234567")
                         .param("role", "COURIER")
@@ -303,9 +305,9 @@ public class AdminUserTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
 
-        mockMvc.perform(post("/api/user/kickout")
+        mockMvc.perform(post("/api/user/{userId}/kickout", userId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(String.format("{\"userId\":%d}", userId))
+
                         .cookie(adminCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
@@ -321,9 +323,9 @@ public class AdminUserTest {
         Long userId = registerCustomer("cus_reset", "13900000501");
         Cookie customerCookie = login("13900000501", "1234567", "CUSTOMER");
 
-        mockMvc.perform(post("/api/user/admin/reset-password")
+        mockMvc.perform(post("/api/user/{userId}/reset-password", userId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(String.format("{\"userId\":%d,\"newPassword\":\"adminset1\"}", userId))
+                        .content("{\"newPassword\":\"adminset1\"}")
                         .cookie(adminCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));

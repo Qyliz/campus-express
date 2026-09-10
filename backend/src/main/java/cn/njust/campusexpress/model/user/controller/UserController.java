@@ -62,7 +62,16 @@ public class UserController {
         return Result.success();
     }
 
-    //获取账号信息
+    // 首页探测登录状态：匿名或失效会话正常返回空数据，不触发未登录异常。
+    @GetMapping("/session")
+    Result<UserProfileVO> getSession() {
+        if (!StpUtil.isLogin()) {
+            return Result.success();
+        }
+        return Result.success(userService.getProfile(StpUtil.getLoginIdAsLong(), currentRole()));
+    }
+
+    //获取账号信息（受保护接口，未登录仍返回401）
     @GetMapping("/profile")
     @SaCheckLogin
     Result<UserProfileVO> getProfile() {
@@ -157,10 +166,10 @@ public class UserController {
     }
 
     //审核账号
-    @PutMapping("/audit")
+    @PutMapping("/audit/{recordId}")
     @SaCheckRole(UserRoleEnum.ROLE_ADMIN)
-    Result<Void> auditUser(@Valid @RequestBody UserAuditDTO dto) {
-        userAuditRecordService.auditUser(dto);
+    Result<Void> auditUser(@PathVariable Long recordId, @Valid @RequestBody UserAuditDTO dto) {
+        userAuditRecordService.auditUser(recordId, dto);
         return Result.success();
     }
 
@@ -173,12 +182,12 @@ public class UserController {
     }
 
     //封禁账号
-    @PostMapping("/ban")
+    @PostMapping("/{userId}/roles/{role}/ban")
     @SaCheckRole(UserRoleEnum.ROLE_ADMIN)
-    Result<Void> banUser(@Valid @RequestBody UserBanDTO dto) {
-        userBanRecordService.banUser(dto);
+    Result<Void> banUser(@PathVariable Long userId, @PathVariable UserRoleEnum role, @Valid @RequestBody UserBanDTO dto) {
+        userBanRecordService.banUser(userId, role, dto);
         //踢出被禁用户的在线会话，其后续请求将返回 KICKED_OUT
-        StpUtil.kickout(dto.getUserId());
+        StpUtil.kickout(userId);
         return Result.success();
     }
 
@@ -191,26 +200,26 @@ public class UserController {
     }
 
     //解封账号
-    @PostMapping("/unban")
+    @PostMapping("/{userId}/roles/{role}/unban")
     @SaCheckRole(UserRoleEnum.ROLE_ADMIN)
-    Result<Void> unbanUser(@Valid @RequestBody UserUnbanDTO dto) {
-        userBanRecordService.unbanUser(dto);
+    Result<Void> unbanUser(@PathVariable Long userId, @PathVariable UserRoleEnum role) {
+        userBanRecordService.unbanUser(userId, role);
         return Result.success();
     }
 
     //强制下线
-    @PostMapping("/kickout")
+    @PostMapping("/{userId}/kickout")
     @SaCheckRole(UserRoleEnum.ROLE_ADMIN)
-    Result<Void> kickoutUser(@Valid @RequestBody UserKickoutDTO dto) {
-        StpUtil.kickout(dto.getUserId());
+    Result<Void> kickoutUser(@PathVariable Long userId) {
+        StpUtil.kickout(userId);
         return Result.success();
     }
 
     //管理员重置他人密码
-    @PostMapping("/admin/reset-password")
+    @PostMapping("/{userId}/reset-password")
     @SaCheckRole(UserRoleEnum.ROLE_ADMIN)
-    Result<Void> adminResetPassword(@Valid @RequestBody AdminResetPasswordDTO dto) {
-        userService.adminResetPassword(dto);
+    Result<Void> adminResetPassword(@PathVariable Long userId, @Valid @RequestBody AdminResetPasswordDTO dto) {
+        userService.adminResetPassword(userId, dto);
         return Result.success();
     }
 

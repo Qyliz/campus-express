@@ -40,6 +40,7 @@ const uploadingAvatar = ref(false)
 const usernameFormRef = ref<FormInstance>()
 const savingUsername = ref(false)
 const usernameForm = reactive({ username: p.value.username })
+const usernameChanged = computed(() => usernameForm.username.trim() !== p.value.username)
 const usernameFormRules: FormRules<typeof usernameForm> = { username: usernameRules }
 
 const savingGender = ref(false)
@@ -70,11 +71,13 @@ async function onAvatarChange(file: UploadFile) {
 }
 
 async function saveUsername() {
+  if (!usernameChanged.value || savingUsername.value) return
   const ok = await usernameFormRef.value?.validate().catch(() => false)
   if (!ok) return
   savingUsername.value = true
   try {
     auth.applyProfile(await updateUsername({ username: usernameForm.username }))
+    usernameForm.username = p.value.username
     ElMessage.success('用户名已更新')
   } catch {
   } finally {
@@ -338,13 +341,19 @@ async function onDeleteAccount() {
       >
         <el-form-item label="用户名" prop="username">
           <el-input v-model="usernameForm.username" maxlength="10" class="inline-input" />
-          <el-button type="primary" :loading="savingUsername" @click="saveUsername">保存</el-button>
+          <el-button
+            type="primary"
+            :loading="savingUsername"
+            :disabled="!usernameChanged"
+            @click="saveUsername"
+            >保存</el-button
+          >
         </el-form-item>
       </el-form>
 
       <el-form label-width="72px" class="inline-form" @submit.prevent>
         <el-form-item label="性别">
-          <el-radio-group v-model="genderValue">
+          <el-radio-group v-model="genderValue" class="inline-choice">
             <el-radio v-for="o in genderOptions" :key="o.value" :value="o.value">
               {{ o.label }}
             </el-radio>
@@ -594,6 +603,10 @@ async function onDeleteAccount() {
 
 .inline-input {
   max-width: 260px;
+  margin-right: 12px;
+}
+
+.inline-choice {
   margin-right: 12px;
 }
 

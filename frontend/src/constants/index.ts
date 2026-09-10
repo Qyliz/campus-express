@@ -1,4 +1,11 @@
-import type { GenderEnum, RoleEnum, SortEnum, StatusEnum, VerifySceneEnum } from '@/types'
+import type {
+  AuditStatusEnum,
+  GenderEnum,
+  RoleEnum,
+  SortEnum,
+  StatusEnum,
+  VerifySceneEnum,
+} from '@/types'
 
 /**
  * 一律用 Record<字面量联合, string>，不要写 { [k: string]: string }。
@@ -32,6 +39,7 @@ export const sortLabel: Record<SortEnum, string> = {
 }
 
 export const verifySceneLabel: Record<VerifySceneEnum, string> = {
+  REGISTER: '注册',
   FORGOT_PASSWORD: '忘记密码',
   CHANGE_PHONE: '换绑手机号',
   CHANGE_EMAIL: '换绑邮箱',
@@ -56,7 +64,19 @@ function toOptions<T extends string>(map: Record<T, string>) {
   return (Object.keys(map) as T[]).map((value) => ({ value, label: map[value] }))
 }
 
+export const auditStatusLabel: Record<AuditStatusEnum, string> = {
+  REVIEWING: '审核中',
+  NORMAL: '已通过',
+  REJECTED: '已驳回',
+}
+export const auditStatusTagType: Record<AuditStatusEnum, TagType> = {
+  REVIEWING: 'warning',
+  NORMAL: 'success',
+  REJECTED: 'danger',
+}
+export const auditStatusOptions = toOptions(auditStatusLabel)
 export const roleOptions = toOptions(roleLabel)
+export const registerRoleOptions = roleOptions.filter((option) => option.value !== 'ADMIN')
 export const genderOptions = toOptions(genderLabel)
 export const statusOptions = toOptions(statusLabel)
 export const verifySceneOptions = toOptions(verifySceneLabel)

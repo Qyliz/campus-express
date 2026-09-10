@@ -24,6 +24,20 @@ const router = useRouter()
           <el-button size="large" @click="router.push({ name: 'register' })">注册新账号</el-button>
         </template>
         <template v-else>
+          <el-button
+            v-if="auth.isCustomer"
+            type="primary"
+            size="large"
+            @click="router.push({ name: 'order-create' })"
+            >发布订单</el-button
+          >
+          <el-button
+            v-if="auth.isCourier"
+            type="primary"
+            size="large"
+            @click="router.push({ name: 'orders-available' })"
+            >进入接单大厅</el-button
+          >
           <el-button type="primary" size="large" @click="router.push({ name: 'profile' })">
             个人中心
           </el-button>

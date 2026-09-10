@@ -32,6 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Transactional
 public class RegisterLoginTest {
+    @Autowired private cn.njust.campusexpress.model.user.service.VerifyCodeService registrationCodes;
 
     @Autowired
     private MockMvc mockMvc;
@@ -56,7 +57,7 @@ public class RegisterLoginTest {
 
     private MockMultipartHttpServletRequestBuilder register(String username, String password, String phone,
                                                              String email, String role, boolean withMaterial) {
-        MockMultipartHttpServletRequestBuilder builder = multipart("/api/user/register");
+        MockMultipartHttpServletRequestBuilder builder = cn.njust.campusexpress.user.RegistrationTestSupport.registration(registrationCodes);
         builder.param("username", username);
         builder.param("password", password);
         builder.param("role", role);

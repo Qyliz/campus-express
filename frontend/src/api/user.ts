@@ -24,6 +24,8 @@ export function register(form: UserRegisterDTO, material?: File) {
   // 可选字段为空时不要 append：FormData 会把 undefined 变成字符串 "undefined" 发出去
   if (form.phone) fd.append('phone', form.phone)
   if (form.email) fd.append('email', form.email)
+  if (form.phoneCode) fd.append('phoneCode', form.phoneCode)
+  if (form.emailCode) fd.append('emailCode', form.emailCode)
   if (material) fd.append('material', material)
   return http.upload<void>('/api/user/register', fd)
 }
@@ -38,7 +40,12 @@ export function logout() {
   return http.post<void>('/api/user/logout')
 }
 
-/** 4. GET /api/user/profile — 登录态探测就靠它；silent 用于启动时匿名访客的合法 401 */
+/** 首次加载时查询登录状态，未登录正常返回 null。 */
+export function getSession(config?: AxiosRequestConfig) {
+  return http.get<UserProfileVO | null>('/api/user/session', undefined, config)
+}
+
+/** 4. GET /api/user/profile — 获取已登录用户资料，未登录返回 401。 */
 export function getProfile(config?: AxiosRequestConfig) {
   return http.get<UserProfileVO>('/api/user/profile', undefined, config)
 }

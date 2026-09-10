@@ -18,14 +18,12 @@ const roleText = computed(() => (auth.role ? roleLabel[auth.role] : ''))
 const roleType = computed(() => (auth.role ? roleTagType[auth.role] : 'info'))
 const initial = computed(() => auth.username.charAt(0) || 'U')
 
-/** 下拉里的「注销」只跳到个人中心的危险操作区 —— 破坏性操作不在下拉菜单里直接做 */
+/** 头像菜单提供个人中心、管理后台和登出入口。 */
 async function onCommand(command: string) {
   if (command === 'profile') {
     router.push({ name: 'profile' })
   } else if (command === 'admin') {
     router.push({ name: 'admin-users' })
-  } else if (command === 'delete') {
-    router.push({ name: 'profile', hash: '#danger' })
   } else if (command === 'logout') {
     await auth.logout()
     ElMessage.success('已登出')
@@ -47,6 +45,10 @@ async function onCommand(command: string) {
         :ellipsis="false"
       >
         <el-menu-item index="/">首页</el-menu-item>
+        <el-menu-item v-if="auth.isCustomer" index="/order/mine">我的订单</el-menu-item>
+        <el-menu-item v-if="auth.isCustomer" index="/order/create">发布订单</el-menu-item>
+        <el-menu-item v-if="auth.isCourier" index="/order/available">接单大厅</el-menu-item>
+        <el-menu-item v-if="auth.isCourier" index="/order/assigned">我的配送</el-menu-item>
         <el-menu-item v-if="auth.isLoggedIn" index="/profile">个人中心</el-menu-item>
         <el-menu-item v-if="auth.isAdmin" index="/admin/users">管理后台</el-menu-item>
       </el-menu>
@@ -70,8 +72,7 @@ async function onCommand(command: string) {
           <el-dropdown-menu>
             <el-dropdown-item command="profile">个人中心</el-dropdown-item>
             <el-dropdown-item v-if="auth.isAdmin" command="admin">管理后台</el-dropdown-item>
-            <el-dropdown-item command="logout" divided>登出（保留账号）</el-dropdown-item>
-            <el-dropdown-item command="delete">注销当前角色…</el-dropdown-item>
+            <el-dropdown-item command="logout" divided>登出</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>

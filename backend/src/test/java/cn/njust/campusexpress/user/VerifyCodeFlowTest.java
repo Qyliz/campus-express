@@ -27,6 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Transactional
 public class VerifyCodeFlowTest {
+    @Autowired private cn.njust.campusexpress.model.user.service.VerifyCodeService registrationCodes;
 
     @Autowired
     private MockMvc mockMvc;
@@ -39,7 +40,7 @@ public class VerifyCodeFlowTest {
 
     //注册收寄件人（NORMAL），并校验 user 主表行与 customer 角色账户行都已创建
     private void registerCustomer(String username, String phone) throws Exception {
-        mockMvc.perform(multipart("/api/user/register")
+        mockMvc.perform(cn.njust.campusexpress.user.RegistrationTestSupport.registration(registrationCodes)
                         .param("username", username)
                         .param("password", "1234567")
                         .param("role", "CUSTOMER")

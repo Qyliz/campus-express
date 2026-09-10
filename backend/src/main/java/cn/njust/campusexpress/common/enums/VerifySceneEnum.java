@@ -9,6 +9,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum VerifySceneEnum {
+    REGISTER("注册"),
     FORGOT_PASSWORD("忘记密码"),
     CHANGE_PHONE("换绑手机号"),
     CHANGE_EMAIL("换绑邮箱");
