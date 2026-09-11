@@ -8,6 +8,7 @@ import cn.njust.campusexpress.common.Result;
 import cn.njust.campusexpress.common.enums.ResultCodeEnum;
 import cn.njust.campusexpress.common.enums.UserGenderEnum;
 import cn.njust.campusexpress.common.enums.UserRoleEnum;
+import cn.njust.campusexpress.common.enums.VerifySceneEnum;
 import cn.njust.campusexpress.common.exception.BusinessException;
 import cn.njust.campusexpress.model.user.dto.*;
 import cn.njust.campusexpress.model.user.service.UserAuditRecordService;
@@ -130,8 +131,22 @@ public class UserController {
     //发送验证码（桩版：直接返回验证码，由前端展示以模拟发送）
     @PostMapping("/verify-code")
     Result<String> sendVerifyCode(@Valid @RequestBody SendCodeDTO dto) {
+        if (dto.getScene() == VerifySceneEnum.FORGOT_PASSWORD) {
+            userService.validatePasswordResetAccount(dto.getAccount());
+        }
         String code = verifyCodeService.send(dto.getAccount(), dto.getScene());
         return Result.success(code);
+    }
+
+    //忘记密码第一步校验验证码，不在这里消费，最终重置成功时再消费
+    @PostMapping("/verify-code/check")
+    Result<Void> checkVerifyCode(@Valid @RequestBody VerifyCodeDTO dto) {
+        if (dto.getScene() != VerifySceneEnum.FORGOT_PASSWORD) {
+            throw new BusinessException(ResultCodeEnum.PARAM_ERROR);
+        }
+        userService.validatePasswordResetAccount(dto.getAccount());
+        verifyCodeService.validate(dto.getAccount(), dto.getScene(), dto.getCode());
+        return Result.success();
     }
 
     //忘记密码：凭验证码重置密码

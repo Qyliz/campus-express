@@ -1,7 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowDown, DocumentChecked, Lock, User } from '@element-plus/icons-vue'
+import {
+  Bell,
+  CircleCheck,
+  HomeFilled,
+  Lock,
+  SwitchButton,
+  Tickets,
+  User,
+  UserFilled,
+  Van,
+} from '@element-plus/icons-vue'
 
 import { useAuthStore } from '@/stores/auth'
 import { imageUrl } from '@/utils/image'
@@ -11,40 +21,45 @@ const route = useRoute()
 const router = useRouter()
 
 const initial = computed(() => auth.username.charAt(0) || 'A')
+const activeMenu = computed(() => {
+  if (route.name === 'admin-order-detail') return '/admin/orders'
+  return route.path
+})
 
-async function onCommand(command: string) {
-  if (command === 'home') {
-    router.push({ name: 'home' })
-  } else if (command === 'profile') {
-    router.push({ name: 'profile' })
-  } else if (command === 'logout') {
-    await auth.logout()
-    ElMessage.success('已登出')
-    router.replace({ name: 'login' })
-  }
+async function logout() {
+  await auth.logout()
+  await router.replace({ name: 'home' })
+  ElMessage.success('已登出')
 }
 </script>
 
 <template>
-  <el-container class="admin-shell">
-    <el-aside width="220px" class="aside">
-      <div class="brand" @click="router.push({ name: 'home' })">校园快递 · 管理后台</div>
+  <el-container v-if="auth.isLoggedIn" class="admin-shell">
+    <el-aside width="236px" class="aside">
+      <button type="button" class="brand" @click="router.push({ name: 'admin-dashboard' })">
+        <span class="brand-icon"><Van /></span>
+        <span><b>校园配送</b><small>管理后台</small></span>
+      </button>
 
       <!-- :router="true" + index 等于路由路径 ⇒ default-active 自动跟随 URL，不用写点击处理 -->
       <el-menu
-        :default-active="route.path"
+        :default-active="activeMenu"
         router
-        background-color="#001529"
-        text-color="#b7bcc7"
+        background-color="transparent"
+        text-color="#9db3c7"
         active-text-color="#ffffff"
         class="menu"
       >
+        <el-menu-item index="/admin">
+          <el-icon><HomeFilled /></el-icon>
+          <span>工作台</span>
+        </el-menu-item>
         <el-menu-item index="/admin/users">
           <el-icon><User /></el-icon>
           <span>账号管理</span>
         </el-menu-item>
         <el-menu-item index="/admin/audits">
-          <el-icon><DocumentChecked /></el-icon>
+          <el-icon><CircleCheck /></el-icon>
           <span>审核管理</span>
         </el-menu-item>
         <el-menu-item index="/admin/bans">
@@ -52,12 +67,42 @@ async function onCommand(command: string) {
           <span>封禁记录</span>
         </el-menu-item>
         <el-menu-item index="/admin/orders">
-          <el-icon><DocumentChecked /></el-icon>
+          <el-icon><Tickets /></el-icon>
           <span>订单管理</span>
         </el-menu-item>
-        <el-menu-item index="/admin/exceptions"><el-icon><DocumentChecked /></el-icon><span>异常管理</span></el-menu-item>
-        <el-menu-item index="/admin/review-appeals"><el-icon><DocumentChecked /></el-icon><span>评价申诉</span></el-menu-item>
+        <el-menu-item index="/admin/exceptions"
+          ><el-icon><Bell /></el-icon><span>异常管理</span></el-menu-item
+        >
+        <el-menu-item index="/admin/review-appeals"
+          ><el-icon><CircleCheck /></el-icon><span>评价申诉</span></el-menu-item
+        >
+        <el-menu-item index="/admin/profile">
+          <el-icon><UserFilled /></el-icon>
+          <span>个人中心</span>
+        </el-menu-item>
       </el-menu>
+
+      <div class="account">
+        <div class="account-profile">
+          <el-image
+            :key="auth.profile?.avatar || 'avatar-empty'"
+            :src="imageUrl(auth.profile?.avatar)"
+            fit="cover"
+            class="avatar"
+          >
+            <template #error>
+              <span class="avatar-fallback">{{ initial }}</span>
+            </template>
+          </el-image>
+          <span class="account-text">
+            <b>{{ auth.username }}</b>
+            <small>管理员</small>
+          </span>
+        </div>
+        <el-button text circle aria-label="退出登录" @click="logout">
+          <el-icon><SwitchButton /></el-icon>
+        </el-button>
+      </div>
     </el-aside>
 
     <el-container>
@@ -66,29 +111,6 @@ async function onCommand(command: string) {
           <el-breadcrumb-item>管理后台</el-breadcrumb-item>
           <el-breadcrumb-item>{{ route.meta.title }}</el-breadcrumb-item>
         </el-breadcrumb>
-
-        <div class="spacer" />
-
-        <el-dropdown @command="onCommand">
-          <span class="user-chip">
-            <el-image :src="imageUrl(auth.profile?.avatar)" fit="cover" class="avatar">
-              <!-- /upload/** 也在登录拦截器后面，会话过期时图片会 401，必须有兜底 -->
-              <template #error>
-                <span class="avatar-fallback">{{ initial }}</span>
-              </template>
-            </el-image>
-            <span class="name">{{ auth.username }}</span>
-            <el-tag type="danger" size="small" effect="plain">管理员</el-tag>
-            <el-icon><ArrowDown /></el-icon>
-          </span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="profile">个人中心</el-dropdown-item>
-              <el-dropdown-item command="home">返回前台</el-dropdown-item>
-              <el-dropdown-item command="logout" divided>登出</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
       </el-header>
 
       <el-main class="main">
@@ -96,77 +118,205 @@ async function onCommand(command: string) {
       </el-main>
     </el-container>
   </el-container>
+  <div v-else class="session-exit">正在返回首页…</div>
 </template>
 
 <style scoped>
 .admin-shell {
-  height: 100%;
+  min-height: 100vh;
+}
+
+.session-exit {
+  display: grid;
+  min-height: 100vh;
+  color: #9db3c7;
+  background: #071a2d;
+  place-items: center;
 }
 
 .aside {
-  background: #001529;
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: linear-gradient(180deg, #071a2d 0%, #0b2943 100%);
 }
 
 .brand {
-  height: 60px;
-  padding: 0 20px;
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 60px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 28px 26px;
   color: #fff;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
-  background: #002140;
+  background: transparent;
+  border: 0;
+}
+
+.brand > span:last-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand b {
+  font-size: 17px;
+}
+
+.brand small {
+  margin-top: 3px;
+  color: #7896af;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.brand-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  color: #fff;
+  background: #409eff;
+  border-radius: 12px;
+}
+
+.brand-icon svg {
+  width: 21px;
 }
 
 .menu {
+  flex: 1;
   border-right: none;
+}
+
+.menu :deep(.el-menu-item) {
+  height: 46px;
+  margin: 4px 18px;
+  border-radius: 10px;
+}
+
+.menu :deep(.el-menu-item:hover),
+.menu :deep(.el-menu-item.is-active) {
+  background: rgba(64, 158, 255, 0.18);
 }
 
 .header {
   display: flex;
   align-items: center;
-  height: 60px;
+  height: 68px;
   padding: 0 24px;
   background: #fff;
   border-bottom: 1px solid #e4e7ed;
 }
 
-.spacer {
-  flex: 1;
-}
-
-.user-chip {
+.account {
   display: flex;
   align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  outline: none;
+  gap: 10px;
+  margin: 0 18px 20px;
+  padding: 16px 8px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.account-profile {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  text-align: left;
 }
 
 .avatar {
-  width: 30px;
-  height: 30px;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  overflow: hidden;
+  background: rgba(64, 158, 255, 0.2);
   border-radius: 50%;
-  background: #f0f2f5;
 }
 
 .avatar-fallback {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
   width: 100%;
   height: 100%;
-  font-size: 13px;
-  color: #909399;
+  color: #fff;
+  place-items: center;
 }
 
-.name {
-  font-size: 14px;
-  color: #303133;
+.account-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.account-text b {
+  overflow: hidden;
+  color: #fff;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-text small {
+  margin-top: 3px;
+  color: #7896af;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.account > .el-button {
+  color: #8ea9bf;
 }
 
 .main {
-  padding: 20px;
-  background: #f5f7fa;
+  padding: clamp(26px, 4vw, 48px);
+  background: #f3f6fa;
+}
+
+@media (max-width: 720px) {
+  .admin-shell {
+    flex-direction: column;
+  }
+
+  .aside {
+    position: static;
+    height: auto;
+    width: 100% !important;
+  }
+
+  .brand {
+    padding: 18px 26px 12px;
+  }
+
+  .menu {
+    display: flex;
+    overflow-x: auto;
+    padding: 0 10px 14px;
+  }
+
+  .account {
+    display: none;
+  }
+
+  .menu :deep(.el-menu-item) {
+    flex: 0 0 auto;
+    margin: 4px;
+  }
+
+  .header {
+    padding: 0 16px;
+  }
+
+  .header :deep(.el-breadcrumb) {
+    display: none;
+  }
+
+  .main {
+    padding: 24px 16px;
+  }
 }
 </style>

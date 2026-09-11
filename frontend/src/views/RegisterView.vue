@@ -21,6 +21,10 @@ import type { GenderEnum, RoleEnum } from '@/types'
 
 const router = useRouter()
 
+function returnToLogin() {
+  router.push({ name: 'home' })
+}
+
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
 const fileList = ref<UploadUserFile[]>([])
@@ -167,7 +171,7 @@ async function onSubmit() {
         ? '注册成功！配送员账号需管理员审核通过后才能登录'
         : '注册成功，请登录',
     )
-    router.push({ name: 'login' })
+    returnToLogin()
   } catch (error) {
     // 验证码错误时保留输入供修正；其他失败可能已消费验证码，允许立即重新获取。
     if (!(error instanceof ApiError) || error.code !== 2011) {
@@ -183,7 +187,7 @@ async function onSubmit() {
 </script>
 
 <template>
-  <el-card shadow="never" class="auth-card" style="max-width: 560px">
+  <el-card shadow="never" class="auth-card auth-card--backdrop" style="max-width: 560px">
     <template #header>
       <span class="title">注册</span>
     </template>
@@ -193,9 +197,6 @@ async function onSubmit() {
       <p>
         用<b>相同的手机号 + 相同的密码</b
         >再注册一次，就能给这个账号追加一个新角色。此时下面填写的用户名和性别会被忽略，系统沿用已有资料。
-      </p>
-      <p class="sub">
-        注册和追加角色均需要验证码。同一时刻只能有一个在线会话，追加角色前请先登出。
       </p>
     </el-alert>
 
@@ -245,6 +246,7 @@ async function onSubmit() {
         <div class="code-row">
           <el-input v-model.trim="form.phoneCode" maxlength="6" placeholder="6位验证码" />
           <el-button
+            class="code-button"
             :disabled="phoneVerification.disabled.value"
             :loading="phoneVerification.sending.value"
             @click="phoneVerification.send"
@@ -264,6 +266,7 @@ async function onSubmit() {
         <div class="code-row">
           <el-input v-model.trim="form.emailCode" maxlength="6" placeholder="6位验证码" />
           <el-button
+            class="code-button"
             :disabled="emailVerification.disabled.value"
             :loading="emailVerification.sending.value"
             @click="emailVerification.send"
@@ -274,11 +277,6 @@ async function onSubmit() {
           模拟邮件验证码：{{ emailVerification.mockCode.value }}（5分钟有效）
         </p>
       </el-form-item>
-
-      <p class="field-hint muted">
-        手机号必填，邮箱选填；填写的每项都需验证。验证码为课程演示，不会真实发送短信或邮件。如果这里提示「已被注册」而你确实注册过，请检查密码是否与原来一致
-        —— 追加角色要求密码完全相同。
-      </p>
 
       <el-form-item v-if="form.role === 'COURIER'" label="身份证明材料" required>
         <el-upload
@@ -309,9 +307,7 @@ async function onSubmit() {
     </el-form>
 
     <div class="links">
-      <el-link type="primary" :underline="false" @click="router.push({ name: 'login' })">
-        已有账号？去登录
-      </el-link>
+      <el-link type="primary" underline="never" @click="returnToLogin"> 已有账号？去登录 </el-link>
     </div>
   </el-card>
 </template>
@@ -330,17 +326,6 @@ async function onSubmit() {
 
 .append-tip p {
   margin: 0;
-}
-
-.append-tip .sub {
-  margin-top: 4px;
-  color: #909399;
-}
-
-.field-hint {
-  margin: -8px 0 18px;
-  font-size: 12px;
-  line-height: 1.7;
 }
 
 .code-row {

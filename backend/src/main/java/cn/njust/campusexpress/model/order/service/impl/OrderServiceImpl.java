@@ -135,13 +135,12 @@ public class OrderServiceImpl implements OrderService {
                 Long customerId = requireRole(userId, role, UserRoleEnum.CUSTOMER).getId();
                 User user = users.selectById(userId);
                 switch (dto.getRelation()) {
-                    case "created" -> query.eq(ExpressOrder::getCustomerId, customerId);
-                    case "received" -> recipientQuery(query, user);
-                    case "all" -> query.and(q -> {
+                    case CREATED -> query.eq(ExpressOrder::getCustomerId, customerId);
+                    case RECEIVED -> recipientQuery(query, user);
+                    case ALL -> query.and(q -> {
                         q.eq(ExpressOrder::getCustomerId, customerId)
                             .or(r -> recipientQuery(r, user));
                     });
-                    default -> throw invalid("未知订单关系");
                 }
             }
             case "assigned" -> query.eq(ExpressOrder::getCourierId,

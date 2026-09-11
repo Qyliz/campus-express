@@ -1,18 +1,23 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import type { FormInstance, FormRules } from 'element-plus'
 
 import { ApiError } from '@/api/request'
-import { resetPassword } from '@/api/user'
+import { checkVerifyCode, resetPassword } from '@/api/user'
 import { useVerifyCode } from '@/composables/useVerifyCode'
 import { accountRule, codeRules, isAccount, PASSWORD_MAX, PASSWORD_MIN } from '@/utils/patterns'
 
 const router = useRouter()
 
+function returnToLogin() {
+  router.push({ name: 'home' })
+}
+
 const step = ref(0)
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
+const checking = ref(false)
 
 const form = reactive({
   account: '',
@@ -51,6 +56,15 @@ const { mockCode, sending, disabled, buttonText, send, reset } = useVerifyCode(
   () => (isAccount(form.account) ? null : '请先填写正确的邮箱或手机号'),
 )
 
+watch(
+  () => form.account,
+  () => {
+    form.code = ''
+    step.value = 0
+    reset()
+  },
+)
+
 async function copyCode() {
   try {
     await navigator.clipboard.writeText(mockCode.value)
@@ -60,11 +74,22 @@ async function copyCode() {
   }
 }
 
-/** 只校验账号一项：el-form 只校验当前挂载着的 el-form-item，第二步的字段此时还没渲染 */
 async function nextStep() {
-  const ok = await formRef.value?.validateField('account').catch(() => false)
+  const ok = await formRef.value?.validateField(['account', 'code']).catch(() => false)
   if (ok === false) return
-  step.value = 1
+  checking.value = true
+  try {
+    await checkVerifyCode({
+      account: form.account,
+      scene: 'FORGOT_PASSWORD',
+      code: form.code,
+    })
+    step.value = 1
+  } catch {
+    // 后端会区分验证码错误与验证码过期，统一拦截器已经提示。
+  } finally {
+    checking.value = false
+  }
 }
 
 async function onSubmit() {
@@ -79,12 +104,13 @@ async function onSubmit() {
       newPassword: form.newPassword,
     })
     ElMessage.success('密码已重置，请用新密码登录')
-    router.push({ name: 'login' })
+    returnToLogin()
   } catch (e) {
     // 2011 验证码错误 → 留在原步骤让用户重填；
     // 2012 验证码已过期或失效 → 这个码已经废了，退回第一步重新获取
     if (e instanceof ApiError && e.code === 2012) {
       reset()
+      form.code = ''
       step.value = 0
     }
   } finally {
@@ -94,7 +120,7 @@ async function onSubmit() {
 </script>
 
 <template>
-  <el-card shadow="never" class="auth-card" style="max-width: 520px">
+  <el-card shadow="never" class="auth-card auth-card--backdrop" style="max-width: 520px">
     <template #header>
       <span class="title">忘记密码</span>
     </template>
@@ -104,8 +130,13 @@ async function onSubmit() {
       <el-step title="重置密码" />
     </el-steps>
 
-    <!-- 模拟短信/邮件的提示放在步骤切换之外，这样进入第二步后验证码仍然看得见 -->
-    <el-alert v-if="mockCode" type="success" :closable="false" show-icon class="mock-code">
+    <el-alert
+      v-if="mockCode && step === 0"
+      type="success"
+      :closable="false"
+      show-icon
+      class="mock-code"
+    >
       <template #title>模拟短信 / 邮件（忘记密码）</template>
       <p class="code-line">
         您的验证码是 <b class="code">{{ mockCode }}</b>
@@ -120,24 +151,31 @@ async function onSubmit() {
           <el-input v-model="form.account" placeholder="邮箱或手机号" clearable />
         </el-form-item>
 
-        <el-form-item>
-          <el-button type="primary" :loading="sending" :disabled="disabled" @click="send">
-            {{ buttonText }}
-          </el-button>
+        <el-form-item label="验证码" prop="code">
+          <div class="code-row">
+            <el-input v-model.trim="form.code" maxlength="6" placeholder="6 位数字验证码" />
+            <el-button
+              type="primary"
+              class="code-button"
+              :loading="sending"
+              :disabled="disabled"
+              @click="send"
+            >
+              {{ buttonText }}
+            </el-button>
+          </div>
         </el-form-item>
 
-        <el-form-item v-if="mockCode">
-          <el-button type="success" plain class="submit" @click="nextStep">下一步</el-button>
+        <el-form-item>
+          <el-button type="primary" class="submit" :loading="checking" @click="nextStep">
+            验证并进入下一步
+          </el-button>
         </el-form-item>
       </template>
 
       <template v-else>
         <el-form-item label="账号">
           <el-input :model-value="form.account" disabled />
-        </el-form-item>
-
-        <el-form-item label="验证码" prop="code">
-          <el-input v-model="form.code" maxlength="6" placeholder="6 位数字验证码" />
         </el-form-item>
 
         <el-form-item label="新密码" prop="newPassword">
@@ -168,9 +206,7 @@ async function onSubmit() {
     </el-form>
 
     <div class="links">
-      <el-link type="primary" :underline="false" @click="router.push({ name: 'login' })">
-        返回登录
-      </el-link>
+      <el-link type="primary" underline="never" @click="returnToLogin"> 返回登录 </el-link>
     </div>
   </el-card>
 </template>
@@ -209,6 +245,12 @@ async function onSubmit() {
   margin-top: 4px;
   color: #67c23a;
   opacity: 0.85;
+}
+
+.code-row {
+  display: flex;
+  gap: 12px;
+  width: 100%;
 }
 
 .submit {

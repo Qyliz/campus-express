@@ -6,6 +6,7 @@ import type {
   ChangePhoneDTO,
   ResetPasswordDTO,
   SendCodeDTO,
+  VerifyCodeDTO,
   UserGenderDTO,
   UserLoginDTO,
   UserPasswordDTO,
@@ -80,6 +81,11 @@ export function deleteAccount() {
 /** 10. POST /api/user/verify-code — data 就是那 6 位验证码本身（没有真实短信/邮件通道） */
 export function sendVerifyCode(data: SendCodeDTO) {
   return http.post<string>('/api/user/verify-code', data)
+}
+
+/** 忘记密码第一步校验验证码，不消费验证码，最终重置成功后才消费。 */
+export function checkVerifyCode(data: VerifyCodeDTO) {
+  return http.post<void>('/api/user/verify-code/check', data)
 }
 
 /** 11. POST /api/user/reset-password */

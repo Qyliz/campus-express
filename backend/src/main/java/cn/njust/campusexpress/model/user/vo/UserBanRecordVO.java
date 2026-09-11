@@ -15,8 +15,7 @@ public class UserBanRecordVO {
     private UserGenderEnum gender;
     private String phone;
     private String email;
-    //0=封禁中，1=已解封
-    private Integer unbanned;
+    private Boolean unbanned;
     private String reason;
     private Date createTime;
 }

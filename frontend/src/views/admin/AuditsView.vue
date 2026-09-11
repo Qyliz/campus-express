@@ -117,11 +117,6 @@ async function submitAudit() {
 
 <template>
   <div>
-    <el-alert type="info" :closable="false" show-icon class="page-card">
-      <template #title>审核记录只为「配送员」注册创建</template>
-      仅展示配送员提交的审核申请。审核状态独立于账号状态，账号被封禁不会改变已通过的审核结果。
-    </el-alert>
-
     <el-card shadow="never" class="page-card">
       <el-form inline @submit.prevent>
         <el-form-item label="用户名">

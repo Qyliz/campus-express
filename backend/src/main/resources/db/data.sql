@@ -114,7 +114,7 @@ WHERE t.`id` IS NULL;
 --    order_status/payment_status 的列注释里记着枚举 code 对照表，本文件的种子值就是那些数字。
 --
 --    收件手机号刻意分两种，用于验证「收件人不必注册也能被匹配到」：
---      · 单1/3/6/7/8 收件手机号属于已注册用户 ⇒ 该用户可在「我的订单」按 received 看到
+--      · 单1/3/6/7/8 收件手机号属于已注册用户 ⇒ 该用户可在「我的订单」按 RECEIVED 看到
 --        其中单6 的收件人是张三(user 1)而不是下单人李四，用于演示「非下单人确认取件」
 --      · 单2 用未注册的 13611112222、单5 用未注册的 13611113333 ⇒ 无人能凭联系方式认领
 INSERT INTO `express_order` (`id`, `customer_id`, `courier_id`, `pickup_address`, `pickup_name`, `pickup_phone`,

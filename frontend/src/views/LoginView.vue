@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import type { FormInstance, FormRules } from 'element-plus'
 
 import { ApiError } from '@/api/request'
@@ -10,8 +10,9 @@ import { accountRule, passwordRules } from '@/utils/patterns'
 import type { RoleEnum } from '@/types'
 
 const auth = useAuthStore()
-const route = useRoute()
 const router = useRouter()
+
+withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
 
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
@@ -39,13 +40,7 @@ async function onSubmit() {
   try {
     await auth.login({ role: form.role, account: form.account, password: form.password })
     ElMessage.success('登录成功')
-    // 登录后的去向写在页面里而不是守卫里：优先回到被拦截前的地址
-    const redirect = route.query.redirect
-    if (typeof redirect === 'string' && redirect) {
-      router.replace(redirect)
-    } else {
-      router.replace(auth.isAdmin ? { name: 'admin-users' } : { name: 'home' })
-    }
+    router.replace(auth.isAdmin ? { name: 'admin-dashboard' } : { name: 'home' })
   } catch (e) {
     // 拦截器已经弹过 toast 了，这里只针对审核相关的两个码补一条常驻说明
     if (e instanceof ApiError && e.code === 2005) {
@@ -60,20 +55,17 @@ async function onSubmit() {
 </script>
 
 <template>
-  <el-card shadow="never" class="auth-card" style="max-width: 420px">
+  <el-card
+    shadow="never"
+    class="auth-card auth-card--backdrop"
+    :class="{ 'auth-card--embedded': embedded }"
+    style="max-width: 420px"
+  >
     <template #header>
       <span class="title">登录</span>
     </template>
 
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent>
-      <el-form-item label="登录身份" prop="role">
-        <el-radio-group v-model="form.role">
-          <el-radio-button v-for="o in roleOptions" :key="o.value" :value="o.value">
-            {{ o.label }}
-          </el-radio-button>
-        </el-radio-group>
-      </el-form-item>
-
       <el-form-item label="邮箱或手机号" prop="account">
         <el-input v-model="form.account" placeholder="注册时使用的邮箱或手机号" clearable />
       </el-form-item>
@@ -88,6 +80,14 @@ async function onSubmit() {
         />
       </el-form-item>
 
+      <el-form-item label="登录身份" prop="role">
+        <el-radio-group v-model="form.role">
+          <el-radio-button v-for="o in roleOptions" :key="o.value" :value="o.value">
+            {{ o.label }}
+          </el-radio-button>
+        </el-radio-group>
+      </el-form-item>
+
       <el-form-item>
         <el-button
           type="primary"
@@ -100,21 +100,16 @@ async function onSubmit() {
       </el-form-item>
     </el-form>
 
-    <el-alert type="info" :closable="false" show-icon class="tip">
-      <template #title>登录时必须选择身份</template>
-      同一个人的不同角色是相互独立的账户，选错身份会提示「用户不存在或密码错误」。
-    </el-alert>
-
     <el-alert v-if="reviewTip" type="warning" :closable="false" show-icon class="tip">
       <template #title>无法登录</template>
       {{ reviewTip }}
     </el-alert>
 
     <div class="links">
-      <el-link type="primary" :underline="false" @click="router.push({ name: 'register' })">
+      <el-link type="primary" underline="never" @click="router.push({ name: 'register' })">
         还没有账号？去注册
       </el-link>
-      <el-link type="info" :underline="false" @click="router.push({ name: 'forgot-password' })">
+      <el-link type="info" underline="never" @click="router.push({ name: 'forgot-password' })">
         忘记密码？
       </el-link>
     </div>
@@ -125,6 +120,10 @@ async function onSubmit() {
 .title {
   font-size: 17px;
   font-weight: 600;
+}
+
+.auth-card--embedded {
+  margin: 0;
 }
 
 .submit {

@@ -41,6 +41,7 @@ public class UserBanRecordServiceImpl extends CrudRepository<UserBanRecordMapper
         UserBanRecord record = new UserBanRecord();
         record.setUserId(userId);
         record.setRole(role);
+        record.setUnbanned(false);
         record.setReason(dto.getReason());
         save(record);
     }
@@ -56,16 +57,16 @@ public class UserBanRecordServiceImpl extends CrudRepository<UserBanRecordMapper
         if (account.getStatus() != UserStatusEnum.DISABLED) {
             throw new BusinessException(ResultCodeEnum.ACCOUNT_NOT_BANNED);
         }
-        //解封该账号最近一条生效中的封禁记录（unbanned=0）
+        //解封该账号最近一条生效中的封禁记录
         UserBanRecord record = lambdaQuery()
                 .eq(UserBanRecord::getUserId, userId)
                 .eq(UserBanRecord::getRole, role)
-                .eq(UserBanRecord::getUnbanned, 0)
+                .eq(UserBanRecord::getUnbanned, false)
                 .orderByDesc(UserBanRecord::getId)
                 .last("LIMIT 1")
                 .one();
         if (record != null) {
-            record.setUnbanned(1);
+            record.setUnbanned(true);
             updateById(record);
         }
         //恢复账号状态为正常

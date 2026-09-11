@@ -278,6 +278,12 @@ class ReviewFlowTest {
             mvc.perform(get("/api/order/mine").cookie(cookie).param("orderStatus", value))
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.PARAM_ERROR.getCode()));
         }
+        mvc.perform(get("/api/order/mine").cookie(cookie).param("relation", "CREATED"))
+            .andExpect(jsonPath("$.code").value(0));
+        for (String value : List.of("created", "INVALID")) {
+            mvc.perform(get("/api/order/mine").cookie(cookie).param("relation", value))
+                .andExpect(jsonPath("$.code").value(ResultCodeEnum.PARAM_ERROR.getCode()));
+        }
         // 状态筛选参数换成枚举之后，旧的数字写法必须被拒绝，否则无法确认前后端契约真的同步换掉了。
         var adminCookie = login(admin, ADMIN);
         for (String value : List.of("0", "INVALID")) {

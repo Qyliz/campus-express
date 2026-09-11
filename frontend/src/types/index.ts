@@ -96,12 +96,7 @@ export interface UserBanRecordVO {
   gender: GenderEnum
   phone: string | null
   email: string | null
-  /**
-   * 陷阱：这里是 Integer（0=封禁中 / 1=已解封），
-   * 而查询参数 UserBanQueryDTO.unbanned 是 Boolean。
-   * 渲染时永远不要写 row.unbanned === true，那样恒为 false。
-   */
-  unbanned: 0 | 1
+  unbanned: boolean
   reason: string | null
   createTime: ServerDate
 }
@@ -130,6 +125,10 @@ export interface SendCodeDTO {
   /** FORGOT_PASSWORD 用登录账号；CHANGE_PHONE / CHANGE_EMAIL 用「新」的手机号 / 邮箱 */
   account: string
   scene: VerifySceneEnum
+}
+
+export interface VerifyCodeDTO extends SendCodeDTO {
+  code: string
 }
 
 export interface ResetPasswordDTO {
@@ -223,7 +222,6 @@ export interface UserBanQueryDTO extends PageQuery {
   username?: string
   phone?: string
   email?: string
-  /** 陷阱：查询参数是 Boolean，而 VO 里的 unbanned 是 Integer 0/1 */
   unbanned?: boolean
   deleted?: boolean
 }

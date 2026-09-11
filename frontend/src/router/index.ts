@@ -14,6 +14,7 @@ import ProfileView from '@/views/ProfileView.vue'
 import AdminUsersView from '@/views/admin/UsersView.vue'
 import AdminAuditsView from '@/views/admin/AuditsView.vue'
 import AdminBansView from '@/views/admin/BansView.vue'
+import AdminDashboard from '@/views/admin/AdminDashboard.vue'
 import CreateOrderView from '@/views/order/CreateOrderView.vue'
 import OrderListView from '@/views/order/OrderListView.vue'
 import OrderDetailView from '@/views/order/OrderDetailView.vue'
@@ -84,7 +85,7 @@ const routes: RouteRecordRaw[] = [
         path: 'forgot-password',
         name: 'forgot-password',
         component: ForgotPasswordView,
-        meta: { title: '忘记密码' },
+        meta: { title: '忘记密码', guestOnly: true },
       },
       {
         path: 'profile',
@@ -104,8 +105,19 @@ const routes: RouteRecordRaw[] = [
     component: AdminLayout,
     meta: { requiresAuth: true, requiresAdmin: true },
     children: [
-      { path: '', redirect: { name: 'admin-users' } },
-      { path: 'review-appeals', name: 'admin-review-appeals', component: ReviewAppealsView, meta: { title: '评价申诉' } },
+      { path: '', name: 'admin-dashboard', component: AdminDashboard, meta: { title: '工作台' } },
+      {
+        path: 'profile',
+        name: 'admin-profile',
+        component: ProfileView,
+        meta: { title: '个人中心' },
+      },
+      {
+        path: 'review-appeals',
+        name: 'admin-review-appeals',
+        component: ReviewAppealsView,
+        meta: { title: '评价申诉' },
+      },
       {
         path: 'exceptions',
         name: 'admin-exceptions',
@@ -169,8 +181,13 @@ router.beforeEach(async (to) => {
   // 守卫是 async 的 → 首屏在探测结束前不渲染任何路由组件，因此不会闪一下未登录的样子。
   await auth.init()
 
+  // 管理员的个人中心留在后台布局中，避免切换页面后丢失侧栏。
+  if (auth.isAdmin && to.name === 'profile') {
+    return { name: 'admin-profile' }
+  }
+
   if (to.meta.requiresAuth && !auth.isLoggedIn) {
-    return { name: 'login', query: { redirect: to.fullPath } }
+    return { name: 'home' }
   }
 
   // 后端 @SaCheckRole("ADMIN") 本来也会回 403，这里只是提前拦住，体验更好

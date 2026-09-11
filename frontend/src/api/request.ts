@@ -46,12 +46,12 @@ function fail(config: AxiosRequestConfig | undefined, code: number, message: str
   return Promise.reject(new ApiError(code, message))
 }
 
-/** 会话失效后跳登录页，并把当前地址带上，登录成功后可以回来 */
-function goLogin() {
+/** 会话失效后回到首页；首页本身就是当前统一的登录入口。 */
+function goHome() {
   const current = router.currentRoute.value
-  if (current.name === 'login') return
+  if (current.name === 'home') return
   // 守卫可能再次重定向，router.replace 会 reject，这里必须吞掉，否则控制台冒未处理的 rejection
-  router.replace({ name: 'login', query: { redirect: current.fullPath } }).catch(() => {})
+  router.replace({ name: 'home' }).catch(() => {})
 }
 
 instance.interceptors.response.use(
@@ -93,7 +93,7 @@ instance.interceptors.response.use(
       useAuthStore().clear()
       if (!config?.silent) {
         ElMessage.error(message)
-        goLogin()
+        goHome()
       }
       return Promise.reject(new ApiError(code, message))
     }

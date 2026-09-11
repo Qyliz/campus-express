@@ -175,11 +175,13 @@ public class AdminUserTest {
         //封禁记录可查（至少一条）
         mockMvc.perform(get("/api/user/ban")
                         .param("currentPage", "1")
+                        .param("username", "cus_ban")
                         .param("unbanned", "false")
                         .cookie(adminCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()))
-                .andExpect(jsonPath("$.data.total").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)));
+                .andExpect(jsonPath("$.data.total").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.data.records[0].unbanned").value(false));
 
         //解封
         mockMvc.perform(post("/api/user/{userId}/roles/CUSTOMER/unban", userId)
@@ -188,6 +190,15 @@ public class AdminUserTest {
                         .cookie(adminCookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
+
+        mockMvc.perform(get("/api/user/ban")
+                        .param("currentPage", "1")
+                        .param("username", "cus_ban")
+                        .param("unbanned", "true")
+                        .cookie(adminCookie))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()))
+                .andExpect(jsonPath("$.data.records[0].unbanned").value(true));
 
         //解封后可重新登录，说明状态恢复为 NORMAL
         mockMvc.perform(post("/api/user/login")

@@ -24,7 +24,10 @@ export function pageAuditRecords(params: UserAuditQueryDTO) {
 
 /** 15. PUT /api/user/audit/{recordId} — status 只接受 'NORMAL'(通过) | 'REJECTED'(驳回) */
 export function auditUser(data: UserAuditDTO) {
-  return http.put<void>('/api/user/audit/' + data.userAuditRecordId, { status: data.status, reason: data.reason })
+  return http.put<void>('/api/user/audit/' + data.userAuditRecordId, {
+    status: data.status,
+    reason: data.reason,
+  })
 }
 
 /** 16. GET /api/user/all-users — 注意状态筛选字段叫 userStatus，审核页那个叫 auditStatus */
@@ -34,10 +37,12 @@ export function pageUsers(params: UserQueryDTO) {
 
 /** 17. POST /api/user/{userId}/roles/{role}/ban — 后端同时会把该用户踢下线 */
 export function banUser(data: UserBanDTO) {
-  return http.post<void>('/api/user/' + data.userId + '/roles/' + data.role + '/ban', { reason: data.reason })
+  return http.post<void>('/api/user/' + data.userId + '/roles/' + data.role + '/ban', {
+    reason: data.reason,
+  })
 }
 
-/** 18. GET /api/user/ban — 查询参数 unbanned 是 Boolean，而 VO 里的 unbanned 是 Integer 0/1 */
+/** 18. GET /api/user/ban */
 export function pageBanRecords(params: UserBanQueryDTO) {
   return http.get<PageResult<UserBanRecordVO>>('/api/user/ban', params)
 }
@@ -54,5 +59,7 @@ export function kickoutUser(data: UserKickoutDTO) {
 
 /** 21. POST /api/user/{userId}/reset-password — 同样只要 userId：密码在 user 主表上，多角色共用 */
 export function adminResetPassword(data: AdminResetPasswordDTO) {
-  return http.post<void>('/api/user/' + data.userId + '/reset-password', { newPassword: data.newPassword })
+  return http.post<void>('/api/user/' + data.userId + '/reset-password', {
+    newPassword: data.newPassword,
+  })
 }

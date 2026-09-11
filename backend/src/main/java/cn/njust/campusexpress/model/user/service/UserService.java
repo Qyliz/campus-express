@@ -47,6 +47,9 @@ public interface UserService extends IRepository<User> {
      */
     void deleteAccount(Long userId, UserRoleEnum role);
 
+    /** 校验用于找回密码的手机号或邮箱格式正确且属于现有账号。 */
+    void validatePasswordResetAccount(String account);
+
     void resetPassword(ResetPasswordDTO dto);
 
     void adminResetPassword(Long userId, AdminResetPasswordDTO dto);

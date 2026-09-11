@@ -45,6 +45,11 @@ public class VerifyCodeService {
         dao().delete(key(scene, account));
     }
 
+    /** 校验验证码但不消费，供忘记密码的分步表单进入下一步前使用。 */
+    public synchronized void validate(String account, VerifySceneEnum scene, String code) {
+        check(account, scene, code);
+    }
+
     /** 注册时先检查全部验证码，再统一消费，避免第二项错误导致第一项验证码丢失。 */
     public synchronized void verifyRegistration(String phone, String phoneCode, String email, String emailCode) {
         if (phone != null) check(phone, VerifySceneEnum.REGISTER, phoneCode);

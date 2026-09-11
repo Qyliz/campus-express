@@ -227,8 +227,9 @@ async function submitPassword() {
       oldPassword: pwdForm.oldPassword,
       newPassword: pwdForm.newPassword,
     })
-    // 后端改完密码会顺手登出当前会话，所以本地状态必须清掉并回登录页
+    // 后端改完密码会顺手登出当前会话，所以本地状态必须清掉并回首页登录区
     auth.clear()
+    await router.replace({ name: 'home' })
     // showClose / closeOnPressEscape 都关掉：alert 被 X 或 ESC 关掉时会 reject，
     // 那样就会跳过下面的跳转，把用户留在一个会话已死的页面上。
     await ElMessageBox.alert('密码修改成功，当前会话已失效，请重新登录。', '提示', {
@@ -237,20 +238,11 @@ async function submitPassword() {
       showClose: false,
       closeOnPressEscape: false,
     }).catch(() => {})
-    router.replace({ name: 'login' })
   } catch {
     // 2010 旧密码不正确，拦截器已提示
   } finally {
     savingPwd.value = false
   }
-}
-
-// ===== 卡 4：危险操作（登出 vs 注销，两件事） =====
-
-async function onLogout() {
-  await auth.logout()
-  ElMessage.success('已登出')
-  router.replace({ name: 'login' })
 }
 
 async function onDeleteAccount() {
@@ -263,7 +255,7 @@ async function onDeleteAccount() {
        <ul style="padding-left:18px;line-height:1.9;margin:8px 0">
          <li>只会删除<b>当前这一个角色</b>；如果你还有别的角色，那些角色仍然可以正常登录。</li>
          <li>用户名、头像、性别等资料挂在主账号上，不会因为注销某个角色而丢失。</li>
-         <li>注销后需要重新注册才能再次拥有「${roleName}」角色（配送员还要重新审核）。</li>
+         <li>注销后需要重新注册才能再次拥有「${roleName}」角色。</li>
          <li>此操作<b>不可恢复</b>。</li>
        </ul>
        <p style="margin:0">如果只是想退出登录，请使用「登出」。</p>`,
@@ -282,16 +274,16 @@ async function onDeleteAccount() {
 
   try {
     await deleteAccount()
-    // 顺手把会话也结束掉，避免留下一个指向已删除角色的 cookie
-    await auth.logout()
+    // 后端注销角色时已经结束会话；安全布局会在资料清空后立即显示首页登录区。
+    auth.clear()
+    await router.replace({ name: 'home' })
     ElMessage.success('已注销当前角色')
-    router.replace({ name: 'login' })
   } catch {}
 }
 </script>
 
 <template>
-  <div>
+  <div v-if="auth.profile">
     <el-card shadow="never" class="page-card">
       <div class="head">
         <el-upload
@@ -316,14 +308,20 @@ async function onDeleteAccount() {
             <span class="head-name">{{ p.username }}</span>
             <el-tag :type="roleTagType[p.role]" effect="plain">{{ roleText }}</el-tag>
           </div>
-          <el-descriptions :column="2" border size="small" class="head-desc">
-            <el-descriptions-item label="性别">{{ genderLabel[p.gender] }}</el-descriptions-item>
-            <el-descriptions-item label="手机号">{{ p.phone || '未绑定' }}</el-descriptions-item>
-            <el-descriptions-item label="邮箱">{{ p.email || '未绑定' }}</el-descriptions-item>
-            <el-descriptions-item label="头像">
-              <span class="muted mono">{{ p.avatar || '未设置' }}</span>
-            </el-descriptions-item>
-          </el-descriptions>
+          <div class="head-meta">
+            <div class="meta-item">
+              <span class="meta-label">性别</span>
+              <span class="meta-value">{{ genderLabel[p.gender] }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">手机号</span>
+              <span class="meta-value">{{ p.phone || '未绑定' }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">邮箱</span>
+              <span class="meta-value">{{ p.email || '未绑定' }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </el-card>
@@ -402,7 +400,7 @@ async function onDeleteAccount() {
         ref="pwdFormRef"
         :model="pwdForm"
         :rules="pwdRules"
-        label-width="90px"
+        label-width="120px"
         class="narrow-form"
         @submit.prevent
       >
@@ -426,24 +424,10 @@ async function onDeleteAccount() {
           >
         </el-form-item>
       </el-form>
-
-      <el-alert type="warning" :closable="false" show-icon class="note-alert">
-        <template #title>修改成功后当前会话会立即失效</template>
-        密码挂在主账号上，这个人的<b>所有角色</b>都会改用新密码；改完需要重新登录。
-      </el-alert>
     </el-card>
 
     <el-card shadow="never" class="page-card danger" id="danger">
       <template #header>危险操作</template>
-
-      <div class="danger-row">
-        <div>
-          <div class="bind-label">登出</div>
-          <div class="muted note-inline">只结束当前会话，账号和资料都保留，随时可以重新登录。</div>
-        </div>
-        <el-button @click="onLogout">登出</el-button>
-      </div>
-
       <div class="danger-row">
         <div>
           <div class="bind-label">注销当前角色</div>
@@ -471,10 +455,9 @@ async function onDeleteAccount() {
           <el-button :loading="phoneSending" :disabled="phoneDisabled" @click="sendPhoneCode">
             {{ phoneButtonText }}
           </el-button>
-          <span class="muted send-hint">验证码会发给上面这个<b>新</b>手机号</span>
         </el-form-item>
         <el-alert v-if="phoneMockCode" type="success" :closable="false" show-icon class="mock">
-          <template #title>模拟短信（换绑手机号）</template>
+          <template #title>验证码</template>
           您的验证码是 <b class="code">{{ phoneMockCode }}</b>
           <span class="sub">5 分钟内有效，只能使用一次。</span>
         </el-alert>
@@ -506,10 +489,9 @@ async function onDeleteAccount() {
           <el-button :loading="emailSending" :disabled="emailDisabled" @click="sendEmailCode">
             {{ emailButtonText }}
           </el-button>
-          <span class="muted send-hint">验证码会发给上面这个<b>新</b>邮箱</span>
         </el-form-item>
         <el-alert v-if="emailMockCode" type="success" :closable="false" show-icon class="mock">
-          <template #title>模拟邮件（换绑邮箱）</template>
+          <template #title>验证码</template>
           您的验证码是 <b class="code">{{ emailMockCode }}</b>
           <span class="sub">5 分钟内有效，只能使用一次。</span>
         </el-alert>
@@ -589,6 +571,35 @@ async function onDeleteAccount() {
   gap: 10px;
   align-items: center;
   margin-bottom: 12px;
+}
+
+.head-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.meta-item {
+  display: flex;
+  flex: 1;
+  min-width: 130px;
+  padding: 10px 16px;
+  background: #f5f7fa;
+  border-radius: 10px;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meta-label {
+  font-size: 12px;
+  color: #909399;
+}
+
+.meta-value {
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
 }
 
 .head-name {

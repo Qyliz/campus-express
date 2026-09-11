@@ -1,117 +1,166 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-
 import { useAuthStore } from '@/stores/auth'
-import { roleLabel } from '@/constants'
+import LoginView from '@/views/LoginView.vue'
+import CustomerDashboard from '@/views/customer/CustomerDashboard.vue'
+import CourierDashboard from '@/views/courier/CourierDashboard.vue'
 
 const auth = useAuthStore()
-const router = useRouter()
 </script>
 
 <template>
-  <div>
-    <el-card shadow="never" class="hero">
-      <h1>校园快递管理系统</h1>
-      <p class="muted">
-        面向校园场景的快递代收代寄平台：收寄件人下单、配送员取送、管理员审核与账号治理。
+  <section v-if="!auth.isLoggedIn" class="landing">
+    <div class="login-zone">
+      <LoginView embedded />
+    </div>
+
+    <div class="introduction">
+      <p class="eyebrow">Campus Express</p>
+      <h1>校园配送平台</h1>
+      <p class="summary">
+        连接校园里的每一次托付，让取件、寄件与配送更简单。在线发布需求、实时掌握订单进度，安全高效地送达校园每个角落。
       </p>
+      <div class="features" aria-label="平台特点">
+        <span>校内直达</span>
+        <span>进度透明</span>
+        <span>服务可靠</span>
+      </div>
+    </div>
+  </section>
 
-      <el-space wrap :size="12" class="entries">
-        <template v-if="!auth.isLoggedIn">
-          <el-button type="primary" size="large" @click="router.push({ name: 'login' })">
-            登录
-          </el-button>
-          <el-button size="large" @click="router.push({ name: 'register' })">注册新账号</el-button>
-        </template>
-        <template v-else>
-          <el-button
-            v-if="auth.isCustomer"
-            type="primary"
-            size="large"
-            @click="router.push({ name: 'order-create' })"
-            >发布订单</el-button
-          >
-          <el-button
-            v-if="auth.isCourier"
-            type="primary"
-            size="large"
-            @click="router.push({ name: 'orders-available' })"
-            >进入接单大厅</el-button
-          >
-          <el-button type="primary" size="large" @click="router.push({ name: 'profile' })">
-            个人中心
-          </el-button>
-          <el-button v-if="auth.isAdmin" size="large" @click="router.push({ name: 'admin-users' })">
-            进入管理后台
-          </el-button>
-        </template>
-      </el-space>
-
-      <p v-if="auth.isLoggedIn" class="muted current">
-        当前登录身份：<b>{{ auth.role ? roleLabel[auth.role] : '' }}</b
-        >（{{ auth.username }}）
-      </p>
-    </el-card>
-
-    <el-row :gutter="16" class="rules">
-      <el-col :xs="24" :sm="8">
-        <el-card shadow="never">
-          <template #header>一人可有多个角色</template>
-          <p class="muted">
-            同一个手机号 / 邮箱可以同时是收寄件人、配送员甚至管理员。用<b>相同的账号 + 相同的密码</b
-            >再注册一次，就能给已有账号追加一个新角色，资料（用户名、头像、性别）全账号共用一份。
-          </p>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="8">
-        <el-card shadow="never">
-          <template #header>同时只有一个在线会话</template>
-          <p class="muted">
-            登录时必须选择本次使用的身份。切换身份要先登出再重新登录；在别处登录同一账号，会把当前会话顶下线（提示「您的账号在其他设备登录」）。
-          </p>
-        </el-card>
-      </el-col>
-      <el-col :xs="24" :sm="8">
-        <el-card shadow="never">
-          <template #header>配送员需要审核</template>
-          <p class="muted">
-            注册配送员时必须上传身份证明材料，提交后账号进入「审核中」，<b>此时无法登录</b>。管理员审核通过后才能正常使用；被驳回则会看到驳回原因。
-          </p>
-        </el-card>
-      </el-col>
-    </el-row>
-  </div>
+  <CustomerDashboard v-else-if="auth.isCustomer" />
+  <CourierDashboard v-else-if="auth.isCourier" />
 </template>
 
 <style scoped>
-.hero h1 {
-  margin: 0 0 8px;
-  font-size: 26px;
-  color: #303133;
+.landing {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(390px, 42%) 1fr;
+  min-height: 100vh;
+  overflow: hidden;
+  background-position: center;
+  background-size: cover;
+  isolation: isolate;
 }
 
-.hero p {
-  margin: 0 0 16px;
-  line-height: 1.7;
+.landing::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, rgba(5, 17, 33, 0.62) 0%, rgba(5, 17, 33, 0.18) 50%, transparent 75%),
+    linear-gradient(0deg, rgba(5, 17, 33, 0.24), transparent 55%);
+  content: '';
 }
 
-.entries {
-  margin-bottom: 8px;
+.login-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 48px clamp(28px, 4vw, 72px);
+  background: linear-gradient(90deg, rgba(5, 16, 31, 0.78), rgba(5, 16, 31, 0.38));
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(2px);
 }
 
-.current {
-  margin-top: 12px;
-  margin-bottom: 0;
+.introduction {
+  align-self: center;
+  max-width: 720px;
+  margin: 0 clamp(40px, 7vw, 112px);
+  padding: clamp(28px, 4vw, 52px);
+  color: #fff;
+  background: linear-gradient(135deg, rgba(4, 22, 41, 0.78), rgba(4, 22, 41, 0.38));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 28px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(10px);
+}
+
+.eyebrow {
+  margin: 0 0 14px;
+  color: #a9d8ff;
   font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
 }
 
-.rules {
-  margin-top: 16px;
-}
-
-.rules p {
+.introduction h1 {
   margin: 0;
+  font-size: clamp(42px, 5vw, 72px);
+  line-height: 1.12;
+  letter-spacing: -0.04em;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+}
+
+.summary {
+  max-width: 620px;
+  margin: 24px 0 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: clamp(16px, 1.5vw, 20px);
+  line-height: 1.9;
+}
+
+.features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 30px;
+}
+
+.features span {
+  padding: 8px 14px;
+  color: #fff;
   font-size: 13px;
-  line-height: 1.8;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 999px;
+}
+
+@media (max-width: 900px) {
+  .landing {
+    grid-template-areas:
+      'intro'
+      'login';
+    grid-template-columns: 1fr;
+    padding: 34px 20px;
+  }
+
+  .login-zone {
+    grid-area: login;
+    min-height: auto;
+    padding: 22px 0 0;
+    background: transparent;
+    border: 0;
+    backdrop-filter: none;
+  }
+
+  .introduction {
+    grid-area: intro;
+    margin: 0 auto;
+    padding: 26px;
+  }
+}
+
+@media (max-width: 520px) {
+  .landing {
+    padding: 20px 14px 28px;
+  }
+
+  .introduction h1 {
+    font-size: 38px;
+  }
+
+  .summary {
+    margin-top: 16px;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+
+  .features {
+    margin-top: 20px;
+  }
 }
 </style>

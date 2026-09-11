@@ -22,13 +22,13 @@ const loading = ref(false)
 const submitting = ref(false)
 const order = computed(() => data.value?.order)
 const labels: Record<OrderAction, string> = {
-  pay: '模拟支付',
+  pay: '支付',
   accept: '接单',
   pickup: '确认揽收',
   deliver: '确认送达',
   complete: '确认取件',
   cancel: '取消订单',
-  'admin-cancel': '管理员取消',
+  'admin-cancel': '取消订单',
 }
 const actions = computed<OrderAction[]>(() => data.value?.allowedActions ?? [])
 let sequence = 0
@@ -63,7 +63,7 @@ async function act(action: OrderAction) {
   try {
     if (action.includes('cancel')) {
       const result = await ElMessageBox.prompt(
-        '请输入取消原因（已支付订单会模拟退款）',
+        '请输入取消原因',
         labels[action],
         {
           inputType: 'textarea',
@@ -75,7 +75,7 @@ async function act(action: OrderAction) {
     } else {
       await ElMessageBox.confirm(
         action === 'pay'
-          ? '确认模拟支付 ¥' + Number(order.value.fee).toFixed(2) + '？不会真实扣款。'
+          ? '确认支付 ¥' + Number(order.value.fee).toFixed(2) + '？。'
           : '确定执行“' + labels[action] + '”？',
         labels[action],
         { type: 'warning' },
@@ -99,10 +99,7 @@ async function act(action: OrderAction) {
 <template>
   <el-card v-loading="loading" shadow="never">
     <template #header
-      ><el-space
-        ><el-button @click="back">返回列表</el-button><b>订单详情</b
-        ><el-button :loading="loading" @click="load">刷新</el-button></el-space
-      ></template
+      ><el-space><el-button @click="back">返回列表</el-button><b>订单详情</b></el-space></template
     >
     <template v-if="order">
       <el-space wrap class="actions">
@@ -141,7 +138,14 @@ async function act(action: OrderAction) {
           formatDateTime(order.createTime)
         }}</el-descriptions-item>
       </el-descriptions>
-      <ExceptionPanel :key="order.id" :order-id="order.id" :exceptions="data?.exceptions ?? []" :can-report="data?.canReportException ?? false" :is-admin="auth.isAdmin" @refresh="load" />
+      <ExceptionPanel
+        :key="order.id"
+        :order-id="order.id"
+        :exceptions="data?.exceptions ?? []"
+        :can-report="data?.canReportException ?? false"
+        :is-admin="auth.isAdmin"
+        @refresh="load"
+      />
       <ReviewPanel :key="order.id + ':' + order.orderStatus" :order-id="order.id" />
       <h3>订单进度</h3>
       <el-timeline>

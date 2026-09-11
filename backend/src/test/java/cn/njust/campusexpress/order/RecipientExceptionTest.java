@@ -115,7 +115,7 @@ class RecipientExceptionTest {
         assertEquals(1, service.list(sender, CUSTOMER, "mine", q).getTotal());
         var row = service.list(sender, CUSTOMER, "mine", q).getRecords().get(0);
         assertTrue(row.isCreatedByMe()); assertTrue(row.isReceivedByMe());
-        q.setRelation("received"); assertEquals(1, service.list(sender, CUSTOMER, "mine", q).getTotal());
+        q.setRelation(OrderRelationEnum.RECEIVED); assertEquals(1, service.list(sender, CUSTOMER, "mine", q).getTotal());
         phone = TestPhones.next();
         Long later = create(form()); // 尚无对应账户，仍能下单。
         assertThrows(BusinessException.class, () -> service.detail(recipient, CUSTOMER, later));

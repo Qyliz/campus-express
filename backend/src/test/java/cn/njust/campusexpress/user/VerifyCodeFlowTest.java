@@ -84,8 +84,36 @@ public class VerifyCodeFlowTest {
 
     @Test
     void sendCodeReturnsSixDigits() throws Exception {
+        registerCustomer("fp_send", "13900000401");
         String code = sendCode("13900000401", "FORGOT_PASSWORD");
         Assertions.assertTrue(code.matches("\\d{6}"), "验证码应为6位数字，实际=" + code);
+    }
+
+    @Test
+    void forgotPasswordCodeRejectsUnknownAccount() throws Exception {
+        mockMvc.perform(post("/api/user/verify-code")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"account\":\"13900000999\",\"scene\":\"FORGOT_PASSWORD\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(ResultCodeEnum.USER_NOT_FOUND.getCode()));
+    }
+
+    @Test
+    void forgotPasswordCodeCanBeCheckedBeforeReset() throws Exception {
+        registerCustomer("fp_check", "13900000411");
+        String code = sendCode("13900000411", "FORGOT_PASSWORD");
+
+        mockMvc.perform(post("/api/user/verify-code/check")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(String.format("{\"account\":\"13900000411\",\"scene\":\"FORGOT_PASSWORD\",\"code\":\"%s\"}", code)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
+
+        mockMvc.perform(post("/api/user/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(String.format("{\"account\":\"13900000411\",\"code\":\"%s\",\"newPassword\":\"newpass1\"}", code)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
     }
 
     @Test

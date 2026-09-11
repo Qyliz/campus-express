@@ -376,7 +376,7 @@ async function submitReset() {
       </el-form>
       <el-alert type="warning" :closable="false" show-icon class="dialog-tip">
         <template #title>会影响这个人的所有角色</template>
-        密码挂在主账号上，重置后他的<b>全部角色</b>都要改用新密码登录。
+        重置后他的<b>全部角色</b>都要改用新密码登录。
       </el-alert>
       <template #footer>
         <el-button @click="resetDialog.open = false">取消</el-button>

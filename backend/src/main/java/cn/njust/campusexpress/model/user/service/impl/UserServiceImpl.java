@@ -239,15 +239,20 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         StpUtil.logout();
     }
 
+    @Override
+    public void validatePasswordResetAccount(String account) {
+        if (resolveUserByAccount(account) == null) {
+            throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
+        }
+    }
+
     //忘记密码：校验验证码 -> 重置密码 -> 踢出在线会话
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void resetPassword(ResetPasswordDTO dto) {
         verifyCodeService.verify(dto.getAccount(), VerifySceneEnum.FORGOT_PASSWORD, dto.getCode());
         User user = resolveUserByAccount(dto.getAccount());
-        if (user == null) {
-            throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
-        }
+        if (user == null) throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
         user.setPassword(BCrypt.hashpw(dto.getNewPassword(), BCrypt.gensalt()));
         updateById(user);
         //密码为该用户名下所有角色共享，改密后踢下线强制重新登录

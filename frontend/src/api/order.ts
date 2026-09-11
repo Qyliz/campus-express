@@ -3,15 +3,28 @@ import { toOptions, type TagType } from '@/constants'
 import type { PageResult, RoleEnum } from '@/types'
 
 export type OrderStatusEnum =
-  | 'UNPAID' | 'AVAILABLE' | 'AWAITING_PICKUP' | 'DELIVERING'
-  | 'AWAITING_COLLECTION' | 'COMPLETED' | 'CANCELLED'
+  | 'UNPAID'
+  | 'AVAILABLE'
+  | 'AWAITING_PICKUP'
+  | 'DELIVERING'
+  | 'AWAITING_COLLECTION'
+  | 'COMPLETED'
+  | 'CANCELLED'
 export type PaymentStatusEnum = 'UNPAID' | 'PAID' | 'REFUNDED'
+export type OrderRelationEnum = 'ALL' | 'CREATED' | 'RECEIVED'
 export const orderStatusLabels: Record<OrderStatusEnum, string> = {
-  UNPAID: '待支付', AVAILABLE: '待接单', AWAITING_PICKUP: '待揽收',
-  DELIVERING: '配送中', AWAITING_COLLECTION: '待取件', COMPLETED: '已完成', CANCELLED: '已取消',
+  UNPAID: '待支付',
+  AVAILABLE: '待接单',
+  AWAITING_PICKUP: '待揽收',
+  DELIVERING: '配送中',
+  AWAITING_COLLECTION: '待取件',
+  COMPLETED: '已完成',
+  CANCELLED: '已取消',
 }
 export const paymentLabels: Record<PaymentStatusEnum, string> = {
-  UNPAID: '未支付', PAID: '已支付（模拟）', REFUNDED: '已退款（模拟）',
+  UNPAID: '未支付',
+  PAID: '已支付（模拟）',
+  REFUNDED: '已退款（模拟）',
 }
 export type OrderScope = 'mine' | 'available' | 'assigned' | 'admin'
 export type OrderAction =
@@ -73,7 +86,7 @@ export const listOrders = (
     currentPage: number
     orderStatus?: OrderStatusEnum
     orderId?: string
-    relation?: 'all' | 'created' | 'received'
+    relation?: OrderRelationEnum
   },
 ) => http.get<PageResult<ExpressOrder>>('/api/order/' + scope, params)
 export const getOrder = (id: string) => http.get<OrderDetail>('/api/order/' + id)
@@ -85,16 +98,23 @@ export type ExceptionStatusEnum = 'PENDING' | 'RESOLVED'
 export type ExceptionTypeEnum = 'CONTACT' | 'ADDRESS' | 'ITEM' | 'COURIER' | 'OTHER'
 export type ExceptionResolutionEnum = 'RESUME' | 'CANCEL'
 export const exceptionStatusLabels: Record<ExceptionStatusEnum, string> = {
-  PENDING: '待处理', RESOLVED: '已处理',
+  PENDING: '待处理',
+  RESOLVED: '已处理',
 }
 export const exceptionStatusTagType: Record<ExceptionStatusEnum, TagType> = {
-  PENDING: 'warning', RESOLVED: 'success',
+  PENDING: 'warning',
+  RESOLVED: 'success',
 }
 export const exceptionTypeLabels: Record<ExceptionTypeEnum, string> = {
-  CONTACT: '联系不上', ADDRESS: '地址问题', ITEM: '物品问题', COURIER: '配送员突发情况', OTHER: '其他',
+  CONTACT: '联系不上',
+  ADDRESS: '地址问题',
+  ITEM: '物品问题',
+  COURIER: '配送员突发情况',
+  OTHER: '其他',
 }
 export const exceptionResolutionLabels: Record<ExceptionResolutionEnum, string> = {
-  RESUME: '恢复配送', CANCEL: '取消订单（已支付则模拟退款）',
+  RESUME: '恢复配送',
+  CANCEL: '取消订单（已支付则模拟退款）',
 }
 export const orderStatusOptions = toOptions(orderStatusLabels)
 export const exceptionStatusOptions = toOptions(exceptionStatusLabels)
@@ -112,8 +132,10 @@ export interface DeliveryException {
   createTime: string
   resolvedTime: string | null
 }
-export const reportException = (id: string, data: { type: ExceptionTypeEnum; description: string }) =>
-  http.post<string>('/api/order/' + id + '/exceptions', data)
+export const reportException = (
+  id: string,
+  data: { type: ExceptionTypeEnum; description: string },
+) => http.post<string>('/api/order/' + id + '/exceptions', data)
 export const listExceptions = (params: {
   currentPage: number
   status?: ExceptionStatusEnum

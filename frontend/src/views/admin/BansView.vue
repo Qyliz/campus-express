@@ -8,15 +8,6 @@ import { formatDateTime } from '@/utils/date'
 import { orUndefined, type All } from '@/utils/query'
 import type { GenderEnum, RoleEnum, SortEnum, UserBanRecordVO } from '@/types'
 
-/**
- * 本项目最容易踩的一个坑：同一个词 unbanned 在两边类型不同。
- *   查询参数 UserBanQueryDTO.unbanned : Boolean | null → 用 true / false / undefined
- *   表格数据 UserBanRecordVO.unbanned : Integer        → 是 0(封禁中) / 1(已解封)
- * 所以渲染侧绝不能写 row.unbanned === true（恒为 false，所有行都会显示「封禁中」）。
- * Integer → 布尔语义的转换只集中在下面这一个函数里。
- */
-const isUnbanned = (row: UserBanRecordVO) => row.unbanned === 1
-
 /** 筛选值一律用 All<T>，'' 表示「全部」；发请求前统一走 orUndefined()，见 @/utils/query。 */
 const filters = reactive({
   username: '',
@@ -191,10 +182,8 @@ async function onUnban(row: UserBanRecordVO) {
 
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
-            <!-- el-table 把插槽里的 row 标成自己的 DefaultRow（松散类型），
-                 传给强类型的辅助函数时要在调用点收窄一次 -->
-            <el-tag :type="isUnbanned(row as UserBanRecordVO) ? 'success' : 'danger'" size="small">
-              {{ isUnbanned(row as UserBanRecordVO) ? '已解封' : '封禁中' }}
+            <el-tag :type="row.unbanned ? 'success' : 'danger'" size="small">
+              {{ row.unbanned ? '已解封' : '封禁中' }}
             </el-tag>
           </template>
         </el-table-column>
@@ -212,7 +201,7 @@ async function onUnban(row: UserBanRecordVO) {
             <el-button
               link
               type="primary"
-              :disabled="isUnbanned(row as UserBanRecordVO)"
+              :disabled="row.unbanned"
               @click="onUnban(row as UserBanRecordVO)"
             >
               解封

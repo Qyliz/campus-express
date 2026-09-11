@@ -15,7 +15,7 @@ public class UserBanRecord {
     private Long id;
     private Long userId;
     private UserRoleEnum role;
-    private Integer unbanned;
+    private Boolean unbanned;
     private String reason;
     private Date createTime;
 }
