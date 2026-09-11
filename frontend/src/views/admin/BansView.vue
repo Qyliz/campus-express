@@ -5,6 +5,7 @@ import { Search } from '@element-plus/icons-vue'
 import { pageBanRecords, unbanUser } from '@/api/admin'
 import { allSortOptions, genderLabel, PAGE_SIZE, roleLabel, roleTagType } from '@/constants'
 import { formatDateTime } from '@/utils/date'
+import { orUndefined, type All } from '@/utils/query'
 import type { GenderEnum, RoleEnum, SortEnum, UserBanRecordVO } from '@/types'
 
 /**
@@ -16,24 +17,16 @@ import type { GenderEnum, RoleEnum, SortEnum, UserBanRecordVO } from '@/types'
  */
 const isUnbanned = (row: UserBanRecordVO) => row.unbanned === 1
 
-/**
- * 三态/枚举筛选一律用字符串承载，'' 表示「全部」。
- * 原因有两层：el-option 的 value 属性在类型上不接受 undefined / null；
- * 而接口真正需要的是「这个参数干脆不传」，所以在发请求那一刻才转换。
- */
+/** 筛选值一律用 All<T>，'' 表示「全部」；发请求前统一走 orUndefined()，见 @/utils/query。 */
 const filters = reactive({
   username: '',
   phone: '',
   email: '',
-  unbanned: '' as '' | 'false' | 'true',
-  deleted: '' as '' | 'false' | 'true',
-  sort: '' as SortEnum | '',
+  /** 布尔三态直接用真布尔承载：'' 不传 / false 封禁中 / true 已解封 */
+  unbanned: '' as All<boolean>,
+  deleted: '' as All<boolean>,
+  sort: '' as All<SortEnum>,
 })
-
-/** '' → undefined（axios 会省略值为 undefined 的查询参数），'false'/'true' → boolean */
-function toBool(v: '' | 'false' | 'true'): boolean | undefined {
-  return v === '' ? undefined : v === 'true'
-}
 
 const rows = ref<UserBanRecordVO[]>([])
 const total = ref(0)
@@ -45,14 +38,12 @@ async function load() {
   try {
     const page = await pageBanRecords({
       currentPage: currentPage.value,
-      // 空串要转成 undefined：axios 会省略 undefined 参数，
-      // 但会把 '' 原样发过去，变成无意义的 like '%%'
-      username: filters.username || undefined,
-      phone: filters.phone || undefined,
-      email: filters.email || undefined,
-      unbanned: toBool(filters.unbanned),
-      deleted: toBool(filters.deleted),
-      sort: filters.sort || undefined,
+      username: orUndefined(filters.username),
+      phone: orUndefined(filters.phone),
+      email: orUndefined(filters.email),
+      unbanned: orUndefined(filters.unbanned),
+      deleted: orUndefined(filters.deleted),
+      sort: orUndefined(filters.sort),
     })
     rows.value = page.records
     total.value = page.total
@@ -122,18 +113,18 @@ async function onUnban(row: UserBanRecordVO) {
           <el-input v-model="filters.email" placeholder="模糊搜索" clearable style="width: 180px" />
         </el-form-item>
         <el-form-item label="封禁状态">
-          <!-- 三态查询参数是 Boolean：'' 不传 / 'false' 封禁中 / 'true' 已解封 -->
+          <!-- 三态查询参数是 Boolean：'' 不传 / false 封禁中 / true 已解封。布尔值必须用 :value 绑定。 -->
           <el-select v-model="filters.unbanned" placeholder="全部" style="width: 120px">
             <el-option label="全部" value="" />
-            <el-option label="封禁中" value="false" />
-            <el-option label="已解封" value="true" />
+            <el-option label="封禁中" :value="false" />
+            <el-option label="已解封" :value="true" />
           </el-select>
         </el-form-item>
         <el-form-item label="删除状态">
           <el-select v-model="filters.deleted" placeholder="全部" style="width: 120px">
             <el-option label="全部" value="" />
-            <el-option label="未删除" value="false" />
-            <el-option label="已删除" value="true" />
+            <el-option label="未删除" :value="false" />
+            <el-option label="已删除" :value="true" />
           </el-select>
         </el-form-item>
         <el-form-item label="排序">

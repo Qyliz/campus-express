@@ -13,7 +13,6 @@ const form = reactive<CreateOrder>({
   deliveryAddress: '',
   deliveryName: '',
   deliveryPhone: '',
-  deliveryEmail: '',
   itemDescription: '',
   remark: '',
   fee: 5,
@@ -28,13 +27,11 @@ for (const key of [
 ]) {
   rules[key] = [{ required: true, whitespace: true, message: '请填写此项', trigger: 'blur' }]
 }
-for (const key of ['pickupPhone']) {
+for (const key of ['pickupPhone', 'deliveryPhone']) {
   rules[key] = [
     { required: true, pattern: /^1[3-9]\d{9}$/, message: '请填写正确的手机号', trigger: 'blur' },
   ]
 }
-rules.deliveryPhone = [{ pattern: /^1[3-9]\d{9}$/, message: '请填写正确的手机号', trigger: 'blur' }]
-rules.deliveryEmail = [{ type: 'email', message: '请填写正确的邮箱', trigger: 'blur' }]
 rules.fee = [
   {
     required: true,
@@ -46,14 +43,10 @@ rules.fee = [
   },
 ]
 async function submit() {
-  if (!form.deliveryPhone.trim() && !form.deliveryEmail?.trim()) {
-    ElMessage.warning('收件手机号和邮箱至少填写一项')
-    return
-  }
   if (submitting.value || !(await formRef.value?.validate().catch(() => false))) return
   submitting.value = true
   try {
-    const id = await createOrder({ ...form, deliveryPhone: form.deliveryPhone.trim(), deliveryEmail: form.deliveryEmail?.trim() })
+    const id = await createOrder({ ...form, deliveryPhone: form.deliveryPhone.trim() })
     ElMessage.success('订单已发布，请完成模拟支付')
     await router.push({ name: 'order-detail', params: { id } })
   } catch {
@@ -102,10 +95,7 @@ async function submit() {
           <el-form-item label="收件联系电话" prop="deliveryPhone"
             ><el-input v-model="form.deliveryPhone" maxlength="11"
           /></el-form-item>
-          <el-form-item label="收件邮箱（手机号、邮箱至少填一项）" prop="deliveryEmail">
-            <el-input v-model="form.deliveryEmail" maxlength="255" />
-          </el-form-item>
-          <p class="muted">收件人无需注册也可下单；绑定任一所填联系方式的收寄件人可查看订单并确认取件。</p>
+          <p class="muted">收件人无需注册也可下单；绑定该手机号的收寄件人可查看订单并确认取件。</p>
         </el-col>
       </el-row>
       <el-form-item label="物品说明" prop="itemDescription"

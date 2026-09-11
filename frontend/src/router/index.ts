@@ -1,4 +1,5 @@
 import ExceptionsView from '@/views/admin/ExceptionsView.vue'
+import ReviewAppealsView from '@/views/admin/ReviewAppealsView.vue'
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
@@ -104,6 +105,7 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, requiresAdmin: true },
     children: [
       { path: '', redirect: { name: 'admin-users' } },
+      { path: 'review-appeals', name: 'admin-review-appeals', component: ReviewAppealsView, meta: { title: '评价申诉' } },
       {
         path: 'exceptions',
         name: 'admin-exceptions',

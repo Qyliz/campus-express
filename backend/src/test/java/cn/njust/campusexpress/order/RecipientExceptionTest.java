@@ -1,5 +1,6 @@
 package cn.njust.campusexpress.order;
 
+import cn.njust.campusexpress.TestPhones;
 import cn.njust.campusexpress.common.enums.*;
 import cn.njust.campusexpress.common.exception.BusinessException;
 import cn.njust.campusexpress.model.order.dto.*;
@@ -22,7 +23,9 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.*;
 import static cn.njust.campusexpress.common.enums.UserRoleEnum.*;
-import static cn.njust.campusexpress.model.order.service.OrderState.*;
+import static cn.njust.campusexpress.common.enums.OrderStatusEnum.*;
+import static cn.njust.campusexpress.common.enums.PaymentStatusEnum.PAID;
+import static cn.njust.campusexpress.common.enums.PaymentStatusEnum.REFUNDED;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -42,11 +45,13 @@ class RecipientExceptionTest {
     final List<Long> userIds = new ArrayList<>();
     final List<Long> orderIds = new ArrayList<>();
     Long sender, recipient, courier, admin, stranger;
-    String email;
+    /** 收件联系方式：订单只按手机号匹配，本字段承载当前用于认领的手机号。 */
+    String phone;
 
     Long user(UserRoleEnum role) {
         User u = new User();
         u.setUsername("异常测试"); u.setGender(UserGenderEnum.UNKNOWN);
+        u.setPhone(TestPhones.next());
         u.setPassword(org.mindrot.jbcrypt.BCrypt.hashpw("test123", org.mindrot.jbcrypt.BCrypt.gensalt()));
         u.setEmail(UUID.randomUUID() + "@example.com");
         users.save(u); userIds.add(u.getId());
@@ -55,7 +60,7 @@ class RecipientExceptionTest {
     }
     @BeforeEach void setup() {
         sender = user(CUSTOMER); recipient = user(CUSTOMER); courier = user(COURIER); admin = user(ADMIN); stranger = user(CUSTOMER);
-        email = users.getById(recipient).getEmail();
+        phone = users.getById(recipient).getPhone();
     }
     @AfterEach void cleanup() {
         reset(exceptions);
@@ -72,7 +77,7 @@ class RecipientExceptionTest {
     CreateOrderDTO form() {
         CreateOrderDTO d = new CreateOrderDTO();
         d.setPickupAddress("站点"); d.setPickupName("寄件人"); d.setPickupPhone("13800000001");
-        d.setDeliveryAddress("宿舍"); d.setDeliveryName("收件人"); d.setDeliveryEmail(email);
+        d.setDeliveryAddress("宿舍"); d.setDeliveryName("收件人"); d.setDeliveryPhone(phone);
         d.setItemDescription("书籍"); d.setFee(new BigDecimal("5.00")); return d;
     }
     Long create(CreateOrderDTO d) { Long id = service.create(sender, CUSTOMER, d); orderIds.add(id); return id; }
@@ -80,8 +85,8 @@ class RecipientExceptionTest {
         Long id = create(form()); service.act(sender, CUSTOMER, id, "pay", null);
         service.act(courier, COURIER, id, "accept", null); return id;
     }
-    ReportExceptionDTO report() { var d = new ReportExceptionDTO(); d.setType("CONTACT"); d.setDescription("联系不上收件人"); return d; }
-    ResolveExceptionDTO resolution(String value) { var d = new ResolveExceptionDTO(); d.setResolution(value); d.setDescription("已与双方协商"); return d; }
+    ReportExceptionDTO report() { var d = new ReportExceptionDTO(); d.setType(ExceptionTypeEnum.CONTACT); d.setDescription("联系不上收件人"); return d; }
+    ResolveExceptionDTO resolution(ExceptionResolutionEnum value) { var d = new ResolveExceptionDTO(); d.setResolution(value); d.setDescription("已与双方协商"); return d; }
     Cookie login(Long id, UserRoleEnum role) throws Exception {
         return mvc.perform(post("/api/user/login").contentType(MediaType.APPLICATION_JSON)
             .content("{\"account\":\"" + users.getById(id).getEmail() + "\",\"password\":\"test123\",\"role\":\"" + role + "\"}"))
@@ -90,7 +95,7 @@ class RecipientExceptionTest {
 
     @Test void recipientCanReadAndCompleteButCannotPayOrCancel() {
         Long id = create(form());
-        assertNull(orders.selectById(id).getDeliveryPhone());
+        assertEquals(phone, orders.selectById(id).getDeliveryPhone());
         assertTrue(service.detail(recipient, CUSTOMER, id).allowedActions().isEmpty());
         assertEquals(1, service.list(recipient, CUSTOMER, "mine", new OrderQueryDTO()).getTotal());
         assertThrows(BusinessException.class, () -> service.act(recipient, CUSTOMER, id, "pay", null));
@@ -104,33 +109,35 @@ class RecipientExceptionTest {
     }
 
     @Test void dynamicMatchingDeduplicatesAndRespectsPaginationAndContactChanges() {
-        email = users.getById(sender).getEmail();
+        phone = users.getById(sender).getPhone();
         Long id = create(form());
         var q = new OrderQueryDTO();
         assertEquals(1, service.list(sender, CUSTOMER, "mine", q).getTotal());
         var row = service.list(sender, CUSTOMER, "mine", q).getRecords().get(0);
         assertTrue(row.isCreatedByMe()); assertTrue(row.isReceivedByMe());
         q.setRelation("received"); assertEquals(1, service.list(sender, CUSTOMER, "mine", q).getTotal());
-        email = UUID.randomUUID() + "@example.com";
+        phone = TestPhones.next();
         Long later = create(form()); // 尚无对应账户，仍能下单。
         assertThrows(BusinessException.class, () -> service.detail(recipient, CUSTOMER, later));
-        jdbc.update("update user set email = ? where id = ?", email, recipient);
+        jdbc.update("update user set phone = ? where id = ?", phone, recipient);
         assertTrue(service.detail(recipient, CUSTOMER, later).order().isReceivedByMe());
         for (int i=0;i<11;i++) create(form());
         q.setCurrentPage(2);
         assertEquals(12, service.list(recipient, CUSTOMER, "mine", q).getTotal());
         assertEquals(2, service.list(recipient, CUSTOMER, "mine", q).getRecords().size());
-        jdbc.update("update user set email = ? where id = ?", UUID.randomUUID()+"@example.com", recipient);
+        jdbc.update("update user set phone = ? where id = ?", TestPhones.next(), recipient);
         assertThrows(BusinessException.class, () -> service.detail(recipient, CUSTOMER, later));
         assertEquals(id, service.detail(sender, CUSTOMER, id).order().getId());
     }
 
-    @Test void phoneOrEmailCanMatchDifferentUsersAndEmptyContactsNeverMatch() {
+    @Test void phoneMatchingWorksAndBlankContactNeverMatches() {
         jdbc.update("update user set phone = ? where id = ?", "13899998888", stranger);
         var d = form(); d.setDeliveryPhone("13899998888"); Long id = create(d);
         assertTrue(service.detail(stranger, CUSTOMER, id).order().isReceivedByMe());
-        assertTrue(service.detail(recipient, CUSTOMER, id).order().isReceivedByMe());
-        jdbc.update("update user set phone = null, email = null where id = ?", stranger);
+        // 这张单的收件手机号属于 stranger，recipient 已经没有任何通道可以认领。
+        assertThrows(BusinessException.class, () -> service.detail(recipient, CUSTOMER, id));
+        // 空手机号永不参与匹配。置成空串而不是 null：phone 是 NOT NULL，而 recipientQuery 的 isBlank 守卫正好覆盖这一支。
+        jdbc.update("update user set phone = '' where id = ?", stranger);
         assertEquals(0, service.list(stranger, CUSTOMER, "mine", new OrderQueryDTO()).getTotal());
         assertThrows(BusinessException.class, () -> service.detail(stranger, CUSTOMER, id));
     }
@@ -144,28 +151,28 @@ class RecipientExceptionTest {
         assertTrue(service.list(recipient, CUSTOMER, "mine", new OrderQueryDTO()).getRecords().get(0).isPendingException());
         assertEquals(first, service.exceptionDetail(recipient, CUSTOMER, first).getId());
         assertThrows(BusinessException.class, () -> service.exceptionDetail(stranger, CUSTOMER, first));
-        assertThrows(BusinessException.class, () -> service.resolveException(courier, COURIER, first, resolution("RESUME")));
-        service.resolveException(admin, ADMIN, first, resolution("RESUME"));
+        assertThrows(BusinessException.class, () -> service.resolveException(courier, COURIER, first, resolution(ExceptionResolutionEnum.RESUME)));
+        service.resolveException(admin, ADMIN, first, resolution(ExceptionResolutionEnum.RESUME));
         assertEquals(AWAITING_PICKUP, orders.selectById(id).getOrderStatus());
         assertFalse(service.detail(courier, COURIER, id).order().isPendingException());
         service.act(courier, COURIER, id, "pickup", null);
         Long second = service.reportException(courier, COURIER, id, report());
         assertThrows(BusinessException.class, () -> service.act(courier, COURIER, id, "deliver", null));
-        service.resolveException(admin, ADMIN, second, resolution("RESUME"));
+        service.resolveException(admin, ADMIN, second, resolution(ExceptionResolutionEnum.RESUME));
         assertEquals(DELIVERING, orders.selectById(id).getOrderStatus());
         assertEquals(2, service.detail(sender, CUSTOMER, id).exceptions().size());
-        assertThrows(BusinessException.class, () -> service.resolveException(admin, ADMIN, second, resolution("CANCEL")));
+        assertThrows(BusinessException.class, () -> service.resolveException(admin, ADMIN, second, resolution(ExceptionResolutionEnum.CANCEL)));
     }
 
     @Test void bothCancellationEntrypointsCloseExceptionAndRefund() {
         for (boolean direct : List.of(false, true)) {
             Long id = accepted(); Long exception = service.reportException(courier, COURIER, id, report());
             if (direct) service.act(admin, ADMIN, id, "admin-cancel", "无法配送");
-            else service.resolveException(admin, ADMIN, exception, resolution("CANCEL"));
+            else service.resolveException(admin, ADMIN, exception, resolution(ExceptionResolutionEnum.CANCEL));
             assertEquals(CANCELLED, orders.selectById(id).getOrderStatus());
             assertEquals(REFUNDED, orders.selectById(id).getPaymentStatus());
-            assertEquals(1, exceptions.selectById(exception).getStatus());
-            assertEquals("CANCEL", exceptions.selectById(exception).getResolution());
+            assertEquals(ExceptionStatusEnum.RESOLVED, exceptions.selectById(exception).getStatus());
+            assertEquals(ExceptionResolutionEnum.CANCEL, exceptions.selectById(exception).getResolution());
             assertThrows(BusinessException.class, () -> service.reportException(courier, COURIER, id, report()));
         }
     }
@@ -179,10 +186,10 @@ class RecipientExceptionTest {
         reset(exceptions);
         Long exception = service.reportException(courier, COURIER, id, report());
         doThrow(new IllegalStateException("模拟处理保存失败")).when(exceptions).updateById(any(DeliveryException.class));
-        assertThrows(IllegalStateException.class, () -> service.resolveException(admin, ADMIN, exception, resolution("CANCEL")));
+        assertThrows(IllegalStateException.class, () -> service.resolveException(admin, ADMIN, exception, resolution(ExceptionResolutionEnum.CANCEL)));
         assertEquals(AWAITING_PICKUP, orders.selectById(id).getOrderStatus());
         assertEquals(PAID, orders.selectById(id).getPaymentStatus());
-        assertEquals(0, exceptions.selectById(exception).getStatus());
+        assertEquals(ExceptionStatusEnum.PENDING, exceptions.selectById(exception).getStatus());
         assertEquals(version + 1, orders.selectById(id).getVersion());
     }
 
@@ -209,8 +216,8 @@ class RecipientExceptionTest {
         if (detail.order().isPendingException()) {
             Long exception = detail.exceptions().get(0).getId();
             Long secondAdmin = user(ADMIN);
-            assertEquals(1, race(() -> service.resolveException(admin, ADMIN, exception, resolution("RESUME")),
-                () -> service.resolveException(secondAdmin, ADMIN, exception, resolution("RESUME"))));
+            assertEquals(1, race(() -> service.resolveException(admin, ADMIN, exception, resolution(ExceptionResolutionEnum.RESUME)),
+                () -> service.resolveException(secondAdmin, ADMIN, exception, resolution(ExceptionResolutionEnum.RESUME))));
             service.act(courier, COURIER, id, "deliver", null);
         }
         assertEquals(1, race(() -> service.act(sender, CUSTOMER, id, "complete", null),
@@ -222,9 +229,9 @@ class RecipientExceptionTest {
     }
 
     @Test void requestValidationAndHttpAuthorization() throws Exception {
-        var d = form(); d.setDeliveryEmail(" "); d.setDeliveryPhone(" ");
-        assertFalse(validator.validate(d).isEmpty());
-        d.setDeliveryEmail(email); assertTrue(validator.validate(d).isEmpty());
+        var d = form(); d.setDeliveryPhone(" ");
+        assertFalse(validator.validate(d).isEmpty()); // 空串被 setter 归一成 null，由 @NotBlank 稳定拒绝
+        d.setDeliveryPhone(phone); assertTrue(validator.validate(d).isEmpty());
         Long id = accepted(); Cookie c = login(courier, COURIER);
         mvc.perform(post("/api/order/{id}/exceptions", id).cookie(c).contentType(MediaType.APPLICATION_JSON)
             .content("{\"type\":\"BAD\",\"description\":\"x\"}")).andExpect(jsonPath("$.code").value(ResultCodeEnum.PARAM_ERROR.getCode()));

@@ -1,5 +1,6 @@
 package cn.njust.campusexpress.user;
 
+import cn.njust.campusexpress.TestPhones;
 import cn.njust.campusexpress.common.enums.*;
 import cn.njust.campusexpress.model.user.dto.UserAuditQueryDTO;
 import cn.njust.campusexpress.model.user.entity.*;
@@ -23,6 +24,7 @@ class AuditStatusTest {
         User user = new User();
         user.setUsername("审核" + UUID.randomUUID().toString().substring(0, 8));
         user.setGender(UserGenderEnum.UNKNOWN);
+        user.setPhone(TestPhones.next());
         user.setPassword("unused");
         users.save(user);
         RoleAccount courier = accounts.createAccount(user.getId(), UserRoleEnum.COURIER, UserStatusEnum.DISABLED);

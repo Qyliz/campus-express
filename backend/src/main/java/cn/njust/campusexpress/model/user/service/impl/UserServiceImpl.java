@@ -45,12 +45,9 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
             throw new BusinessException(ResultCodeEnum.PARAM_ERROR, "角色不能为管理员");
         }
 
+        // 手机号必填由 UserRegisterDTO 的 @NotBlank 保证；邮箱选填，未填时为 null 并跳过它的验证码校验。
         String phone = registerDTO.getPhone();
         String email = registerDTO.getEmail();
-        //未输入手机号和邮箱
-        if (phone == null && email == null) {
-            throw new BusinessException(ResultCodeEnum.PARAM_MISSING, "手机号和邮箱请至少输入一项");
-        }
 
         // 新注册及追加角色都验证所填写联系方式，两项均填写时必须全部校验成功。
         verifyCodeService.verifyRegistration(phone, registerDTO.getPhoneCode(), email, registerDTO.getEmailCode());

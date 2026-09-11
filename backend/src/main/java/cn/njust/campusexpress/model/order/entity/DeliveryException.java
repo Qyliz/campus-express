@@ -1,5 +1,8 @@
 package cn.njust.campusexpress.model.order.entity;
 
+import cn.njust.campusexpress.common.enums.ExceptionResolutionEnum;
+import cn.njust.campusexpress.common.enums.ExceptionStatusEnum;
+import cn.njust.campusexpress.common.enums.ExceptionTypeEnum;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import java.util.Date;
@@ -10,11 +13,11 @@ public class DeliveryException {
     private Long id;
     private Long orderId;
     private Long courierId;
-    private String type;
+    private ExceptionTypeEnum type;
     private String description;
-    private Integer status;
+    private ExceptionStatusEnum status;
     private Long adminId;
-    private String resolution;
+    private ExceptionResolutionEnum resolution;
     private String resolutionDescription;
     private Date createTime;
     private Date resolvedTime;

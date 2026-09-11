@@ -1,5 +1,7 @@
 package cn.njust.campusexpress.model.order.entity;
 import com.baomidou.mybatisplus.annotation.*;
+import cn.njust.campusexpress.common.enums.OrderStatusEnum;
+import cn.njust.campusexpress.common.enums.PaymentStatusEnum;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.util.Date;
@@ -15,18 +17,22 @@ public class ExpressOrder {
     private String deliveryAddress;
     private String deliveryName;
     private String deliveryPhone;
-    private String deliveryEmail;
     @TableField(exist = false)
     private boolean pendingException;
     @TableField(exist = false)
     private boolean createdByMe;
     @TableField(exist = false)
     private boolean receivedByMe;
+    /** 接单骑手的展示信息。courierId 是 courier 表主键，姓名和手机号在 user 表，由 attachCouriers 批量回填。 */
+    @TableField(exist = false)
+    private String courierName;
+    @TableField(exist = false)
+    private String courierPhone;
     private String itemDescription;
     private String remark;
     private BigDecimal fee;
-    private Integer orderStatus;
-    private Integer paymentStatus;
+    private OrderStatusEnum orderStatus;
+    private PaymentStatusEnum paymentStatus;
     @Version
     private Integer version;
     private Date createTime;

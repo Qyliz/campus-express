@@ -17,13 +17,17 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.Date;
+import java.util.Map;
 import java.util.Objects;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.stream.Collectors;
+import cn.njust.campusexpress.model.user.mapper.CourierMapper;
 import cn.njust.campusexpress.model.user.mapper.UserMapper;
-import static cn.njust.campusexpress.model.order.service.OrderState.*;
+import static cn.njust.campusexpress.common.enums.OrderStatusEnum.*;
+import static cn.njust.campusexpress.common.enums.PaymentStatusEnum.PAID;
+import static cn.njust.campusexpress.common.enums.PaymentStatusEnum.REFUNDED;
 
 @Service
 @RequiredArgsConstructor
@@ -32,16 +36,15 @@ public class OrderServiceImpl implements OrderService {
     private final OrderStatusRecordMapper records;
     private final RoleAccountService accounts;
     private final UserMapper users;
+    private final CourierMapper couriers;
     private final DeliveryExceptionMapper exceptions;
 
-    // 使用数据库与账户相同的字符串比较规则；空联系方式永不参与匹配。
+    // 收件人只凭手机号认领订单；手机号为空的账户永不参与匹配，锚点保证条件恒为合法 SQL。
     private void recipientQuery(LambdaQueryWrapper<ExpressOrder> q, User user) {
         q.and(r -> {
             r.eq(ExpressOrder::getId, -1L);
             if (user != null && user.getPhone() != null && !user.getPhone().isBlank())
                 r.or().eq(ExpressOrder::getDeliveryPhone, user.getPhone());
-            if (user != null && user.getEmail() != null && !user.getEmail().isBlank())
-                r.or().eq(ExpressOrder::getDeliveryEmail, user.getEmail());
         });
     }
 
@@ -64,7 +67,32 @@ public class OrderServiceImpl implements OrderService {
 
     private boolean pending(Long orderId) {
         return exceptions.selectCount(new LambdaQueryWrapper<DeliveryException>()
-            .eq(DeliveryException::getOrderId, orderId).eq(DeliveryException::getStatus, 0)) > 0;
+            .eq(DeliveryException::getOrderId, orderId).eq(DeliveryException::getStatus, ExceptionStatusEnum.PENDING)) > 0;
+    }
+
+    /**
+     * 回填接单骑手的姓名和手机号。
+     * courierId 是 courier 表主键，而姓名和手机号在 user 表，必须两跳；整页只做两次批量查询，不逐行查。
+     * Courier 带逻辑删除，已注销的骑手查不到用户行，前端按空值兜底显示。
+     */
+    private void attachCouriers(List<ExpressOrder> list) {
+        Set<Long> courierIds = list.stream().map(ExpressOrder::getCourierId)
+                .filter(Objects::nonNull).collect(Collectors.toSet());
+        if (courierIds.isEmpty()) return;
+        Map<Long, Long> courierToUser = couriers.selectList(
+                        new LambdaQueryWrapper<Courier>().in(Courier::getId, courierIds))
+                .stream().collect(Collectors.toMap(Courier::getId, Courier::getUserId));
+        if (courierToUser.isEmpty()) return;
+        Map<Long, User> userById = users.selectList(
+                        new LambdaQueryWrapper<User>().in(User::getId, courierToUser.values()))
+                .stream().collect(Collectors.toMap(User::getId, user -> user));
+        list.forEach(order -> {
+            User courier = userById.get(courierToUser.get(order.getCourierId()));
+            if (courier != null) {
+                order.setCourierName(courier.getUsername());
+                order.setCourierPhone(courier.getPhone());
+            }
+        });
     }
 
     private BusinessException invalid(String message) {
@@ -89,7 +117,7 @@ public class OrderServiceImpl implements OrderService {
         BeanUtils.copyProperties(dto, order);
         order.setCustomerId(customer.getId());
         order.setOrderStatus(UNPAID);
-        order.setPaymentStatus(PAYMENT_UNPAID);
+        order.setPaymentStatus(PaymentStatusEnum.UNPAID);
         order.setVersion(0);
         order.setCreateTime(new Date());
         order.setUpdateTime(order.getCreateTime());
@@ -135,9 +163,11 @@ public class OrderServiceImpl implements OrderService {
         if (!page.getRecords().isEmpty() && !"available".equals(scope)) {
             List<Long> ids = page.getRecords().stream().map(ExpressOrder::getId).toList();
             Set<Long> pendingIds = exceptions.selectList(new LambdaQueryWrapper<DeliveryException>()
-                .in(DeliveryException::getOrderId, ids).eq(DeliveryException::getStatus, 0))
+                .in(DeliveryException::getOrderId, ids).eq(DeliveryException::getStatus, ExceptionStatusEnum.PENDING))
                 .stream().map(DeliveryException::getOrderId).collect(Collectors.toSet());
             page.getRecords().forEach(o -> o.setPendingException(pendingIds.contains(o.getId())));
+            // 待接单订单的 courierId 恒为 null，且 available 范围直接跳过本块，所以大厅列表不需要隐藏骑手。
+            attachCouriers(page.getRecords());
             if (role == UserRoleEnum.CUSTOMER) {
                 Long customerId = requireRole(userId, role, UserRoleEnum.CUSTOMER).getId();
                 var receivedQuery = new LambdaQueryWrapper<ExpressOrder>().in(ExpressOrder::getId, ids);
@@ -176,11 +206,13 @@ public class OrderServiceImpl implements OrderService {
             // 大厅只提供摘要；完整详情仅向订单参与者开放。
             participant(order, account, role, userId);
         }
+        // 回填骑手信息放在权限校验之后，未授权的探测不会触发额外查询。
+        attachCouriers(List.of(order));
         List<DeliveryException> history = history(id);
-        order.setPendingException(history.stream().anyMatch(e -> e.getStatus() == 0));
+        order.setPendingException(history.stream().anyMatch(e -> e.getStatus() == ExceptionStatusEnum.PENDING));
         List<String> actions = new ArrayList<>();
-        int state = order.getOrderStatus();
-        if (role == UserRoleEnum.ADMIN && state < COMPLETED) actions.add("admin-cancel");
+        OrderStatusEnum state = order.getOrderStatus();
+        if (role == UserRoleEnum.ADMIN && state != COMPLETED && state != CANCELLED) actions.add("admin-cancel");
         if (role == UserRoleEnum.CUSTOMER) {
             order.setCreatedByMe(Objects.equals(account.getId(), order.getCustomerId()));
             order.setReceivedByMe(recipient(order, userId));
@@ -201,7 +233,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(rollbackFor = Exception.class)
     public void act(Long userId, UserRoleEnum role, Long id, String action, String reason) {
         ExpressOrder order = get(id);
-        int previous = order.getOrderStatus();
+        OrderStatusEnum previous = order.getOrderStatus();
         String description;
         switch (action) {
             case "pay", "complete", "cancel" -> {
@@ -258,8 +290,9 @@ public class OrderServiceImpl implements OrderService {
             throw invalid("订单状态已变化，请刷新后重试");
         if ("admin-cancel".equals(action)) {
             for (DeliveryException exception : history(id)) {
-                if (exception.getStatus() == 0)
-                    close(exception, requireRole(userId, role, UserRoleEnum.ADMIN).getId(), "CANCEL", reason);
+                if (exception.getStatus() == ExceptionStatusEnum.PENDING)
+                    close(exception, requireRole(userId, role, UserRoleEnum.ADMIN).getId(),
+                            ExceptionResolutionEnum.CANCEL, reason);
             }
         }
         record(order, previous, userId, role, description);
@@ -274,7 +307,6 @@ public class OrderServiceImpl implements OrderService {
         if (order.getOrderStatus() != AWAITING_PICKUP && order.getOrderStatus() != DELIVERING)
             throw invalid("仅待揽收或配送中可以上报异常");
         if (pending(id)) throw invalid("该订单已有待处理异常");
-        if (!Set.of("CONTACT", "ADDRESS", "ITEM", "COURIER", "OTHER").contains(dto.getType())) throw invalid("异常类型无效");
         validateDescription(dto.getDescription());
         touch(order);
         DeliveryException exception = new DeliveryException();
@@ -282,7 +314,7 @@ public class OrderServiceImpl implements OrderService {
         exception.setCourierId(courier.getId());
         exception.setType(dto.getType());
         exception.setDescription(dto.getDescription().trim());
-        exception.setStatus(0);
+        exception.setStatus(ExceptionStatusEnum.PENDING);
         exception.setCreateTime(new Date());
         if (exceptions.insert(exception) != 1) throw invalid("保存异常失败");
         record(order, order.getOrderStatus(), userId, role, "配送员上报异常，配送暂停");
@@ -321,15 +353,16 @@ public class OrderServiceImpl implements OrderService {
         // 先读取订单版本，再读取异常，确保与所有订单操作竞争同一个版本。
         ExpressOrder order = get(getException(id).getOrderId());
         DeliveryException exception = getException(id);
-        if (exception.getStatus() != 0) throw invalid("异常已处理，请刷新");
+        if (exception.getStatus() != ExceptionStatusEnum.PENDING) throw invalid("异常已处理，请刷新");
         validateDescription(dto.getDescription());
-        int previous = order.getOrderStatus();
+        OrderStatusEnum previous = order.getOrderStatus();
         if (previous != AWAITING_PICKUP && previous != DELIVERING) throw invalid("订单状态不允许处理异常");
-        if ("CANCEL".equals(dto.getResolution())) cancel(order, dto.getDescription());
-        else if (!"RESUME".equals(dto.getResolution())) throw invalid("处理结果无效");
+        // 枚举只有 RESUME/CANCEL 两个取值且 @NotNull 已挡住空值，不需要再判断「处理结果无效」。
+        boolean cancelled = dto.getResolution() == ExceptionResolutionEnum.CANCEL;
+        if (cancelled) cancel(order, dto.getDescription());
         touch(order);
         close(exception, admin.getId(), dto.getResolution(), dto.getDescription());
-        record(order, previous, userId, role, "CANCEL".equals(dto.getResolution()) ? "异常处理：取消订单" : "异常处理：恢复配送");
+        record(order, previous, userId, role, cancelled ? "异常处理：取消订单" : "异常处理：恢复配送");
     }
 
     private void validateDescription(String description) {
@@ -342,8 +375,8 @@ public class OrderServiceImpl implements OrderService {
         if (orders.updateById(order) != 1) throw invalid("订单状态已变化，请刷新后重试");
     }
 
-    private void close(DeliveryException exception, Long adminId, String resolution, String description) {
-        exception.setStatus(1);
+    private void close(DeliveryException exception, Long adminId, ExceptionResolutionEnum resolution, String description) {
+        exception.setStatus(ExceptionStatusEnum.RESOLVED);
         exception.setAdminId(adminId);
         exception.setResolution(resolution);
         exception.setResolutionDescription(description.trim());
@@ -352,7 +385,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     // 阻止重复操作和跳过配送节点。
-    private void expect(int actual, int expected) {
+    private void expect(OrderStatusEnum actual, OrderStatusEnum expected) {
         if (actual != expected) throw invalid("订单状态已变化，请刷新后重试");
     }
 
@@ -364,7 +397,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     // 保存一次成功的状态流转及操作人信息。
-    private void record(ExpressOrder order, Integer previous, Long userId, UserRoleEnum role, String description) {
+    private void record(ExpressOrder order, OrderStatusEnum previous, Long userId, UserRoleEnum role, String description) {
         OrderStatusRecord record = new OrderStatusRecord();
         record.setOrderId(order.getId());
         record.setFromStatus(previous);
@@ -382,7 +415,6 @@ public class OrderServiceImpl implements OrderService {
         order.setPickupPhone(null);
         order.setDeliveryName(null);
         order.setDeliveryPhone(null);
-        order.setDeliveryEmail(null);
         order.setRemark(null);
         order.setCustomerId(null);
     }

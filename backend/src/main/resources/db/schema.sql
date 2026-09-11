@@ -8,13 +8,15 @@
 --      三张角色账户表结构对称，只保留该身份的账户状态，一个 user 在每张表至多一行有效数据。
 --   4) 逻辑删除列 deleted 参与唯一索引，配合 @TableLogic(delval="id") 实现软删后可重新注册。
 --   5) 外键约束名在 MySQL 中是库级唯一的，三张角色表的约束名必须互不相同；索引名是表级的，可以重复。
+--   6) 所有状态/类型列都是「数据库存 TINYINT 数字码、接口传枚举名」，由 MyBatis-Plus 的 @EnumValue 负责翻译。
+--      列注释里的数字与枚举常量的 code 一一对应，改枚举 code 必须同步改这张表和 db/data.sql 的种子值。
 
 CREATE TABLE IF NOT EXISTS `user` (
   `id` bigint NOT NULL COMMENT '主键id',
   `username` varchar(50) NOT NULL COMMENT '用户名',
   `gender` tinyint NOT NULL COMMENT '性别',
   `avatar` varchar(255) DEFAULT NULL COMMENT '头像',
-  `phone` varchar(20) DEFAULT NULL COMMENT '手机号',
+  `phone` varchar(20) NOT NULL COMMENT '手机号',
   `email` varchar(255) DEFAULT NULL COMMENT '邮箱',
   `password` varchar(100) NOT NULL COMMENT '密码',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -87,6 +89,7 @@ CREATE TABLE IF NOT EXISTS `user_ban_record` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='账户封禁记录表';
 
 -- 配送订单：地址和联系人保留下单时的值。节点时间统一保存在状态记录中。
+-- 收件人只留手机号一种联系方式，绑定该手机号的收寄件人即可在「我的订单」里认领这张单。
 CREATE TABLE IF NOT EXISTS express_order (
   id BIGINT NOT NULL,
   customer_id BIGINT NOT NULL,
@@ -96,13 +99,12 @@ CREATE TABLE IF NOT EXISTS express_order (
   pickup_phone VARCHAR(20) NOT NULL,
   delivery_address VARCHAR(255) NOT NULL,
   delivery_name VARCHAR(50) NOT NULL,
-  delivery_phone VARCHAR(20) DEFAULT NULL,
-  delivery_email VARCHAR(255) DEFAULT NULL,
+  delivery_phone VARCHAR(20) NOT NULL,
   item_description VARCHAR(255) NOT NULL,
   remark VARCHAR(255) DEFAULT NULL,
   fee DECIMAL(6,2) NOT NULL,
-  order_status TINYINT NOT NULL DEFAULT 0 COMMENT '0待支付 1待接单 2待揽收 3配送中 4待取件 5已完成 6已取消',
-  payment_status TINYINT NOT NULL DEFAULT 0 COMMENT '0未支付 1已支付 2已退款',
+  order_status TINYINT NOT NULL DEFAULT 0 COMMENT 'OrderStatusEnum：0待支付 1待接单 2待揽收 3配送中 4待取件 5已完成 6已取消',
+  payment_status TINYINT NOT NULL DEFAULT 0 COMMENT 'PaymentStatusEnum：0未支付 1已支付 2已退款',
   version INT NOT NULL DEFAULT 0,
   create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -111,7 +113,6 @@ CREATE TABLE IF NOT EXISTS express_order (
   KEY idx_order_courier_time (courier_id, create_time),
   KEY idx_order_status_time (order_status, create_time),
   KEY idx_order_delivery_phone (delivery_phone, create_time),
-  KEY idx_order_delivery_email (delivery_email, create_time),
   CONSTRAINT fk_order_customer FOREIGN KEY (customer_id) REFERENCES customer(id),
   CONSTRAINT fk_order_courier FOREIGN KEY (courier_id) REFERENCES courier(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -120,11 +121,11 @@ CREATE TABLE IF NOT EXISTS delivery_exception (
   id BIGINT NOT NULL PRIMARY KEY,
   order_id BIGINT NOT NULL,
   courier_id BIGINT NOT NULL,
-  type VARCHAR(20) NOT NULL,
+  type TINYINT NOT NULL COMMENT 'ExceptionTypeEnum：0联系不上 1地址问题 2物品问题 3配送员突发情况 4其他',
   description VARCHAR(255) NOT NULL,
-  status TINYINT NOT NULL DEFAULT 0 COMMENT '0待处理 1已处理',
+  status TINYINT NOT NULL DEFAULT 0 COMMENT 'ExceptionStatusEnum：0待处理 1已处理',
   admin_id BIGINT DEFAULT NULL,
-  resolution VARCHAR(20) DEFAULT NULL,
+  resolution TINYINT DEFAULT NULL COMMENT 'ExceptionResolutionEnum：0恢复配送 1取消订单',
   resolution_description VARCHAR(255) DEFAULT NULL,
   create_time DATETIME NOT NULL,
   resolved_time DATETIME DEFAULT NULL,
@@ -148,4 +149,39 @@ CREATE TABLE IF NOT EXISTS order_status_record (
   KEY idx_order_record_time (order_id, create_time, id),
   CONSTRAINT fk_order_record_order FOREIGN KEY (order_id) REFERENCES express_order(id),
   CONSTRAINT fk_order_record_operator FOREIGN KEY (operator_id) REFERENCES user(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+-- 服务评价：同一用户在同一订单最多评价一次。ReviewStatusEnum：0有效、1作废。
+CREATE TABLE IF NOT EXISTS service_review (
+  id BIGINT NOT NULL PRIMARY KEY,
+  order_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
+  courier_id BIGINT NOT NULL,
+  rating TINYINT NOT NULL,
+  content VARCHAR(500) NOT NULL,
+  status TINYINT NOT NULL DEFAULT 0 COMMENT 'ReviewStatusEnum：0有效 1已作废',
+  create_time DATETIME NOT NULL,
+  UNIQUE KEY uk_review_order_user (order_id, user_id),
+  KEY idx_review_courier (courier_id),
+  CONSTRAINT fk_review_order FOREIGN KEY (order_id) REFERENCES express_order(id),
+  CONSTRAINT fk_review_user FOREIGN KEY (user_id) REFERENCES user(id),
+  CONSTRAINT fk_review_courier FOREIGN KEY (courier_id) REFERENCES courier(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- AppealStatusEnum：0待处理、1申诉成立、2已驳回。保留原评价与全部处理信息。
+CREATE TABLE IF NOT EXISTS review_appeal (
+  id BIGINT NOT NULL PRIMARY KEY,
+  review_id BIGINT NOT NULL,
+  order_id BIGINT NOT NULL,
+  courier_id BIGINT NOT NULL,
+  reason VARCHAR(500) NOT NULL,
+  status TINYINT NOT NULL DEFAULT 0 COMMENT 'AppealStatusEnum：0待处理 1申诉成立 2已驳回',
+  admin_id BIGINT DEFAULT NULL,
+  resolution_reason VARCHAR(500) DEFAULT NULL,
+  create_time DATETIME NOT NULL,
+  resolved_time DATETIME DEFAULT NULL,
+  UNIQUE KEY uk_appeal_review (review_id),
+  KEY idx_appeal_order (order_id),
+  KEY idx_appeal_status_time (status, create_time, id),
+  CONSTRAINT fk_appeal_review FOREIGN KEY (review_id) REFERENCES service_review(id),
+  CONSTRAINT fk_appeal_admin FOREIGN KEY (admin_id) REFERENCES admin(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

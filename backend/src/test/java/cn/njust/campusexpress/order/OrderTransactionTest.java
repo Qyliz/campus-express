@@ -1,5 +1,6 @@
 package cn.njust.campusexpress.order;
 
+import cn.njust.campusexpress.TestPhones;
 import cn.njust.campusexpress.common.enums.*;
 import cn.njust.campusexpress.model.order.dto.CreateOrderDTO;
 import cn.njust.campusexpress.model.order.entity.OrderStatusRecord;
@@ -36,6 +37,7 @@ class OrderTransactionTest {
                 User user = new User();
                 user.setUsername("订单事务测试");
                 user.setGender(UserGenderEnum.UNKNOWN);
+                user.setPhone(TestPhones.next());
                 user.setPassword("unused");
                 users.save(user);
                 ids[0] = user.getId();
@@ -55,8 +57,8 @@ class OrderTransactionTest {
             assertThrows(IllegalStateException.class,
                     () -> service.act(ids[0], UserRoleEnum.CUSTOMER, ids[1], "pay", null));
             var order = orders.selectById(ids[1]);
-            assertEquals(0, order.getOrderStatus());
-            assertEquals(0, order.getPaymentStatus());
+            assertEquals(OrderStatusEnum.UNPAID, order.getOrderStatus());
+            assertEquals(PaymentStatusEnum.UNPAID, order.getPaymentStatus());
             assertEquals(0, order.getVersion());
             assertEquals(1, jdbc.queryForObject(
                     "select count(*) from order_status_record where order_id = ?", Integer.class, ids[1]));

@@ -1,5 +1,6 @@
 package cn.njust.campusexpress.order;
 
+import cn.njust.campusexpress.TestPhones;
 import cn.njust.campusexpress.common.enums.*;
 import cn.njust.campusexpress.common.exception.BusinessException;
 import cn.njust.campusexpress.model.order.dto.*;
@@ -25,7 +26,9 @@ import java.util.*;
 import java.util.concurrent.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static cn.njust.campusexpress.common.enums.UserRoleEnum.*;
-import static cn.njust.campusexpress.model.order.service.OrderState.*;
+import static cn.njust.campusexpress.common.enums.OrderStatusEnum.*;
+import static cn.njust.campusexpress.common.enums.PaymentStatusEnum.PAID;
+import static cn.njust.campusexpress.common.enums.PaymentStatusEnum.REFUNDED;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -47,6 +50,7 @@ class OrderFlowTest {
         User user = new User();
         user.setUsername("订单测试");
         user.setGender(UserGenderEnum.UNKNOWN);
+        user.setPhone(TestPhones.next());
         user.setPassword("unused");
         users.save(user);
         accounts.createAccount(user.getId(), role, UserStatusEnum.NORMAL);
@@ -96,7 +100,7 @@ class OrderFlowTest {
         Long customer = user(CUSTOMER);
         Long unpaid = service.create(customer, CUSTOMER, form());
         service.act(customer, CUSTOMER, unpaid, "cancel", "暂时不需要");
-        assertEquals(PAYMENT_UNPAID, orders.selectById(unpaid).getPaymentStatus());
+        assertEquals(PaymentStatusEnum.UNPAID, orders.selectById(unpaid).getPaymentStatus());
         Long paid = service.create(customer, CUSTOMER, form());
         service.act(customer, CUSTOMER, paid, "pay", null);
         service.act(customer, CUSTOMER, paid, "cancel", "地址填写错误");
@@ -173,7 +177,7 @@ class OrderFlowTest {
         String email = UUID.randomUUID() + "@example.com";
         mvc.perform(cn.njust.campusexpress.user.RegistrationTestSupport.registration(registrationCodes).param("username", "订单测试")
                 .param("password", "1234567").param("role", "CUSTOMER").param("gender", "UNKNOWN")
-                .param("email", email)).andExpect(jsonPath("$.code").value(0));
+                .param("phone", "13900000101").param("email", email)).andExpect(jsonPath("$.code").value(0));
         Cookie cookie = mvc.perform(post("/api/user/login").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"account\":\"" + email + "\",\"password\":\"1234567\",\"role\":\"CUSTOMER\"}"))
                 .andReturn().getResponse().getCookie("satoken");

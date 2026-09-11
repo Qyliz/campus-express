@@ -43,11 +43,6 @@ async function onCommand(command: string) {
           <el-icon><User /></el-icon>
           <span>账号管理</span>
         </el-menu-item>
-        <el-menu-item index="/admin/exceptions"><el-icon><DocumentChecked /></el-icon><span>异常管理</span></el-menu-item>
-        <el-menu-item index="/admin/orders">
-          <el-icon><DocumentChecked /></el-icon>
-          <span>订单管理</span>
-        </el-menu-item>
         <el-menu-item index="/admin/audits">
           <el-icon><DocumentChecked /></el-icon>
           <span>审核管理</span>
@@ -56,6 +51,12 @@ async function onCommand(command: string) {
           <el-icon><Lock /></el-icon>
           <span>封禁记录</span>
         </el-menu-item>
+        <el-menu-item index="/admin/orders">
+          <el-icon><DocumentChecked /></el-icon>
+          <span>订单管理</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/exceptions"><el-icon><DocumentChecked /></el-icon><span>异常管理</span></el-menu-item>
+        <el-menu-item index="/admin/review-appeals"><el-icon><DocumentChecked /></el-icon><span>评价申诉</span></el-menu-item>
       </el-menu>
     </el-aside>
 

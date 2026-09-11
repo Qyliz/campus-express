@@ -1,4 +1,5 @@
 package cn.njust.campusexpress.user;
+import cn.njust.campusexpress.TestPhones;
 import cn.njust.campusexpress.common.enums.*;
 import cn.njust.campusexpress.common.exception.BusinessException;
 import cn.njust.campusexpress.model.user.dto.UserLoginDTO;
@@ -24,6 +25,7 @@ class RejectedLoginTest {
         User user = new User();
         user.setUsername("驳回测试");
         user.setGender(UserGenderEnum.UNKNOWN);
+        user.setPhone(TestPhones.next());
         user.setEmail(UUID.randomUUID() + "@example.com");
         user.setPassword(BCrypt.hashpw("1234567", BCrypt.gensalt()));
         users.save(user);

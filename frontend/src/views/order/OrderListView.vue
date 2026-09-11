@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Search } from '@element-plus/icons-vue'
 import {
   listOrders,
   actOnOrder,
   orderStatusLabels,
+  orderStatusOptions,
   type ExpressOrder,
   type OrderScope,
+  type OrderStatusEnum,
 } from '@/api/order'
+import { orUndefined, type All } from '@/utils/query'
 import { formatDateTime } from '@/utils/date'
 const route = useRoute()
 const router = useRouter()
@@ -15,9 +19,12 @@ const scope = computed(() => route.meta.orderScope as OrderScope)
 const rows = ref<ExpressOrder[]>([])
 const total = ref(0)
 const page = ref(1)
-const orderStatus = ref<number>()
-const orderId = ref('')
-const relation = ref('all')
+const filters = reactive({
+  // '' = 全部订单；省略该参数时后端 OrderQueryDTO.relation 的字段初始值就是 "all"。
+  relation: '' as All<'created' | 'received'>,
+  orderStatus: '' as All<OrderStatusEnum>,
+  orderId: '',
+})
 const loading = ref(false)
 const acting = ref('')
 const error = ref(false)
@@ -29,9 +36,9 @@ async function load() {
   try {
     const result = await listOrders(scope.value, {
       currentPage: page.value,
-      relation: scope.value === 'mine' ? relation.value : undefined,
-      orderStatus: orderStatus.value,
-      orderId: scope.value === 'admin' && orderId.value.trim() ? orderId.value.trim() : undefined,
+      relation: scope.value === 'mine' ? orUndefined(filters.relation) : undefined,
+      orderStatus: orUndefined(filters.orderStatus),
+      orderId: scope.value === 'admin' ? orUndefined(filters.orderId.trim()) : undefined,
     })
     if (sequence !== requestSequence) return
     rows.value = result.records
@@ -50,13 +57,16 @@ function search() {
   page.value = 1
   void load()
 }
+function resetFilters() {
+  Object.assign(filters, { relation: '', orderStatus: '', orderId: '' })
+  search()
+}
+// immediate: true 让这一段同时充当首屏加载；切 scope 时清空筛选而不只是清列表。
 watch(
   scope,
   () => {
     page.value = 1
-    orderStatus.value = undefined
-    orderId.value = ''
-    relation.value = 'all'
+    Object.assign(filters, { relation: '', orderStatus: '', orderId: '' })
     rows.value = []
     void load()
   },
@@ -88,55 +98,49 @@ async function accept(id: string) {
 }
 </script>
 <template>
+  <el-card shadow="never" class="page-card">
+    <!-- 三个筛选条件与各 scope 的可见性都保持原样，只是换成账号管理的样式与「点查询才查」的逻辑 -->
+    <el-form inline @submit.prevent>
+      <el-form-item v-if="scope === 'mine'" label="与我关系">
+        <el-select v-model="filters.relation" placeholder="全部" style="width: 130px">
+          <el-option label="全部订单" value="" />
+          <el-option label="我下的" value="created" />
+          <el-option label="我收到的" value="received" />
+        </el-select>
+      </el-form-item>
+      <el-form-item v-if="scope !== 'available'" label="状态">
+        <el-select v-model="filters.orderStatus" placeholder="全部" style="width: 130px">
+          <el-option label="全部" value="" />
+          <el-option v-for="o in orderStatusOptions" :key="o.value" :label="o.label" :value="o.value" />
+        </el-select>
+      </el-form-item>
+      <el-form-item v-if="scope === 'admin'" label="订单编号">
+        <el-input v-model="filters.orderId" placeholder="完整订单编号" clearable style="width: 180px" />
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" :icon="Search" @click="search">查询</el-button>
+        <el-button @click="resetFilters">重置</el-button>
+        <el-button
+          v-if="scope === 'mine'"
+          type="primary"
+          @click="router.push({ name: 'order-create' })"
+          >发布订单</el-button
+        >
+      </el-form-item>
+    </el-form>
+  </el-card>
   <el-card shadow="never">
     <template #header
       ><b>{{ route.meta.title }}</b></template
     >
-    <el-space wrap class="filters">
-      <el-select v-if="scope === 'mine'" v-model="relation" style="width: 140px" @change="search">
-        <el-option label="全部订单" value="all" />
-        <el-option label="我下的" value="created" />
-        <el-option label="我收到的" value="received" />
-      </el-select>
-      <el-select
-        v-if="scope !== 'available'"
-        v-model="orderStatus"
-        clearable
-        placeholder="全部状态"
-        style="width: 160px"
-        @change="search"
-      >
-        <el-option
-          v-for="(label, index) in orderStatusLabels"
-          :key="index"
-          :label="label"
-          :value="index"
-        />
-      </el-select>
-      <el-input
-        v-if="scope === 'admin'"
-        v-model="orderId"
-        placeholder="输入完整订单编号"
-        clearable
-        style="width: 240px"
-        @keyup.enter="search"
-      />
-      <el-button :loading="loading" @click="search">查询 / 刷新</el-button>
-      <el-button
-        v-if="scope === 'mine'"
-        type="primary"
-        @click="router.push({ name: 'order-create' })"
-        >发布订单</el-button
-      >
-    </el-space>
     <el-alert
       v-if="scope === 'available'"
       title="接单后可在订单详情查看联系人、电话及备注。"
       :closable="false"
       type="info"
-      class="filters"
+      class="notice"
     />
-    <el-alert v-if="error" title="订单加载失败，请点击刷新重试。" type="error" :closable="false" />
+    <el-alert v-if="error" title="订单加载失败，请刷新重试。" type="error" :closable="false" class="notice" />
     <el-table v-loading="loading" :data="rows" empty-text="暂无订单" style="width: 100%">
       <el-table-column prop="id" label="订单编号" min-width="190" />
       <el-table-column v-if="scope === 'mine'" label="与我关系" min-width="130">
@@ -144,6 +148,10 @@ async function accept(id: string) {
       </el-table-column>
       <el-table-column v-if="scope !== 'available'" label="异常" width="130">
         <template #default="{ row }"><el-tag v-if="row.pendingException" type="danger">异常待处理</el-tag><span v-else>—</span></template>
+      </el-table-column>
+      <!-- 待接单订单还没有骑手，骑手信息对用户端也是空白，所以大厅不显示这一列 -->
+      <el-table-column v-if="scope !== 'available'" label="配送员" min-width="170" show-overflow-tooltip>
+        <template #default="{ row }">{{ row.courierName ? `${row.courierName} · ${row.courierPhone ?? '—'}` : '尚未接单' }}</template>
       </el-table-column>
       <el-table-column
         prop="pickupAddress"
@@ -168,7 +176,7 @@ async function accept(id: string) {
       >
       <el-table-column label="状态" width="100"
         ><template #default="{ row }"
-          ><el-tag>{{ orderStatusLabels[row.orderStatus] }}</el-tag></template
+          ><el-tag>{{ orderStatusLabels[(row as ExpressOrder).orderStatus] }}</el-tag></template
         ></el-table-column
       >
       <el-table-column label="发布时间" min-width="170"
@@ -201,7 +209,7 @@ async function accept(id: string) {
   </el-card>
 </template>
 <style scoped>
-.filters {
+.notice {
   margin-bottom: 16px;
 }
 .pagination {

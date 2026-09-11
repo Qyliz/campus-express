@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import ExceptionPanel from './ExceptionPanel.vue'
+import ReviewPanel from './ReviewPanel.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import {
@@ -123,8 +124,13 @@ async function act(action: OrderAction) {
         >
         <el-descriptions-item label="送达地址">{{ order.deliveryAddress }}</el-descriptions-item>
         <el-descriptions-item label="收件联系人"
-          >{{ order.deliveryName }} · {{ order.deliveryPhone || '无手机号' }} · {{ order.deliveryEmail || '无邮箱' }}</el-descriptions-item
+          >{{ order.deliveryName }} · {{ order.deliveryPhone || '—' }}</el-descriptions-item
         >
+        <el-descriptions-item label="配送员">{{
+          order.courierId
+            ? `${order.courierName ?? '—'} · ${order.courierPhone ?? '—'}`
+            : '尚未接单'
+        }}</el-descriptions-item>
         <el-descriptions-item label="物品说明">{{ order.itemDescription }}</el-descriptions-item>
         <el-descriptions-item label="备注">{{ order.remark || '无' }}</el-descriptions-item>
         <el-descriptions-item label="配送费"
@@ -136,6 +142,7 @@ async function act(action: OrderAction) {
         }}</el-descriptions-item>
       </el-descriptions>
       <ExceptionPanel :key="order.id" :order-id="order.id" :exceptions="data?.exceptions ?? []" :can-report="data?.canReportException ?? false" :is-admin="auth.isAdmin" @refresh="load" />
+      <ReviewPanel :key="order.id + ':' + order.orderStatus" :order-id="order.id" />
       <h3>订单进度</h3>
       <el-timeline>
         <el-timeline-item

@@ -23,9 +23,12 @@ public class UserRegisterDTO {
     @NotNull(message = "性别不能为空")
     private UserGenderEnum gender;
 
+    /** 手机号必填；空串会被归一成 null，保证「只填空格」稳定地由 @NotBlank 拒绝而不是撞上 @Pattern。 */
+    @NotBlank(message = "手机号不能为空")
     @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
     private String phone;
 
+    /** 邮箱选填；留空时归一成 null，VerifyCodeService.verifyRegistration 才会跳过邮箱那一项。 */
     @Email(message = "邮箱格式不正确")
     @Size(max = 254, message = "邮箱长度不能超过254个字符")
     private String email;
@@ -45,10 +48,14 @@ public class UserRegisterDTO {
     }
 
     public void setPhone(String phone) {
-        this.phone = phone == null ? null : phone.trim();
+        this.phone = clean(phone);
     }
 
     public void setEmail(String email) {
-        this.email = email == null ? null : email.trim();
+        this.email = clean(email);
+    }
+
+    private static String clean(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

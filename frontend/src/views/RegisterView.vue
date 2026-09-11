@@ -63,8 +63,11 @@ const rules: FormRules<typeof form> = {
     },
   ],
   gender: [{ required: true, message: '请选择性别', trigger: 'change' }],
-  // 手机号与邮箱都是可选的：只写 pattern / type 而不写 required，空值才能通过校验
-  phone: [{ pattern: PHONE_RE, message: '手机号格式不正确', trigger: 'blur' }],
+  // 手机号必填；邮箱可选：只写 type / max 而不写 required，空值才能通过校验
+  phone: [
+    { required: true, message: '请输入手机号', trigger: 'blur' },
+    { pattern: PHONE_RE, message: '手机号格式不正确', trigger: 'blur' },
+  ],
   email: [
     { type: 'email', message: '邮箱格式不正确', trigger: 'blur' },
     { max: 254, message: '邮箱长度不能超过 254 个字符', trigger: 'blur' },
@@ -134,10 +137,6 @@ function onExceed() {
 
 async function onSubmit() {
   if (submitting.value) return
-  if (!form.phone && !form.email) {
-    ElMessage.warning('手机号和邮箱至少填写一项')
-    return
-  }
   const ok = await formRef.value?.validate().catch(() => false)
   if (!ok) return
   if (form.role === 'COURIER' && !material.value) {
@@ -192,7 +191,7 @@ async function onSubmit() {
     <el-alert type="info" :closable="false" show-icon class="append-tip">
       <template #title>已经有账号了？</template>
       <p>
-        用<b>相同的邮箱 / 手机号 + 相同的密码</b
+        用<b>相同的手机号 + 相同的密码</b
         >再注册一次，就能给这个账号追加一个新角色。此时下面填写的用户名和性别会被忽略，系统沿用已有资料。
       </p>
       <p class="sub">
@@ -238,7 +237,7 @@ async function onSubmit() {
         </el-radio-group>
       </el-form-item>
 
-      <el-form-item label="手机号（选填）" prop="phone">
+      <el-form-item label="手机号" prop="phone">
         <el-input v-model.trim="form.phone" maxlength="11" placeholder="11 位手机号" />
       </el-form-item>
 
@@ -277,7 +276,7 @@ async function onSubmit() {
       </el-form-item>
 
       <p class="field-hint muted">
-        手机号和邮箱至少填一个，填写的每项都需验证。验证码为课程演示，不会真实发送短信或邮件。如果这里提示「已被注册」而你确实注册过，请检查密码是否与原来一致
+        手机号必填，邮箱选填；填写的每项都需验证。验证码为课程演示，不会真实发送短信或邮件。如果这里提示「已被注册」而你确实注册过，请检查密码是否与原来一致
         —— 追加角色要求密码完全相同。
       </p>
 

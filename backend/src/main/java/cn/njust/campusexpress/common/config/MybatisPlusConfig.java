@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@MapperScan({"cn.njust.campusexpress.model.user.mapper", "cn.njust.campusexpress.model.order.mapper"})
+@MapperScan({"cn.njust.campusexpress.model.user.mapper", "cn.njust.campusexpress.model.order.mapper", "cn.njust.campusexpress.model.review.mapper"})
 public class MybatisPlusConfig {
     @Bean
     public MybatisPlusInterceptor mybatisPlusInterceptor() {

@@ -53,13 +53,13 @@ Java/JSON 属性使用 orderStatus、paymentStatus。
 | POST | /api/order/{id}/admin-cancel | 管理员取消 |
 
 创建请求包含 pickupAddress、pickupName、pickupPhone、
-deliveryAddress、deliveryName、deliveryPhone / deliveryEmail（至少一项）、itemDescription、
+deliveryAddress、deliveryName、deliveryPhone（必填，11 位手机号）、itemDescription、
 fee 以及可选的 remark。取消请求为 {"reason":"取消原因"}。
 
 列表参数：currentPage（从 1 开始）、可选 orderStatus；
 管理列表另支持 orderId 精确查询。每页 10 条，按创建时间及 ID 倒序。
 
-接单大厅隐藏联系人、电话、邮箱及备注，完整详情向下单人、匹配的收件人、实际配送员和管理员开放。
+接单大厅隐藏联系人、电话及备注，完整详情向下单人、匹配的收件人、实际配送员和管理员开放。
 同一用户不能接自己的订单，管理员身份不能代替配送员接单或执行配送。
 订单模块检查当前角色账户正常，不改变原有用户注销、审核、封禁逻辑。
 
@@ -74,11 +74,11 @@ fee 以及可选的 remark。取消请求为 {"reason":"取消原因"}。
 
 ## 收件人访问
 
-`GET /api/order/mine` 增加 `relation=all|created|received`，默认 `all`。通过一次带 OR 条件的数据库分页查询匹配下单角色账户 ID、当前用户手机号或邮箱，不拼接两组分页结果。仅正常的 CUSTOMER 角色账户可使用此入口。
+`GET /api/order/mine` 增加 `relation=all|created|received`，默认 `all`。通过一次带 OR 条件的数据库分页查询匹配下单角色账户 ID 或当前用户手机号，不拼接两组分页结果。仅正常的 CUSTOMER 角色账户可使用此入口。
 
-联系方式由后端读取当前用户资料，不接受客户端指定访问身份；空值不匹配。收件手机号、邮箱至少填写一种，不要求收件人已注册，也不设置联系方式外键。采用数据库与账户一致的精确比较规则。后注册或换绑后，查看权限随当前绑定联系方式变化；手机号和邮箱分别属于两个账户时，两者均可查看、确认取件。
+收件人只凭手机号认领订单，不再支持邮箱。手机号由后端读取当前用户资料，不接受客户端指定访问身份；手机号为空时永不参与匹配。收件手机号不要求收件人已注册，也不设置外键。后注册或换绑后，查看权限随当前绑定的手机号变化。
 
-列表返回 `createdByMe`、`receivedByMe`、`pendingException`。详情返回 `order`、`records`、`exceptions`、`allowedActions`、`canReportException`。前端使用后端返回的可执行操作显示按钮，后端执行时仍再次鉴权。支付、取消只允许下单账户。
+列表返回 `createdByMe`、`receivedByMe`、`pendingException`，以及接单骑手的展示信息 `courierName`、`courierPhone`（`courierId` 是角色账户主键，姓名与手机号在 user 表，由 courier → user 两跳按整页批量回填，不是数据库列）。详情返回 `order`、`records`、`exceptions`、`allowedActions`、`canReportException`。前端使用后端返回的可执行操作显示按钮，后端执行时仍再次鉴权。支付、取消只允许下单账户。
 
 ## 配送异常
 
@@ -91,12 +91,21 @@ fee 以及可选的 remark。取消请求为 {"reason":"取消原因"}。
 | GET | /api/exception/{id} | 异常详情，仅订单参与者或管理员可查看 |
 | POST | /api/exception/{id}/resolve | `{resolution, description}`，仅管理员 |
 
-类型：`CONTACT` 联系不上、`ADDRESS` 地址问题、`ITEM` 物品问题、`COURIER` 配送员突发情况、`OTHER` 其他；说明必填，最多 255 字。状态：0 待处理、1 已处理。结果：`RESUME` 恢复配送、`CANCEL` 取消订单。所有异常变更同步竞争订单版本，与订单和进度记录在同一事务中提交。
+类型 `ExceptionTypeEnum`：`CONTACT` 联系不上、`ADDRESS` 地址问题、`ITEM` 物品问题、`COURIER` 配送员突发情况、`OTHER` 其他；说明必填，最多 255 字。状态 `ExceptionStatusEnum`：`PENDING` 待处理、`RESOLVED` 已处理。结果 `ExceptionResolutionEnum`：`RESUME` 恢复配送、`CANCEL` 取消订单。三者都是 `@EnumValue` 枚举，数据库存 code、接口传枚举名，取值范围由枚举本身限定，不再依赖 `@Pattern` 白名单；数据库列也因此从 VARCHAR 改为 TINYINT。所有异常变更同步竞争订单版本，与订单和进度记录在同一事务中提交。
 
-管理后台“异常管理”默认查看待处理异常，通过“查看并处理”进入订单详情填写结果。配送员从订单详情上报，订单参与者在同页查看处理记录，使用刷新按钮获取最新状态。
+管理后台“异常管理”默认查看全部异常，可按状态筛选，通过“查看并处理”进入订单详情填写结果。配送员从订单详情上报，订单参与者在同页查看处理记录，使用刷新按钮获取最新状态。
 
-## 数据库升级
+## 数据库重建
 
-启动依次执行 `schema.sql` 和 `upgrade-recipient.sql`：创建异常表、为旧订单补充可空邮箱、放宽收件手机号为空并创建查询索引。升级脚本可重复执行，不删除历史数据。已有数据库无需重建；新旧前后端需同步更新。
+本模块**不使用增量迁移脚本**。`schema.sql` 全程 `CREATE TABLE IF NOT EXISTS`，只负责给空库建出目标结构，不会修改已存在的表；`application.yml` 的 `spring.sql.init.schema-locations` 只有 `classpath:db/schema.sql` 一项。
 
-新增 `RecipientExceptionTest` 覆盖收件人权限、动态联系方式、分页去重、异常暂停恢复、两个取消入口、并发操作和异常保存失败回滚。
+早先用于补充收件邮箱的 `db/upgrade-recipient.sql` 已随邮箱一起删除。由于本次同时改动了列类型（`delivery_exception.type`/`resolution` 从 VARCHAR 变为 TINYINT）、删除了列（`express_order.delivery_email`）、并把状态字段的接口契约从数字换成枚举名，旧库数据无法原地兼容，**需要删库重建**：
+
+```sql
+DROP DATABASE IF EXISTS campus_express;
+CREATE DATABASE campus_express DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+```
+
+注意：数据源不会自动建库，DROP 之后必须 CREATE，否则启动时连不上。启动会自动执行 `schema.sql` 建表、`data.sql` 灌种子。删除 resource 下的脚本后 **必须 `mvn clean`**，否则旧脚本仍留在 `target/classes` 里被继续执行。
+
+新增 `RecipientExceptionTest` 覆盖收件人权限、手机号动态匹配与换号、分页去重、异常暂停恢复、两个取消入口、并发操作和异常保存失败回滚；`ReviewFlowTest` 另覆盖「接口传枚举名、数据库存 code」以及非法枚举名与旧数字写法被拒绝。

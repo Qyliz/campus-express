@@ -13,27 +13,20 @@ import {
 } from '@/constants'
 import { formatDateTime } from '@/utils/date'
 import { imageUrl } from '@/utils/image'
+import { orUndefined, type All } from '@/utils/query'
 import type { GenderEnum, SortEnum, AuditStatusEnum, UserAuditRecordVO } from '@/types'
 
-/**
- * 三态/枚举筛选一律用字符串承载，'' 表示「全部」。
- * el-option 的 value 属性在类型上不接受 undefined / null，
- * 而接口真正需要的是「这个参数干脆不传」，所以在发请求那一刻才转换。
- */
+/** 筛选值一律用 All<T>，'' 表示「全部」；发请求前统一走 orUndefined()，见 @/utils/query。 */
 const filters = reactive({
   username: '',
   phone: '',
   email: '',
   /** 这个查询 DTO 里的字段叫 auditStatus（账号管理页那个叫 userStatus） */
-  auditStatus: '' as AuditStatusEnum | '',
-  deleted: '' as '' | 'false' | 'true',
-  sort: '' as SortEnum | '',
+  auditStatus: '' as All<AuditStatusEnum>,
+  /** 布尔三态直接用真布尔承载：'' 不传 / false 未删除 / true 已删除 */
+  deleted: '' as All<boolean>,
+  sort: '' as All<SortEnum>,
 })
-
-/** '' → undefined（axios 会省略值为 undefined 的查询参数），'false'/'true' → boolean */
-function toBool(v: '' | 'false' | 'true'): boolean | undefined {
-  return v === '' ? undefined : v === 'true'
-}
 
 const rows = ref<UserAuditRecordVO[]>([])
 const total = ref(0)
@@ -45,14 +38,12 @@ async function load() {
   try {
     const page = await pageAuditRecords({
       currentPage: currentPage.value,
-      // 空串要转成 undefined：axios 会省略 undefined 参数，
-      // 但会把 '' 原样发过去，变成无意义的 like '%%'
-      username: filters.username || undefined,
-      phone: filters.phone || undefined,
-      email: filters.email || undefined,
-      auditStatus: filters.auditStatus || undefined,
-      deleted: toBool(filters.deleted),
-      sort: filters.sort || undefined,
+      username: orUndefined(filters.username),
+      phone: orUndefined(filters.phone),
+      email: orUndefined(filters.email),
+      auditStatus: orUndefined(filters.auditStatus),
+      deleted: orUndefined(filters.deleted),
+      sort: orUndefined(filters.sort),
     })
     rows.value = page.records
     total.value = page.total
@@ -159,12 +150,11 @@ async function submitAudit() {
           </el-select>
         </el-form-item>
         <el-form-item label="删除状态">
-          <!-- '' 不传 / 'false' 未删除 / 'true' 已删除。
-               el-option 的 value 不接受 undefined，所以用空串当哨兵，发请求时再转 -->
+          <!-- 三态：'' 不传 / false 未删除 / true 已删除。布尔值必须用 :value 绑定，否则会变成字符串。 -->
           <el-select v-model="filters.deleted" placeholder="全部" style="width: 120px">
             <el-option label="全部" value="" />
-            <el-option label="未删除" value="false" />
-            <el-option label="已删除" value="true" />
+            <el-option label="未删除" :value="false" />
+            <el-option label="已删除" :value="true" />
           </el-select>
         </el-form-item>
         <el-form-item label="排序">

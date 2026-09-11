@@ -13,9 +13,9 @@ import type {
  * 每次都要 ?? 兜底；而字面量键的 Record 用枚举值去索引，结果仍然是 string。
  */
 export const roleLabel: Record<RoleEnum, string> = {
-  ADMIN: '管理员',
   CUSTOMER: '收寄件人',
   COURIER: '配送员',
+  ADMIN: '管理员',
 }
 
 export const genderLabel: Record<GenderEnum, string> = {
@@ -55,12 +55,17 @@ export const statusTagType: Record<StatusEnum, TagType> = {
 }
 
 export const roleTagType: Record<RoleEnum, TagType> = {
-  ADMIN: 'danger',
   CUSTOMER: 'primary',
   COURIER: 'success',
+  ADMIN: 'danger',
 }
 
-function toOptions<T extends string>(map: Record<T, string>) {
+/**
+ * 把「枚举名 → 中文」的标签表转成 el-option 需要的 { value, label } 数组。
+ * 顺序来自 Object.keys，所以想调下拉框里的顺序就改标签表的键序。
+ * value 带上枚举的精确类型，筛选栏的 modelValue 才能直接用 All<T> 接住。
+ */
+export function toOptions<T extends string>(map: Record<T, string>) {
   return (Object.keys(map) as T[]).map((value) => ({ value, label: map[value] }))
 }
 
