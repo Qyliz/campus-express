@@ -1,0 +1,299 @@
+/*
+ * 认证类页面（登录 / 注册 / 找回密码 / 首页登录区）共用的卡片主题。
+ * 这里集中了 .auth-card--backdrop 深色毛玻璃卡片对 Element Plus 的全部深度覆盖；
+ * 这套深色色板只在本文件使用，因此直接写字面值，不进 tokens.css。
+ */
+
+/* 认证类页面共用的居中窄卡片 */
+.auth-card {
+  width: 100%;
+  margin: 48px auto;
+}
+
+/* 首页 landing 区内嵌时贴边，不再自带外边距 */
+.auth-card--embedded {
+  margin: 0;
+}
+
+/* 根规则用双类提高特异性：路由懒加载后 Element Plus 的组件样式（.el-card 等）
+   会随异步 chunk 在本文件之后注入，单类选择器会被 .el-card 的背景/圆角同特异性反超。 */
+.auth-card.auth-card--backdrop {
+  --el-text-color-primary: #f5f9ff;
+  --el-text-color-regular: rgba(245, 249, 255, 0.86);
+  --el-text-color-secondary: rgba(225, 235, 246, 0.72);
+  overflow: hidden;
+  color: #f5f9ff;
+  background: rgba(5, 18, 34, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(18px);
+}
+
+/* ===== 三个认证页共用的页面级小样式 ===== */
+
+/* 卡片标题（el-card header 里的 span） */
+.auth-card .title {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+/* 通栏提交按钮 */
+.auth-card .submit {
+  width: 100%;
+}
+
+/* 底部链接区：布局（左右分布 or 居中）与外边距由各页面自己定 */
+.auth-card .links {
+  font-size: 13px;
+}
+
+/* 「验证码输入 + 发送按钮」行（注册 / 找回密码） */
+.auth-card .code-row {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+/* ===== Element Plus 深色覆盖 ===== */
+
+.auth-card--backdrop .el-card__header {
+  border-bottom-color: rgba(255, 255, 255, 0.14);
+}
+
+.auth-card--backdrop .el-form-item__label,
+.auth-card--backdrop .title {
+  color: rgba(245, 249, 255, 0.9);
+}
+
+.auth-card--backdrop .el-input__wrapper,
+.auth-card--backdrop .el-textarea__inner {
+  color: #f5f9ff;
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18) inset;
+}
+
+.auth-card--backdrop .el-input__wrapper:hover,
+.auth-card--backdrop .el-textarea__inner:hover {
+  box-shadow: 0 0 0 1px rgba(169, 216, 255, 0.48) inset;
+}
+
+.auth-card--backdrop .el-input__wrapper.is-focus,
+.auth-card--backdrop .el-textarea__inner:focus {
+  box-shadow: 0 0 0 1px #65b7ff inset;
+}
+
+.auth-card--backdrop .el-input__inner,
+.auth-card--backdrop .el-textarea__inner {
+  color: #f5f9ff;
+}
+
+.auth-card--backdrop .el-input__inner::placeholder,
+.auth-card--backdrop .el-textarea__inner::placeholder {
+  color: rgba(225, 235, 246, 0.48);
+}
+
+.auth-card--backdrop .el-input__icon {
+  color: rgba(225, 235, 246, 0.64);
+}
+
+.auth-card--backdrop .el-input.is-disabled .el-input__wrapper {
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.11) inset;
+}
+
+.auth-card--backdrop .el-input.is-disabled .el-input__inner {
+  color: rgba(225, 235, 246, 0.56);
+  -webkit-text-fill-color: rgba(225, 235, 246, 0.56);
+}
+
+.auth-card--backdrop .el-radio-group {
+  display: flex;
+  gap: 8px;
+}
+
+.auth-card--backdrop .el-radio-group:has(.el-radio-button) {
+  width: 100%;
+}
+
+.auth-card--backdrop .el-radio-button {
+  flex: 1;
+}
+
+.auth-card--backdrop .el-radio-button__inner {
+  width: 100%;
+  color: rgba(223, 241, 255, 0.78);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.auth-card--backdrop .el-radio-button__inner:hover {
+  color: #dff1ff;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(169, 216, 255, 0.45);
+}
+
+.auth-card--backdrop .el-radio-button:first-child .el-radio-button__inner {
+  border-left-color: rgba(255, 255, 255, 0.16);
+}
+
+.auth-card--backdrop .el-radio-button.is-active .el-radio-button__inner {
+  color: #fff;
+  background: linear-gradient(135deg, rgba(64, 158, 255, 0.85), rgba(79, 110, 247, 0.85));
+  border-color: rgba(134, 199, 255, 0.85);
+  box-shadow: 0 6px 18px rgba(64, 158, 255, 0.32) !important;
+}
+
+.auth-card--backdrop .el-radio {
+  color: rgba(245, 249, 255, 0.78);
+}
+
+.auth-card--backdrop .el-radio__inner {
+  background: rgba(33, 66, 94, 0.72);
+  border-color: rgba(134, 199, 255, 0.48);
+}
+
+.auth-card--backdrop .el-radio__input.is-checked .el-radio__inner {
+  background: #409eff;
+  border-color: #65b7ff;
+}
+
+.auth-card--backdrop .el-radio__input.is-checked + .el-radio__label {
+  color: #dff1ff;
+}
+
+.auth-card--backdrop .code-button {
+  flex: 0 0 auto;
+  color: #dff1ff;
+  background: rgba(64, 158, 255, 0.22);
+  border-color: rgba(101, 183, 255, 0.52);
+}
+
+.auth-card--backdrop .code-button:hover,
+.auth-card--backdrop .code-button:focus {
+  color: #fff;
+  background: rgba(64, 158, 255, 0.42);
+  border-color: #65b7ff;
+}
+
+.auth-card--backdrop .code-button.is-disabled,
+.auth-card--backdrop .code-button.is-disabled:hover {
+  color: rgba(225, 235, 246, 0.42);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.13);
+}
+
+.auth-card--backdrop .el-alert--info.is-light {
+  color: rgba(245, 249, 255, 0.8);
+  background: rgba(92, 160, 218, 0.12);
+  border: 1px solid rgba(169, 216, 255, 0.18);
+}
+
+.auth-card--backdrop .el-alert--info.is-light .el-alert__title,
+.auth-card--backdrop .el-alert--info.is-light .el-alert__description,
+.auth-card--backdrop .el-alert--info.is-light .el-alert__icon {
+  color: rgba(245, 249, 255, 0.82);
+}
+
+.auth-card--backdrop .el-alert--success.is-light {
+  color: rgba(232, 255, 243, 0.84);
+  background: rgba(67, 177, 122, 0.13);
+  border: 1px solid rgba(109, 214, 162, 0.2);
+}
+
+.auth-card--backdrop .el-alert--success.is-light .el-alert__title,
+.auth-card--backdrop .el-alert--success.is-light .el-alert__description,
+.auth-card--backdrop .el-alert--success.is-light .el-alert__icon {
+  color: rgba(232, 255, 243, 0.84);
+}
+
+.auth-card--backdrop .el-alert--warning.is-light {
+  color: rgba(255, 243, 214, 0.86);
+  background: rgba(230, 162, 60, 0.13);
+  border: 1px solid rgba(238, 190, 98, 0.22);
+}
+
+.auth-card--backdrop .el-alert--warning.is-light .el-alert__title,
+.auth-card--backdrop .el-alert--warning.is-light .el-alert__description,
+.auth-card--backdrop .el-alert--warning.is-light .el-alert__icon {
+  color: rgba(255, 243, 214, 0.86);
+}
+
+.auth-card--backdrop .el-step__icon.is-text {
+  color: rgba(225, 235, 246, 0.58);
+  background: rgba(8, 29, 49, 0.96);
+  border-color: rgba(169, 216, 255, 0.42);
+}
+
+.auth-card--backdrop .el-step__head.is-process .el-step__icon.is-text {
+  color: #06182a;
+  background: #a9d8ff;
+  border-color: #a9d8ff;
+}
+
+.auth-card--backdrop .el-step__head.is-finish .el-step__icon.is-text,
+.auth-card--backdrop .el-step__head.is-success .el-step__icon.is-text {
+  color: #052216;
+  background: #8ee0b8;
+  border-color: #8ee0b8;
+}
+
+.auth-card--backdrop .el-step__title.is-process,
+.auth-card--backdrop .el-step__head.is-process {
+  color: #a9d8ff;
+  border-color: #65b7ff;
+}
+
+.auth-card--backdrop .el-step__title.is-wait,
+.auth-card--backdrop .el-step__head.is-wait {
+  color: rgba(225, 235, 246, 0.5);
+  border-color: rgba(225, 235, 246, 0.3);
+}
+
+.auth-card--backdrop .el-step__line {
+  background: rgba(225, 235, 246, 0.18);
+}
+
+.auth-card--backdrop .el-step__line-inner {
+  border-color: #8ee0b8;
+}
+
+.auth-card--backdrop .el-upload-dragger {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.26);
+}
+
+.auth-card--backdrop .el-upload__text,
+.auth-card--backdrop .el-upload__tip {
+  color: rgba(245, 249, 255, 0.74);
+}
+
+.auth-card--backdrop .el-upload-list__item {
+  color: rgba(245, 249, 255, 0.8);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.auth-card--backdrop .el-upload-list__item-name,
+.auth-card--backdrop .el-upload-list__item .el-icon {
+  color: rgba(245, 249, 255, 0.78);
+}
+
+.auth-card--backdrop .el-link.el-link--primary {
+  color: #8dccff;
+}
+
+.auth-card--backdrop .el-link.el-link--info,
+.auth-card--backdrop .back {
+  color: rgba(225, 235, 246, 0.64);
+}
+
+.auth-card--backdrop .el-form-item__error {
+  color: #ff9c9c;
+}

@@ -67,7 +67,7 @@ async function submit() {
     <el-dialog v-model="visible" :title="target ? '处理异常' : '上报异常'" width="min(520px, 94vw)" :close-on-click-modal="!submitting" :close-on-press-escape="!submitting" :show-close="!submitting">
       <el-form label-position="top">
         <el-form-item v-if="!target" label="异常类型" required><el-select v-model="form.type"><el-option v-for="o in exceptionTypeOptions" :key="o.value" :label="o.label" :value="o.value" /></el-select></el-form-item>
-        <el-form-item v-else label="处理结果" required><el-radio-group v-model="form.resolution"><el-radio value="RESUME">恢复配送</el-radio><el-radio value="CANCEL">取消订单</el-radio></el-radio-group></el-form-item>
+        <el-form-item v-else for="" label="处理结果" required><el-radio-group v-model="form.resolution"><el-radio value="RESUME">恢复配送</el-radio><el-radio value="CANCEL">取消订单</el-radio></el-radio-group></el-form-item>
         <el-alert v-if="target && form.resolution === 'CANCEL'" title="提交后订单将取消，已支付订单同步退款。" type="warning" :closable="false" />
         <el-form-item :label="target ? '处理说明' : '异常说明'" required><el-input v-model="form.description" type="textarea" :rows="4" maxlength="255" show-word-limit /></el-form-item>
       </el-form>

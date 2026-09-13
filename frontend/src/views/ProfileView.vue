@@ -245,6 +245,14 @@ async function submitPassword() {
   }
 }
 
+// ===== 卡 4：登出 =====
+
+async function logout() {
+  await auth.logout()
+  await router.replace({ name: 'home' })
+  ElMessage.success('已登出')
+}
+
 async function onDeleteAccount() {
   const roleName = roleText.value
   // confirm 单独一个 try：用户点「再想想」时它会 reject，
@@ -296,7 +304,8 @@ async function onDeleteAccount() {
           <div class="avatar-box" v-loading="uploadingAvatar">
             <el-image :src="imageUrl(p.avatar)" fit="cover" class="avatar-img">
               <template #error>
-                <span class="avatar-fallback">{{ initial }}</span>
+                <!-- 类名带 profile- 前缀：布局侧栏另有一个同名但样式不同的 .avatar-fallback -->
+                <span class="profile-avatar-fallback">{{ initial }}</span>
               </template>
             </el-image>
             <div class="avatar-mask">点击更换</div>
@@ -350,7 +359,7 @@ async function onDeleteAccount() {
       </el-form>
 
       <el-form label-width="72px" class="inline-form" @submit.prevent>
-        <el-form-item label="性别">
+        <el-form-item for="" label="性别">
           <el-radio-group v-model="genderValue" class="inline-choice">
             <el-radio v-for="o in genderOptions" :key="o.value" :value="o.value">
               {{ o.label }}
@@ -424,6 +433,17 @@ async function onDeleteAccount() {
           >
         </el-form-item>
       </el-form>
+    </el-card>
+
+    <el-card shadow="never" class="page-card">
+      <template #header>登出</template>
+      <div class="bind-row">
+        <div>
+          <div class="bind-label">退出当前账号</div>
+          <div class="muted note-inline">清除本地会话并返回首页，之后可随时重新登录。</div>
+        </div>
+        <el-button plain @click="logout">登出</el-button>
+      </div>
     </el-card>
 
     <el-card shadow="never" class="page-card danger" id="danger">
@@ -535,7 +555,7 @@ async function onDeleteAccount() {
   background: #f0f2f5;
 }
 
-.avatar-fallback {
+.profile-avatar-fallback {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -631,11 +651,6 @@ async function onDeleteAccount() {
   line-height: 1.7;
 }
 
-.note-alert {
-  margin-top: 8px;
-  font-size: 13px;
-}
-
 .note-inline {
   margin-top: 2px;
   font-size: 12px;
@@ -669,11 +684,6 @@ async function onDeleteAccount() {
 
 .danger {
   border-left: 3px solid #f56c6c;
-}
-
-.send-hint {
-  margin-left: 12px;
-  font-size: 12px;
 }
 
 .mock {

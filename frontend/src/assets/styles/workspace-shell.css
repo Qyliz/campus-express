@@ -1,0 +1,129 @@
+/*
+ * 两个布局外壳（AdminLayout / UserWorkspaceLayout）共享的侧栏样式：
+ * 品牌区、账户区、头像。两布局根元素统一挂 .app-shell、侧栏统一挂 .shell-aside，
+ * 只收拢两边逐字相同的规则；内边距、菜单/导航等差异留在各自的 scoped 样式里
+ * （scoped 选择器带 data-v 属性，与这里同名规则叠加时以后加载的为准，行为可预期）。
+ */
+
+.app-shell .shell-aside {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--ce-shell-bg);
+}
+
+/* ===== 品牌区：button 重置成纯文字行 ===== */
+
+.app-shell .brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+}
+
+.app-shell .brand > span:last-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell .brand b {
+  color: #fff;
+  font-size: 17px;
+}
+
+.app-shell .brand small,
+.app-shell .account-text small {
+  margin-top: 3px;
+  color: var(--ce-shell-text-dim);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.app-shell .brand-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  color: #fff;
+  background: #409eff;
+  border-radius: 12px;
+}
+
+.app-shell .brand-icon svg {
+  width: 21px;
+}
+
+/* ===== 账户区 ===== */
+
+.app-shell .account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 8px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.app-shell .account-link {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+}
+
+.app-shell .account-link:hover .account-text b {
+  color: #4fa3ff;
+}
+
+.app-shell .avatar {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  overflow: hidden;
+  background: rgba(64, 158, 255, 0.2);
+  border-radius: 50%;
+}
+
+.app-shell .avatar-fallback {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  color: #fff;
+  place-items: center;
+}
+
+.app-shell .account-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.app-shell .account-text b {
+  overflow: hidden;
+  color: #fff;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell .account .el-button {
+  color: #8ea9bf;
+}

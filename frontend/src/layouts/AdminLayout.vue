@@ -34,8 +34,8 @@ async function logout() {
 </script>
 
 <template>
-  <el-container v-if="auth.isLoggedIn" class="admin-shell">
-    <el-aside width="236px" class="aside">
+  <el-container v-if="auth.isLoggedIn" class="admin-shell app-shell">
+    <el-aside width="236px" class="shell-aside">
       <button type="button" class="brand" @click="router.push({ name: 'admin-dashboard' })">
         <span class="brand-icon"><Van /></span>
         <span><b>校园配送</b><small>管理后台</small></span>
@@ -83,7 +83,12 @@ async function logout() {
       </el-menu>
 
       <div class="account">
-        <div class="account-profile">
+        <button
+          type="button"
+          class="account-link"
+          title="进入个人中心"
+          @click="router.push({ name: 'admin-profile' })"
+        >
           <el-image
             :key="auth.profile?.avatar || 'avatar-empty'"
             :src="imageUrl(auth.profile?.avatar)"
@@ -98,7 +103,7 @@ async function logout() {
             <b>{{ auth.username }}</b>
             <small>管理员</small>
           </span>
-        </div>
+        </button>
         <el-button text circle aria-label="退出登录" @click="logout">
           <el-icon><SwitchButton /></el-icon>
         </el-button>
@@ -122,6 +127,8 @@ async function logout() {
 </template>
 
 <style scoped>
+/* 品牌区 / 账户区 / 头像的共性样式在 styles/workspace-shell.css（.app-shell 命名空间），
+   这里只保留管理端自己的部分：侧栏内边距、菜单、面包屑头、内容区。 */
 .admin-shell {
   min-height: 100vh;
 }
@@ -134,57 +141,9 @@ async function logout() {
   place-items: center;
 }
 
-.aside {
-  position: sticky;
-  top: 0;
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background: linear-gradient(180deg, #071a2d 0%, #0b2943 100%);
-}
-
 .brand {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  width: 100%;
   padding: 28px 26px;
   color: #fff;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  background: transparent;
-  border: 0;
-}
-
-.brand > span:last-child {
-  display: flex;
-  flex-direction: column;
-}
-
-.brand b {
-  font-size: 17px;
-}
-
-.brand small {
-  margin-top: 3px;
-  color: #7896af;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-}
-
-.brand-icon {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  color: #fff;
-  background: #409eff;
-  border-radius: 12px;
-}
-
-.brand-icon svg {
-  width: 21px;
 }
 
 .menu {
@@ -196,6 +155,11 @@ async function logout() {
   height: 46px;
   margin: 4px 18px;
   border-radius: 10px;
+  /* el-menu-item 是 li：触屏长按会拉出浅色文字选区 */
+  -webkit-user-select: none;
+  user-select: none;
+  /* 触屏点按默认的半透明高亮块在深色导航上像一块色斑 */
+  -webkit-tap-highlight-color: transparent;
 }
 
 .menu :deep(.el-menu-item:hover),
@@ -213,63 +177,7 @@ async function logout() {
 }
 
 .account {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   margin: 0 18px 20px;
-  padding: 16px 8px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.account-profile {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  text-align: left;
-}
-
-.avatar {
-  flex: 0 0 auto;
-  width: 34px;
-  height: 34px;
-  overflow: hidden;
-  background: rgba(64, 158, 255, 0.2);
-  border-radius: 50%;
-}
-
-.avatar-fallback {
-  display: grid;
-  width: 100%;
-  height: 100%;
-  color: #fff;
-  place-items: center;
-}
-
-.account-text {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-}
-
-.account-text b {
-  overflow: hidden;
-  color: #fff;
-  font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.account-text small {
-  margin-top: 3px;
-  color: #7896af;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-}
-
-.account > .el-button {
-  color: #8ea9bf;
 }
 
 .main {
@@ -282,7 +190,7 @@ async function logout() {
     flex-direction: column;
   }
 
-  .aside {
+  .shell-aside {
     position: static;
     height: auto;
     width: 100% !important;
@@ -296,10 +204,16 @@ async function logout() {
     display: flex;
     overflow-x: auto;
     padding: 0 10px 14px;
+    /* 触屏上横滑即可，露出的滚动条在深色底上像一块色斑 */
+    scrollbar-width: none;
+  }
+
+  .menu::-webkit-scrollbar {
+    display: none;
   }
 
   .account {
-    display: none;
+    margin: 0 26px 20px;
   }
 
   .menu :deep(.el-menu-item) {
@@ -317,6 +231,8 @@ async function logout() {
 
   .main {
     padding: 24px 16px;
+    /* 宽表格在内容区内部横向滚动，不允许撑宽整页连带侧栏重排 */
+    overflow-x: auto;
   }
 }
 </style>

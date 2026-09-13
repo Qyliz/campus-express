@@ -217,6 +217,7 @@ async function submitAudit() {
               :preview-src-list="[imageUrl(row.material)]"
               preview-teleported
               fit="cover"
+              lazy
               class="thumb"
             >
               <template #error>
@@ -351,30 +352,15 @@ async function submitAudit() {
 </template>
 
 <style scoped>
-.thumb {
-  width: 36px;
-  height: 36px;
-  border-radius: 4px;
-}
-
+/* .thumb / .thumb-fallback / .dialog-target / .dialog-tip 的共性在 assets/main.css，
+  这里只留审核页自己的差异与材料预览 */
 .thumb-fallback {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
   font-size: 12px;
-  color: #c0c4cc;
-  background: #f5f7fa;
 }
 
 .dialog-target {
-  display: flex;
-  gap: 8px;
+  /* 用户名后面跟的是联系方式文本，基线对齐比居中更自然 */
   align-items: baseline;
-  margin: 0 0 12px;
-  font-size: 15px;
-  font-weight: 600;
 }
 
 .dialog-material {
@@ -383,10 +369,5 @@ async function submitAudit() {
   margin-bottom: 12px;
   background: #f5f7fa;
   border-radius: 4px;
-}
-
-.dialog-tip {
-  margin-top: 12px;
-  font-size: 13px;
 }
 </style>

@@ -212,11 +212,7 @@ async function onSubmit() {
 </template>
 
 <style scoped>
-.title {
-  font-size: 17px;
-  font-weight: 600;
-}
-
+/* .title / .submit / .code-row / .links 的共性在 styles/auth-theme.css 里统一 */
 .steps {
   margin-bottom: 24px;
 }
@@ -247,16 +243,6 @@ async function onSubmit() {
   opacity: 0.85;
 }
 
-.code-row {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-}
-
-.submit {
-  width: 100%;
-}
-
 .back {
   width: 100%;
   margin: 8px 0 0;
@@ -264,7 +250,6 @@ async function onSubmit() {
 
 .links {
   margin-top: 8px;
-  font-size: 13px;
   text-align: center;
 }
 </style>

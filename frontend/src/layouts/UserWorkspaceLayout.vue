@@ -40,9 +40,9 @@ async function logout() {
 </script>
 
 <template>
-  <div class="workbench-shell">
-    <aside class="workspace-sidebar">
-      <button type="button" class="brand-mark" @click="router.push({ name: 'home' })">
+  <div class="workbench-shell app-shell">
+    <aside class="shell-aside workspace-sidebar">
+      <button type="button" class="brand" @click="router.push({ name: 'home' })">
         <span class="brand-icon"><Van /></span>
         <span><b>校园配送</b><small>Campus Express</small></span>
       </button>
@@ -106,20 +106,27 @@ async function logout() {
       </nav>
 
       <div class="account">
-        <el-image
-          :key="auth.profile?.avatar || 'avatar-empty'"
-          :src="imageUrl(auth.profile?.avatar)"
-          fit="cover"
-          class="avatar"
+        <button
+          type="button"
+          class="account-link"
+          title="进入个人中心"
+          @click="router.push({ name: 'profile' })"
         >
-          <template #error>
-            <span class="avatar-fallback">{{ auth.username.charAt(0) || '用' }}</span>
-          </template>
-        </el-image>
-        <span class="account-text">
-          <b>{{ auth.username }}</b>
-          <small>{{ roleName }}</small>
-        </span>
+          <el-image
+            :key="auth.profile?.avatar || 'avatar-empty'"
+            :src="imageUrl(auth.profile?.avatar)"
+            fit="cover"
+            class="avatar"
+          >
+            <template #error>
+              <span class="avatar-fallback">{{ auth.username.charAt(0) || '用' }}</span>
+            </template>
+          </el-image>
+          <span class="account-text">
+            <b>{{ auth.username }}</b>
+            <small>{{ roleName }}</small>
+          </span>
+        </button>
         <el-button text circle aria-label="退出登录" @click="logout">
           <el-icon><SwitchButton /></el-icon>
         </el-button>
@@ -133,6 +140,8 @@ async function logout() {
 </template>
 
 <style scoped>
+/* 品牌区 / 账户区 / 头像的共性样式在 styles/workspace-shell.css（.app-shell 命名空间），
+   这里只保留用户工作台自己的部分：布局网格、导航按钮、内容区。 */
 .workbench-shell {
   display: grid;
   grid-template-columns: 236px minmax(0, 1fr);
@@ -141,62 +150,13 @@ async function logout() {
 }
 
 .workspace-sidebar {
-  position: sticky;
-  top: 0;
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
   padding: 28px 18px 20px;
   color: #d9e7f4;
-  background: linear-gradient(180deg, #071a2d 0%, #0b2943 100%);
 }
 
-.brand-mark {
-  display: flex;
-  align-items: center;
-  gap: 11px;
+.brand {
   padding: 0 8px 28px;
   color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  background: transparent;
-  border: 0;
-}
-
-.brand-mark > span:last-child,
-.account-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.brand-mark b {
-  color: #fff;
-  font-size: 17px;
-}
-
-.brand-mark small,
-.account-text small {
-  margin-top: 3px;
-  color: #7896af;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-}
-
-.brand-icon,
-.avatar {
-  display: grid;
-  flex: 0 0 auto;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  color: #fff;
-  background: #409eff;
-  border-radius: 12px;
-}
-
-.brand-icon svg {
-  width: 21px;
 }
 
 .side-nav {
@@ -220,6 +180,11 @@ async function logout() {
   border: 0;
   border-radius: 10px;
   transition: 0.2s ease;
+  /* 导航是 li/button 之外也禁止选中：触屏长按会拉出浅色选区 */
+  -webkit-user-select: none;
+  user-select: none;
+  /* 触屏点按默认的半透明高亮块在深色导航上像一块色斑 */
+  -webkit-tap-highlight-color: transparent;
 }
 
 .nav-item:hover,
@@ -228,45 +193,8 @@ async function logout() {
   background: rgba(64, 158, 255, 0.18);
 }
 
-.account {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 16px 8px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.avatar {
-  width: 34px;
-  height: 34px;
-  overflow: hidden;
-  background: rgba(64, 158, 255, 0.2);
-  border-radius: 50%;
-}
-
-.avatar-fallback {
-  display: grid;
-  width: 100%;
-  height: 100%;
-  color: #fff;
-  place-items: center;
-}
-
-.account-text {
-  min-width: 0;
-}
-
-.account-text b {
-  overflow: hidden;
-  color: #fff;
-  font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .account .el-button {
   margin-left: auto;
-  color: #8ea9bf;
 }
 
 .workspace-content {
@@ -276,7 +204,8 @@ async function logout() {
 
 @media (max-width: 720px) {
   .workbench-shell {
-    grid-template-columns: 1fr;
+    /* 1fr 的隐式最小宽度是 auto，会被宽表格撑大整页；0 才能把宽度锁在视口内 */
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .workspace-sidebar {
@@ -285,26 +214,42 @@ async function logout() {
     padding: 18px;
   }
 
-  .brand-mark {
+  .brand {
     padding-bottom: 16px;
   }
 
   .side-nav {
+    /* 移动端不需要撑满侧栏，固定内容高度，杜绝任何瞬态拉伸 */
+    flex: 0 0 auto;
     flex-direction: row;
+    align-items: center;
     overflow-x: auto;
+    overflow-y: hidden;
+    /* 触屏上横滑即可，露出的滚动条在深色底上像一块色斑 */
+    scrollbar-width: none;
+  }
+
+  .side-nav::-webkit-scrollbar {
+    display: none;
   }
 
   .nav-item {
     justify-content: center;
+    width: auto;
     min-width: 116px;
+    height: 45px;
+    /* 压缩后文字空间不足会折行，把导航行撑高 */
+    white-space: nowrap;
   }
 
   .account {
-    display: none;
+    padding: 14px 8px 0;
   }
 
   .workspace-content {
     padding: 24px 16px;
+    /* 宽表格在内容区内部横向滚动，不允许撑宽整页连带侧栏重排 */
+    overflow-x: auto;
   }
 }
 </style>

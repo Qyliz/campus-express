@@ -70,9 +70,6 @@ onMounted(load)
       <el-table-column label="上报时间" min-width="170"><template #default="{ row }">{{ formatDateTime(row.createTime) }}</template></el-table-column>
       <el-table-column label="操作" width="130"><template #default="{ row }"><el-button link type="primary" @click="router.push({ name: 'admin-order-detail', params: { id: row.orderId } })">{{ row.status === 'PENDING' ? '查看并处理' : '查看结果' }}</el-button></template></el-table-column>
     </el-table>
-    <el-pagination v-model:current-page="page" :page-size="10" :total="total" layout="prev, pager, next, total" @current-change="load" class="pagination" />
+    <el-pagination v-model:current-page="page" :page-size="10" :total="total" layout="prev, pager, next, total" @current-change="load" class="pager" />
   </el-card>
 </template>
-<style scoped>
-.pagination { margin-top: 20px; justify-content: flex-end; }
-</style>

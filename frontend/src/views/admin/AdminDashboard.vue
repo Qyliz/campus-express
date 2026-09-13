@@ -11,6 +11,7 @@ import {
   type ExpressOrder,
   type OrderStatusEnum,
 } from '@/api/order'
+import StatCard from '@/components/StatCard.vue'
 import { useAuthStore } from '@/stores/auth'
 import { formatDateTime } from '@/utils/date'
 
@@ -49,7 +50,7 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="admin-dashboard">
+  <div class="dashboard-page">
     <header class="welcome">
       <div>
         <p>后台总览</p>
@@ -59,30 +60,38 @@ onMounted(load)
     </header>
 
     <section v-loading="loading" class="stats" aria-label="平台概览">
-      <article class="stat-card blue" @click="router.push({ name: 'admin-users' })">
-        <span class="stat-icon"><User /></span>
-        <div>
-          <small>平台账号</small><strong>{{ counts.users }}</strong>
-        </div>
-      </article>
-      <article class="stat-card amber" @click="router.push({ name: 'admin-audits' })">
-        <span class="stat-icon"><DocumentChecked /></span>
-        <div>
-          <small>待审核</small><strong>{{ counts.audits }}</strong>
-        </div>
-      </article>
-      <article class="stat-card violet" @click="router.push({ name: 'admin-orders' })">
-        <span class="stat-icon"><Tickets /></span>
-        <div>
-          <small>全部订单</small><strong>{{ counts.orders }}</strong>
-        </div>
-      </article>
-      <article class="stat-card red" @click="router.push({ name: 'admin-exceptions' })">
-        <span class="stat-icon"><Bell /></span>
-        <div>
-          <small>待处理异常</small><strong>{{ counts.exceptions }}</strong>
-        </div>
-      </article>
+      <StatCard
+        label="平台账号"
+        :value="counts.users"
+        tone="blue"
+        @click="router.push({ name: 'admin-users' })"
+      >
+        <User />
+      </StatCard>
+      <StatCard
+        label="待审核"
+        :value="counts.audits"
+        tone="amber"
+        @click="router.push({ name: 'admin-audits' })"
+      >
+        <DocumentChecked />
+      </StatCard>
+      <StatCard
+        label="全部订单"
+        :value="counts.orders"
+        tone="violet"
+        @click="router.push({ name: 'admin-orders' })"
+      >
+        <Tickets />
+      </StatCard>
+      <StatCard
+        label="待处理异常"
+        :value="counts.exceptions"
+        tone="red"
+        @click="router.push({ name: 'admin-exceptions' })"
+      >
+        <Bell />
+      </StatCard>
     </section>
 
     <el-alert
@@ -143,155 +152,3 @@ onMounted(load)
     </el-card>
   </div>
 </template>
-
-<style scoped>
-.admin-dashboard {
-  width: 100%;
-}
-.welcome {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 30px;
-}
-.welcome p,
-.welcome h1,
-.welcome span {
-  margin: 0;
-}
-.welcome p {
-  margin-bottom: 7px;
-  color: #7d8b99;
-  font-size: 13px;
-}
-.welcome h1 {
-  color: #172b3d;
-  font-size: clamp(26px, 3vw, 36px);
-}
-.welcome span {
-  display: block;
-  margin-top: 8px;
-  color: #788896;
-}
-.stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(150px, 1fr));
-  gap: 18px;
-}
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  min-height: 118px;
-  padding: 22px;
-  cursor: pointer;
-  background: #fff;
-  border: 1px solid #e7edf3;
-  border-radius: 16px;
-  box-shadow: 0 8px 28px rgba(34, 61, 83, 0.06);
-  transition: 0.2s ease;
-}
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 34px rgba(34, 61, 83, 0.1);
-}
-.stat-icon {
-  display: grid;
-  flex: 0 0 auto;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-}
-.stat-icon svg {
-  width: 23px;
-}
-.stat-card.blue .stat-icon {
-  color: #287dcc;
-  background: #e9f4ff;
-}
-.stat-card.amber .stat-icon {
-  color: #d48816;
-  background: #fff4dd;
-}
-.stat-card.violet .stat-icon {
-  color: #7356c9;
-  background: #f0ecff;
-}
-.stat-card.red .stat-icon {
-  color: #d95656;
-  background: #ffeded;
-}
-.stat-card div:last-child {
-  display: flex;
-  flex-direction: column;
-}
-.stat-card small {
-  color: #7d8b99;
-  font-size: 13px;
-}
-.stat-card strong {
-  margin-top: 6px;
-  color: #172b3d;
-  font-size: 28px;
-}
-.dashboard-alert {
-  margin-top: 20px;
-}
-.recent-card {
-  margin-top: 24px;
-  border: 1px solid #e7edf3;
-  border-radius: 16px;
-}
-.section-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.section-heading h2,
-.section-heading p {
-  margin: 0;
-}
-.section-heading h2 {
-  color: #172b3d;
-  font-size: 18px;
-}
-.section-heading p {
-  margin-top: 5px;
-  color: #8a98a6;
-  font-size: 12px;
-}
-.order-id {
-  color: #287dcc;
-  font-weight: 600;
-}
-:deep(.el-table__row) {
-  cursor: pointer;
-}
-@media (max-width: 1050px) {
-  .stats {
-    grid-template-columns: repeat(2, minmax(150px, 1fr));
-  }
-}
-@media (max-width: 720px) {
-  .welcome {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-}
-@media (max-width: 480px) {
-  .stats {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-  .stat-card {
-    min-height: 98px;
-    padding: 14px;
-  }
-  .stat-icon {
-    width: 40px;
-    height: 40px;
-  }
-}
-</style>

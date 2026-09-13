@@ -201,7 +201,8 @@ async function onSubmit() {
     </el-alert>
 
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent>
-      <el-form-item label="注册身份" prop="role">
+      <!-- radio 组没有可标注的输入控件：置空 for 让 label 按 div 渲染，避免 Chrome 的 label[for] 无效引用警告 -->
+      <el-form-item for="" label="注册身份" prop="role">
         <el-radio-group v-model="form.role">
           <el-radio-button v-for="o in registerRoleOptions" :key="o.value" :value="o.value">
             {{ o.label }}
@@ -230,7 +231,7 @@ async function onSubmit() {
         />
       </el-form-item>
 
-      <el-form-item label="性别" prop="gender">
+      <el-form-item for="" label="性别" prop="gender">
         <el-radio-group v-model="form.gender">
           <el-radio v-for="o in genderOptions" :key="o.value" :value="o.value">
             {{ o.label }}
@@ -313,11 +314,7 @@ async function onSubmit() {
 </template>
 
 <style scoped>
-.title {
-  font-size: 17px;
-  font-weight: 600;
-}
-
+/* .title / .submit / .code-row / .links 的共性在 styles/auth-theme.css 里统一 */
 .append-tip {
   margin-bottom: 20px;
   font-size: 13px;
@@ -328,11 +325,6 @@ async function onSubmit() {
   margin: 0;
 }
 
-.code-row {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-}
 .mock-code {
   margin: 6px 0 0;
   color: #409eff;
@@ -343,13 +335,8 @@ async function onSubmit() {
   width: 100%;
 }
 
-.submit {
-  width: 100%;
-}
-
 .links {
   margin-top: 8px;
-  font-size: 13px;
   text-align: center;
 }
 </style>

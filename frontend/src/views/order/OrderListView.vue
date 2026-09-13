@@ -227,17 +227,14 @@ async function accept(id: string) {
       :page-size="10"
       :total="total"
       layout="prev, pager, next, total"
-      class="pagination"
+      class="pager"
       @current-change="load"
     />
   </el-card>
 </template>
 <style scoped>
+/* 分页底边距与右对齐复用全局 .pager（assets/main.css） */
 .notice {
   margin-bottom: 16px;
-}
-.pagination {
-  margin-top: 20px;
-  justify-content: flex-end;
 }
 </style>

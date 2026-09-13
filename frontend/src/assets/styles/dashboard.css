@@ -1,0 +1,115 @@
+/*
+ * 三个工作台（AdminDashboard / CustomerDashboard / CourierDashboard）共享的页面骨架样式。
+ * 页面根元素统一挂 .dashboard-page，把通用类名（.welcome / .stats 等）圈在命名空间里，
+ * 避免提升为全局样式后与其他页面撞名。统计卡片是独立组件 components/StatCard.vue。
+ */
+
+.dashboard-page {
+  width: 100%;
+}
+
+/* 顶部欢迎区 */
+.dashboard-page .welcome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+.dashboard-page .welcome p,
+.dashboard-page .welcome h1,
+.dashboard-page .welcome span {
+  margin: 0;
+}
+
+.dashboard-page .welcome p {
+  margin-bottom: 7px;
+  color: var(--ce-text-secondary);
+  font-size: 13px;
+}
+
+.dashboard-page .welcome h1 {
+  color: var(--ce-text-strong);
+  font-size: clamp(26px, 3vw, 36px);
+}
+
+.dashboard-page .welcome span {
+  display: block;
+  margin-top: 8px;
+  color: var(--ce-text-faint);
+}
+
+/* 统计卡片网格（卡片本身在 StatCard 组件里） */
+.dashboard-page .stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 18px;
+}
+
+.dashboard-page .dashboard-alert {
+  margin-top: 20px;
+}
+
+/* 最近订单表格卡片 */
+.dashboard-page .recent-card {
+  margin-top: 24px;
+  border: 1px solid var(--ce-border);
+  border-radius: 16px;
+}
+
+.dashboard-page .section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dashboard-page .section-heading h2,
+.dashboard-page .section-heading p {
+  margin: 0;
+}
+
+.dashboard-page .section-heading h2 {
+  color: var(--ce-text-strong);
+  font-size: 18px;
+}
+
+.dashboard-page .section-heading p {
+  margin-top: 5px;
+  color: var(--ce-text-muted);
+  font-size: 12px;
+}
+
+.dashboard-page .order-id {
+  color: var(--ce-primary);
+  font-weight: 600;
+}
+
+.dashboard-page .route-text {
+  color: var(--ce-text-body);
+}
+
+/* 表格行可点击进详情 */
+.dashboard-page .el-table__row {
+  cursor: pointer;
+}
+
+@media (max-width: 1050px) {
+  .dashboard-page .stats {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .dashboard-page .welcome {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-page .stats {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+}

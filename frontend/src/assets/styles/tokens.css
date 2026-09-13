@@ -1,0 +1,29 @@
+/*
+ * 全局设计变量（design tokens）。
+ * 色值取自原先散落在 Dashboard / 布局里的硬编码色板，收口到这里统一维护。
+ * 认证页深色卡片专用的色板自成一体，留在 styles/auth-theme.css 里，不在此重复。
+ */
+:root {
+  /* 品牌蓝：订单编号、图标底色、强调文字 */
+  --ce-primary: #287dcc;
+
+  /* 深底白字页面的文字色阶（由深到浅） */
+  --ce-text-strong: #172b3d;
+  --ce-text-body: #596a79;
+  --ce-text-secondary: #7d8b99;
+  --ce-text-muted: #8a98a6;
+  --ce-text-faint: #788896;
+
+  /* 浅色卡片描边与阴影 */
+  --ce-border: #e7edf3;
+  --ce-shadow-card: 0 8px 28px rgba(34, 61, 83, 0.06);
+  --ce-shadow-card-hover: 0 14px 34px rgba(34, 61, 83, 0.1);
+
+  /* 深色侧栏（AdminLayout 与 UserWorkspaceLayout 共用） */
+  --ce-shell-bg: linear-gradient(180deg, #071a2d 0%, #0b2943 100%);
+  --ce-shell-text-dim: #7896af;
+  --ce-shell-hover: rgba(64, 158, 255, 0.18);
+
+  /* 页面底色 */
+  --ce-page-bg: #f5f7fa;
+}

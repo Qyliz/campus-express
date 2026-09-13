@@ -80,7 +80,8 @@ async function onSubmit() {
         />
       </el-form-item>
 
-      <el-form-item label="登录身份" prop="role">
+      <!-- radio 组没有可标注的输入控件：置空 for 让 label 按 div 渲染，避免 Chrome 的 label[for] 无效引用警告 -->
+      <el-form-item for="" label="登录身份" prop="role">
         <el-radio-group v-model="form.role">
           <el-radio-button v-for="o in roleOptions" :key="o.value" :value="o.value">
             {{ o.label }}
@@ -117,19 +118,7 @@ async function onSubmit() {
 </template>
 
 <style scoped>
-.title {
-  font-size: 17px;
-  font-weight: 600;
-}
-
-.auth-card--embedded {
-  margin: 0;
-}
-
-.submit {
-  width: 100%;
-}
-
+/* .title / .submit / .links 的字号在 styles/auth-theme.css 里统一，这里只留本页布局 */
 .tip {
   margin-top: 4px;
   font-size: 13px;
@@ -144,6 +133,5 @@ async function onSubmit() {
   display: flex;
   justify-content: space-between;
   margin-top: 16px;
-  font-size: 13px;
 }
 </style>

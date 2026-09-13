@@ -121,7 +121,7 @@ onMounted(load)
         <p class="text">申诉理由：{{ selected.reason }}</p>
         <el-tag :type="appealStatusTagType[selected.status]">{{ appealStatusLabels[selected.status] }}</el-tag>
         <el-form v-if="selected.status === 'PENDING'" label-position="top">
-          <el-form-item label="处理结果">
+          <el-form-item for="" label="处理结果">
             <el-radio-group v-model="resolution" :disabled="submitting">
               <el-radio value="UPHELD">申诉成立，作废评价</el-radio>
               <el-radio value="REJECTED">驳回，保留评价</el-radio>
@@ -144,6 +144,6 @@ onMounted(load)
   </el-dialog>
 </template>
 <style scoped>
-.pager { margin-top: 20px; }
+/* 分页底边距与右对齐复用全局 .pager（assets/main.css） */
 .text { white-space: pre-wrap; overflow-wrap: anywhere; }
 </style>

@@ -237,6 +237,7 @@ async function submitReset() {
               :preview-src-list="[imageUrl(row.avatar)]"
               preview-teleported
               fit="cover"
+              lazy
               class="thumb"
             >
               <template #error>
@@ -387,35 +388,3 @@ async function submitReset() {
     </el-dialog>
   </div>
 </template>
-
-<style scoped>
-.thumb {
-  width: 36px;
-  height: 36px;
-  border-radius: 4px;
-}
-
-.thumb-fallback {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  color: #c0c4cc;
-  background: #f5f7fa;
-}
-
-.dialog-target {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin: 0 0 12px;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.dialog-tip {
-  margin-top: 12px;
-  font-size: 13px;
-}
-</style>

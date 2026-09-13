@@ -36,6 +36,27 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  build: {
+    // element-plus vendor chunk 按需打包后约 500KB（gzip 约 170KB），属于预期体积：
+    // 拆成独立且内容基本不变的 chunk 正是为了让浏览器长期缓存它，无需为告警再拆分。
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        // 把基本不变的依赖拆成独立 chunk：业务代码每次发版变化时，
+        // 用户不必重新下载体积大头 Element Plus 与 Vue 运行时（浏览器缓存继续命中）。
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          // 注意 @element-plus/icons-vue 的路径也包含 element-plus，一个判断即可覆盖
+          if (id.includes('element-plus')) return 'element-plus'
+          if (id.includes('/vue/') || id.includes('@vue/') || id.includes('vue-router') || id.includes('pinia')) {
+            return 'vue-vendor'
+          }
+          // axios / dayjs / async-validator 等其余依赖
+          return 'vendor'
+        },
+      },
+    },
+  },
   server: {
     port: 5173,
     // 5173 被占用时直接报错退出，而不是悄悄漂到 5174 ——
