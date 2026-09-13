@@ -137,7 +137,7 @@ async function onSubmit() {
       show-icon
       class="mock-code"
     >
-      <template #title>模拟短信 / 邮件（忘记密码）</template>
+      <template #title>短信 / 邮件（忘记密码）</template>
       <p class="code-line">
         您的验证码是 <b class="code">{{ mockCode }}</b>
         <el-button link type="primary" size="small" @click="copyCode">复制</el-button>

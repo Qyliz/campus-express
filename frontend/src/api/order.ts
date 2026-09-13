@@ -23,8 +23,8 @@ export const orderStatusLabels: Record<OrderStatusEnum, string> = {
 }
 export const paymentLabels: Record<PaymentStatusEnum, string> = {
   UNPAID: '未支付',
-  PAID: '已支付（模拟）',
-  REFUNDED: '已退款（模拟）',
+  PAID: '已支付',
+  REFUNDED: '已退款',
 }
 export type OrderScope = 'mine' | 'available' | 'assigned' | 'admin'
 export type OrderAction =
@@ -114,7 +114,7 @@ export const exceptionTypeLabels: Record<ExceptionTypeEnum, string> = {
 }
 export const exceptionResolutionLabels: Record<ExceptionResolutionEnum, string> = {
   RESUME: '恢复配送',
-  CANCEL: '取消订单（已支付则模拟退款）',
+  CANCEL: '取消订单（已支付则退款）',
 }
 export const orderStatusOptions = toOptions(orderStatusLabels)
 export const exceptionStatusOptions = toOptions(exceptionStatusLabels)

@@ -4,7 +4,7 @@ import { sendVerifyCode } from '@/api/user'
 import type { VerifySceneEnum } from '@/types'
 
 /**
- * 发送验证码 + 60 秒倒计时 + 展示「模拟短信/邮件」。
+ * 发送验证码 + 60 秒倒计时 + 展示「短信/邮件」。
  *
  * 后端没有真实短信/邮件通道：POST /api/user/verify-code 把 6 位验证码直接放在 data 里返回，
  * 所以必须把它显示出来，否则流程根本走不下去。

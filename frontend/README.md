@@ -75,7 +75,7 @@ src/
   constants/   枚举中文 label、el-tag 配色、下拉 options、PAGE_SIZE
   utils/       date / image / patterns（正则与后端校验注解逐字符一致）
   stores/      auth.ts —— /session 初始化登录状态，没有 token
-  composables/ useVerifyCode.ts —— 发码 + 60s 倒计时 + 展示后端返回的模拟验证码
+  composables/ useVerifyCode.ts —— 发码 + 60s 倒计时 + 展示后端返回的验证码
   router/      路由表 + RouteMeta 声明 + 守卫
   layouts/     DefaultLayout（顶部导航）、AdminLayout（侧边栏）
   views/       页面；admin/ 下是管理端三个列表页

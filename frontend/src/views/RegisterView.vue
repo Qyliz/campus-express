@@ -254,7 +254,7 @@ async function onSubmit() {
           >
         </div>
         <p v-if="phoneVerification.mockCode.value" class="mock-code">
-          模拟短信验证码：{{ phoneVerification.mockCode.value }}（5分钟有效）
+          短信验证码：{{ phoneVerification.mockCode.value }}（5分钟有效）
         </p>
       </el-form-item>
 
@@ -274,7 +274,7 @@ async function onSubmit() {
           >
         </div>
         <p v-if="emailVerification.mockCode.value" class="mock-code">
-          模拟邮件验证码：{{ emailVerification.mockCode.value }}（5分钟有效）
+          邮件验证码：{{ emailVerification.mockCode.value }}（5分钟有效）
         </p>
       </el-form-item>
 

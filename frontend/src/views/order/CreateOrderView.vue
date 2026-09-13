@@ -47,7 +47,7 @@ async function submit() {
   submitting.value = true
   try {
     const id = await createOrder({ ...form, deliveryPhone: form.deliveryPhone.trim() })
-    ElMessage.success('订单已发布，请完成模拟支付')
+    ElMessage.success('订单已发布，请完成支付')
     await router.push({ name: 'order-detail', params: { id } })
   } catch {
     /* 统一接口提示 */
@@ -60,7 +60,7 @@ async function submit() {
   <el-card class="create-order" shadow="never">
     <template #header><b>发布配送订单</b></template>
     <el-alert
-      title="发布后需完成模拟支付，配送员才可接单。本项目不发生真实扣款。"
+      title="发布后需完成支付，配送员才可接单。本项目不发生真实扣款。"
       type="info"
       :closable="false"
     />
@@ -95,7 +95,7 @@ async function submit() {
           <el-form-item label="收件联系电话" prop="deliveryPhone"
             ><el-input v-model="form.deliveryPhone" maxlength="11"
           /></el-form-item>
-          <p class="muted">收件人无需注册也可下单；绑定该手机号的收寄件人可查看订单并确认取件。</p>
+          <p class="muted">收件人无需注册也可下单；绑定该手机号的收件人可查看订单并确认取件。</p>
         </el-col>
       </el-row>
       <el-form-item label="物品说明" prop="itemDescription"

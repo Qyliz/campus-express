@@ -4,27 +4,30 @@ import cn.njust.campusexpress.common.PageResult;
 import cn.njust.campusexpress.common.enums.*;
 import cn.njust.campusexpress.common.exception.BusinessException;
 import cn.njust.campusexpress.model.order.dto.*;
+import cn.njust.campusexpress.model.order.entity.DeliveryException;
+import cn.njust.campusexpress.model.order.entity.ExpressOrder;
+import cn.njust.campusexpress.model.order.entity.OrderStatusRecord;
+import cn.njust.campusexpress.model.order.mapper.DeliveryExceptionMapper;
+import cn.njust.campusexpress.model.order.mapper.ExpressOrderMapper;
+import cn.njust.campusexpress.model.order.mapper.OrderStatusRecordMapper;
 import cn.njust.campusexpress.model.order.service.OrderService;
-import cn.njust.campusexpress.model.order.entity.*;
-import cn.njust.campusexpress.model.order.mapper.*;
 import cn.njust.campusexpress.model.order.vo.OrderDetailVO;
-import cn.njust.campusexpress.model.user.entity.*;
-import cn.njust.campusexpress.model.user.service.*;
+import cn.njust.campusexpress.model.user.entity.Courier;
+import cn.njust.campusexpress.model.user.entity.RoleAccount;
+import cn.njust.campusexpress.model.user.entity.User;
+import cn.njust.campusexpress.model.user.mapper.CourierMapper;
+import cn.njust.campusexpress.model.user.mapper.UserMapper;
+import cn.njust.campusexpress.model.user.service.RoleAccountService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.Date;
-import java.util.Map;
-import java.util.Objects;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Set;
+
+import java.util.*;
 import java.util.stream.Collectors;
-import cn.njust.campusexpress.model.user.mapper.CourierMapper;
-import cn.njust.campusexpress.model.user.mapper.UserMapper;
+
 import static cn.njust.campusexpress.common.enums.OrderStatusEnum.*;
 import static cn.njust.campusexpress.common.enums.PaymentStatusEnum.PAID;
 import static cn.njust.campusexpress.common.enums.PaymentStatusEnum.REFUNDED;
@@ -61,13 +64,13 @@ public class OrderServiceImpl implements OrderService {
 
     private List<DeliveryException> history(Long orderId) {
         return exceptions.selectList(new LambdaQueryWrapper<DeliveryException>()
-            .eq(DeliveryException::getOrderId, orderId)
-            .orderByAsc(DeliveryException::getCreateTime).orderByAsc(DeliveryException::getId));
+                .eq(DeliveryException::getOrderId, orderId)
+                .orderByAsc(DeliveryException::getCreateTime).orderByAsc(DeliveryException::getId));
     }
 
     private boolean pending(Long orderId) {
         return exceptions.selectCount(new LambdaQueryWrapper<DeliveryException>()
-            .eq(DeliveryException::getOrderId, orderId).eq(DeliveryException::getStatus, ExceptionStatusEnum.PENDING)) > 0;
+                .eq(DeliveryException::getOrderId, orderId).eq(DeliveryException::getStatus, ExceptionStatusEnum.PENDING)) > 0;
     }
 
     /**
@@ -101,7 +104,8 @@ public class OrderServiceImpl implements OrderService {
 
     // 不使用管理员继承的角色列表判定业务身份。
     private RoleAccount requireRole(Long userId, UserRoleEnum role, UserRoleEnum expected) {
-        if (role != expected) throw new BusinessException(ResultCodeEnum.NO_PERMISSION);
+        if (role != expected)
+            throw new BusinessException(ResultCodeEnum.NO_PERMISSION);
         RoleAccount account = accounts.getByUserAndRole(userId, role);
         if (account == null || account.getStatus() != UserStatusEnum.NORMAL)
             throw new BusinessException(ResultCodeEnum.NO_PERMISSION, "当前角色账户不可用");
@@ -135,11 +139,12 @@ public class OrderServiceImpl implements OrderService {
                 Long customerId = requireRole(userId, role, UserRoleEnum.CUSTOMER).getId();
                 User user = users.selectById(userId);
                 switch (dto.getRelation()) {
-                    case CREATED -> query.eq(ExpressOrder::getCustomerId, customerId);
+                    case CREATED ->
+                            query.eq(ExpressOrder::getCustomerId, customerId);
                     case RECEIVED -> recipientQuery(query, user);
                     case ALL -> query.and(q -> {
                         q.eq(ExpressOrder::getCustomerId, customerId)
-                            .or(r -> recipientQuery(r, user));
+                                .or(r -> recipientQuery(r, user));
                     });
                 }
             }
@@ -156,14 +161,15 @@ public class OrderServiceImpl implements OrderService {
             default -> throw invalid("未知列表");
         }
         query.eq(dto.getOrderStatus() != null, ExpressOrder::getOrderStatus, dto.getOrderStatus());
-        if ("admin".equals(scope)) query.eq(dto.getOrderId() != null, ExpressOrder::getId, dto.getOrderId());
+        if ("admin".equals(scope))
+            query.eq(dto.getOrderId() != null, ExpressOrder::getId, dto.getOrderId());
         query.orderByDesc(ExpressOrder::getCreateTime).orderByDesc(ExpressOrder::getId);
         Page<ExpressOrder> page = orders.selectPage(new Page<>(dto.getCurrentPage() == null ? 1 : dto.getCurrentPage(), 10), query);
         if (!page.getRecords().isEmpty() && !"available".equals(scope)) {
             List<Long> ids = page.getRecords().stream().map(ExpressOrder::getId).toList();
             Set<Long> pendingIds = exceptions.selectList(new LambdaQueryWrapper<DeliveryException>()
-                .in(DeliveryException::getOrderId, ids).eq(DeliveryException::getStatus, ExceptionStatusEnum.PENDING))
-                .stream().map(DeliveryException::getOrderId).collect(Collectors.toSet());
+                            .in(DeliveryException::getOrderId, ids).eq(DeliveryException::getStatus, ExceptionStatusEnum.PENDING))
+                    .stream().map(DeliveryException::getOrderId).collect(Collectors.toSet());
             page.getRecords().forEach(o -> o.setPendingException(pendingIds.contains(o.getId())));
             // 待接单订单的 courierId 恒为 null，且 available 范围直接跳过本块，所以大厅列表不需要隐藏骑手。
             attachCouriers(page.getRecords());
@@ -178,7 +184,8 @@ public class OrderServiceImpl implements OrderService {
                 });
             }
         }
-        if ("available".equals(scope)) page.getRecords().forEach(this::hideContacts);
+        if ("available".equals(scope))
+            page.getRecords().forEach(this::hideContacts);
         return PageResult.of(page);
     }
 
@@ -211,17 +218,20 @@ public class OrderServiceImpl implements OrderService {
         order.setPendingException(history.stream().anyMatch(e -> e.getStatus() == ExceptionStatusEnum.PENDING));
         List<String> actions = new ArrayList<>();
         OrderStatusEnum state = order.getOrderStatus();
-        if (role == UserRoleEnum.ADMIN && state != COMPLETED && state != CANCELLED) actions.add("admin-cancel");
+        if (role == UserRoleEnum.ADMIN && state != COMPLETED && state != CANCELLED)
+            actions.add("admin-cancel");
         if (role == UserRoleEnum.CUSTOMER) {
             order.setCreatedByMe(Objects.equals(account.getId(), order.getCustomerId()));
             order.setReceivedByMe(recipient(order, userId));
             if (order.isCreatedByMe() && state == UNPAID) actions.add("pay");
-            if (order.isCreatedByMe() && (state == UNPAID || state == AVAILABLE)) actions.add("cancel");
+            if (order.isCreatedByMe() && (state == UNPAID || state == AVAILABLE))
+                actions.add("cancel");
             if (state == AWAITING_COLLECTION) actions.add("complete");
         }
         boolean canReport = role == UserRoleEnum.COURIER && !order.isPendingException()
-            && (state == AWAITING_PICKUP || state == DELIVERING);
-        if (canReport) actions.add(state == AWAITING_PICKUP ? "pickup" : "deliver");
+                && (state == AWAITING_PICKUP || state == DELIVERING);
+        if (canReport)
+            actions.add(state == AWAITING_PICKUP ? "pickup" : "deliver");
         return new OrderDetailVO(order, records.selectList(new LambdaQueryWrapper<OrderStatusRecord>()
                 .eq(OrderStatusRecord::getOrderId, id)
                 .orderByAsc(OrderStatusRecord::getCreateTime).orderByAsc(OrderStatusRecord::getId)), history, actions, canReport);
@@ -237,19 +247,21 @@ public class OrderServiceImpl implements OrderService {
         switch (action) {
             case "pay", "complete", "cancel" -> {
                 RoleAccount customer = requireRole(userId, role, UserRoleEnum.CUSTOMER);
-                if ("complete".equals(action)) participant(order, customer, role, userId);
+                if ("complete".equals(action))
+                    participant(order, customer, role, userId);
                 else own(order, customer, role);
                 if ("pay".equals(action)) {
                     expect(previous, UNPAID);
                     order.setOrderStatus(AVAILABLE);
                     order.setPaymentStatus(PAID);
-                    description = "模拟支付成功";
+                    description = "支付成功";
                 } else if ("complete".equals(action)) {
                     expect(previous, AWAITING_COLLECTION);
                     order.setOrderStatus(COMPLETED);
                     description = "收寄件人确认取件";
                 } else {
-                    if (previous != UNPAID && previous != AVAILABLE) throw invalid("接单后请联系管理员取消");
+                    if (previous != UNPAID && previous != AVAILABLE)
+                        throw invalid("接单后请联系管理员取消");
                     cancel(order, reason);
                     description = reason;
                 }
@@ -258,7 +270,8 @@ public class OrderServiceImpl implements OrderService {
                 RoleAccount courier = requireRole(userId, role, UserRoleEnum.COURIER);
                 if ("accept".equals(action)) {
                     expect(previous, AVAILABLE);
-                    if (order.getCourierId() != null) throw invalid("订单已被接单");
+                    if (order.getCourierId() != null)
+                        throw invalid("订单已被接单");
                     // 原始用户关联查询包含逻辑删除账户，避免自己接自己的历史订单。
                     boolean self = orders.selectCount(new LambdaQueryWrapper<ExpressOrder>()
                             .eq(ExpressOrder::getId, id)
@@ -277,7 +290,8 @@ public class OrderServiceImpl implements OrderService {
             }
             case "admin-cancel" -> {
                 requireRole(userId, role, UserRoleEnum.ADMIN);
-                if (previous == COMPLETED || previous == CANCELLED) throw invalid("已结束的订单不能取消");
+                if (previous == COMPLETED || previous == CANCELLED)
+                    throw invalid("已结束的订单不能取消");
                 cancel(order, reason);
                 description = reason;
             }
@@ -324,10 +338,10 @@ public class OrderServiceImpl implements OrderService {
     public PageResult<DeliveryException> listExceptions(Long userId, UserRoleEnum role, ExceptionQueryDTO dto) {
         requireRole(userId, role, UserRoleEnum.ADMIN);
         return PageResult.of(exceptions.selectPage(new Page<>(dto.getCurrentPage(), 10),
-            new LambdaQueryWrapper<DeliveryException>()
-                .eq(dto.getStatus() != null, DeliveryException::getStatus, dto.getStatus())
-                .eq(dto.getOrderId() != null, DeliveryException::getOrderId, dto.getOrderId())
-                .orderByDesc(DeliveryException::getCreateTime).orderByDesc(DeliveryException::getId)));
+                new LambdaQueryWrapper<DeliveryException>()
+                        .eq(dto.getStatus() != null, DeliveryException::getStatus, dto.getStatus())
+                        .eq(dto.getOrderId() != null, DeliveryException::getOrderId, dto.getOrderId())
+                        .orderByDesc(DeliveryException::getCreateTime).orderByDesc(DeliveryException::getId)));
     }
 
     @Override
@@ -335,7 +349,8 @@ public class OrderServiceImpl implements OrderService {
         DeliveryException exception = getException(id);
         RoleAccount account = requireRole(userId, role, role);
         ExpressOrder order = get(exception.getOrderId());
-        if (role != UserRoleEnum.ADMIN) participant(order, account, role, userId);
+        if (role != UserRoleEnum.ADMIN)
+            participant(order, account, role, userId);
         return exception;
     }
 
@@ -352,10 +367,12 @@ public class OrderServiceImpl implements OrderService {
         // 先读取订单版本，再读取异常，确保与所有订单操作竞争同一个版本。
         ExpressOrder order = get(getException(id).getOrderId());
         DeliveryException exception = getException(id);
-        if (exception.getStatus() != ExceptionStatusEnum.PENDING) throw invalid("异常已处理，请刷新");
+        if (exception.getStatus() != ExceptionStatusEnum.PENDING)
+            throw invalid("异常已处理，请刷新");
         validateDescription(dto.getDescription());
         OrderStatusEnum previous = order.getOrderStatus();
-        if (previous != AWAITING_PICKUP && previous != DELIVERING) throw invalid("订单状态不允许处理异常");
+        if (previous != AWAITING_PICKUP && previous != DELIVERING)
+            throw invalid("订单状态不允许处理异常");
         // 枚举只有 RESUME/CANCEL 两个取值且 @NotNull 已挡住空值，不需要再判断「处理结果无效」。
         boolean cancelled = dto.getResolution() == ExceptionResolutionEnum.CANCEL;
         if (cancelled) cancel(order, dto.getDescription());
@@ -371,7 +388,8 @@ public class OrderServiceImpl implements OrderService {
 
     private void touch(ExpressOrder order) {
         order.setUpdateTime(new Date());
-        if (orders.updateById(order) != 1) throw invalid("订单状态已变化，请刷新后重试");
+        if (orders.updateById(order) != 1)
+            throw invalid("订单状态已变化，请刷新后重试");
     }
 
     private void close(DeliveryException exception, Long adminId, ExceptionResolutionEnum resolution, String description) {
@@ -380,7 +398,8 @@ public class OrderServiceImpl implements OrderService {
         exception.setResolution(resolution);
         exception.setResolutionDescription(description.trim());
         exception.setResolvedTime(new Date());
-        if (exceptions.updateById(exception) != 1) throw invalid("保存处理结果失败");
+        if (exceptions.updateById(exception) != 1)
+            throw invalid("保存处理结果失败");
     }
 
     // 阻止重复操作和跳过配送节点。
@@ -390,7 +409,8 @@ public class OrderServiceImpl implements OrderService {
 
     // 设置取消状态，已支付订单同步标记模拟退款，实际保存由调用方完成。
     private void cancel(ExpressOrder order, String reason) {
-        if (reason == null || reason.isBlank() || reason.length() > 255) throw invalid("请填写255字以内的取消原因");
+        if (reason == null || reason.isBlank() || reason.length() > 255)
+            throw invalid("请填写255字以内的取消原因");
         order.setOrderStatus(CANCELLED);
         if (order.getPaymentStatus() == PAID) order.setPaymentStatus(REFUNDED);
     }
