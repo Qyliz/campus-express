@@ -120,7 +120,7 @@ async function onSubmit() {
 </script>
 
 <template>
-  <el-card shadow="never" class="auth-card auth-card--backdrop" style="max-width: 520px">
+  <el-card shadow="never" class="auth-card auth-card--backdrop auth-card--recover">
     <template #header>
       <span class="title">忘记密码</span>
     </template>
@@ -230,6 +230,7 @@ async function onSubmit() {
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-wrap: wrap;
 }
 
 .code {

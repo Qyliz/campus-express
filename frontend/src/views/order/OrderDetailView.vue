@@ -62,15 +62,11 @@ async function act(action: OrderAction) {
   let reason: string | undefined
   try {
     if (action.includes('cancel')) {
-      const result = await ElMessageBox.prompt(
-        '请输入取消原因',
-        labels[action],
-        {
-          inputType: 'textarea',
-          inputValidator: (value: string) =>
-            (!!value?.trim() && value.length <= 255) || '请填写255字以内的取消原因',
-        },
-      )
+      const result = await ElMessageBox.prompt('请输入取消原因', labels[action], {
+        inputType: 'textarea',
+        inputValidator: (value: string) =>
+          (!!value?.trim() && value.length <= 255) || '请填写255字以内的取消原因',
+      })
       reason = result.value.trim()
     } else {
       await ElMessageBox.confirm(
@@ -166,6 +162,26 @@ async function act(action: OrderAction) {
 <style scoped>
 .actions {
   margin-bottom: 20px;
+}
+
+:deep(.el-card__header .el-space),
+:deep(.el-descriptions__body),
+:deep(.el-descriptions__table) {
+  max-width: 100%;
+}
+
+:deep(.el-card__header .el-space) {
+  flex-wrap: wrap;
+}
+
+:deep(.el-descriptions__label),
+:deep(.el-descriptions__content) {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+:deep(.el-timeline-item__content) {
+  overflow-wrap: anywhere;
 }
 h3 {
   margin: 24px 0 20px;

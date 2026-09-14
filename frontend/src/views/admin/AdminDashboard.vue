@@ -55,7 +55,7 @@ onMounted(load)
       <div>
         <p>后台总览</p>
         <h1>你好，{{ auth.username }}</h1>
-        <span>在这里掌握平台运行状态并处理待办事项。</span>
+        <span class="welcome-subtitle">在这里掌握平台运行状态并处理待办事项。</span>
       </div>
     </header>
 

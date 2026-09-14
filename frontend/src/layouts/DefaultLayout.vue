@@ -58,7 +58,8 @@ const backdropStyle = computed(() =>
 }
 
 .main {
-  padding: 24px;
+  min-width: 0;
+  padding: clamp(14px, 3vw, 24px);
 }
 
 .main--landing {
@@ -69,7 +70,7 @@ const backdropStyle = computed(() =>
 
 .main--auth {
   min-height: 100vh;
-  padding: 36px 20px;
+  padding: clamp(14px, 4vw, 36px) clamp(12px, 3vw, 20px);
   overflow: auto;
   background-attachment: fixed;
   background-position: center;

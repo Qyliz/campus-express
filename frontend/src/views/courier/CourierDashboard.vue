@@ -58,9 +58,10 @@ onMounted(load)
       <div>
         <p>{{ today }}</p>
         <h1>你好，{{ auth.username }}</h1>
-        <span>新的配送任务已经准备好，出发前请确认取送信息。</span>
+        <span class="welcome-subtitle">新的配送任务已经准备好，出发前请确认取送信息。</span>
       </div>
       <el-button
+        class="dashboard-primary-action"
         type="primary"
         size="large"
         :icon="Collection"

@@ -199,17 +199,24 @@ async function logout() {
 
 .workspace-content {
   min-width: 0;
-  padding: clamp(26px, 4vw, 52px);
+  max-width: 100%;
+  padding: clamp(16px, 4vw, 52px);
+  overflow-x: hidden;
 }
 
 @media (max-width: 720px) {
   .workbench-shell {
-    /* 1fr 的隐式最小宽度是 auto，会被宽表格撑大整页；0 才能把宽度锁在视口内 */
-    grid-template-columns: minmax(0, 1fr);
+    /* 与管理端一致地改为纵向弹性外壳，避免网格隐式行随页面内容加载而拉伸导航。 */
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  .workspace-sidebar {
+  .workbench-shell .workspace-sidebar {
     position: static;
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 0;
     height: auto;
     padding: 18px;
   }
@@ -247,9 +254,8 @@ async function logout() {
   }
 
   .workspace-content {
-    padding: 24px 16px;
-    /* 宽表格在内容区内部横向滚动，不允许撑宽整页连带侧栏重排 */
-    overflow-x: auto;
+    flex: 1 1 auto;
+    padding: clamp(14px, 4vw, 24px);
   }
 }
 </style>

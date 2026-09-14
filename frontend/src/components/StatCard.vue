@@ -26,9 +26,9 @@ withDefaults(
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  min-height: 118px;
-  padding: 22px;
+  gap: clamp(10px, 2vw, 16px);
+  min-height: clamp(98px, 10vw, 118px);
+  padding: clamp(14px, 2.2vw, 22px);
   cursor: pointer;
   background: #fff;
   border: 1px solid var(--ce-border);
@@ -76,6 +76,7 @@ withDefaults(
 
 .stat-card div:last-child {
   display: flex;
+  min-width: 0;
   flex-direction: column;
 }
 
@@ -86,17 +87,7 @@ withDefaults(
 .stat-card strong {
   margin-top: 6px;
   color: var(--ce-text-strong);
-  font-size: 28px;
-}
-
-@media (max-width: 480px) {
-  .stat-card {
-    min-height: 98px;
-    padding: 14px;
-  }
-  .stat-icon {
-    width: 40px;
-    height: 40px;
-  }
+  font-size: clamp(22px, 3vw, 28px);
+  overflow-wrap: anywhere;
 }
 </style>

@@ -342,7 +342,7 @@ async function onDeleteAccount() {
         ref="usernameFormRef"
         :model="usernameForm"
         :rules="usernameFormRules"
-        label-width="72px"
+        label-position="top"
         class="inline-form"
         @submit.prevent
       >
@@ -358,7 +358,7 @@ async function onDeleteAccount() {
         </el-form-item>
       </el-form>
 
-      <el-form label-width="72px" class="inline-form" @submit.prevent>
+      <el-form label-position="top" class="inline-form" @submit.prevent>
         <el-form-item for="" label="性别">
           <el-radio-group v-model="genderValue" class="inline-choice">
             <el-radio v-for="o in genderOptions" :key="o.value" :value="o.value">
@@ -409,7 +409,7 @@ async function onDeleteAccount() {
         ref="pwdFormRef"
         :model="pwdForm"
         :rules="pwdRules"
-        label-width="120px"
+        label-position="top"
         class="narrow-form"
         @submit.prevent
       >
@@ -460,7 +460,7 @@ async function onDeleteAccount() {
     </el-card>
 
     <!-- 换绑手机号 -->
-    <el-dialog v-model="phoneDialog.open" title="换绑手机号" width="440px">
+    <el-dialog v-model="phoneDialog.open" title="换绑手机号" width="min(440px, calc(100vw - 24px))">
       <el-form
         ref="phoneFormRef"
         :model="phoneDialog"
@@ -494,7 +494,7 @@ async function onDeleteAccount() {
     </el-dialog>
 
     <!-- 换绑邮箱 -->
-    <el-dialog v-model="emailDialog.open" title="换绑邮箱" width="440px">
+    <el-dialog v-model="emailDialog.open" title="换绑邮箱" width="min(440px, calc(100vw - 24px))">
       <el-form
         ref="emailFormRef"
         :model="emailDialog"
@@ -534,6 +534,7 @@ async function onDeleteAccount() {
   display: flex;
   gap: 20px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .avatar-upload {
@@ -582,7 +583,7 @@ async function onDeleteAccount() {
 }
 
 .head-info {
-  flex: 1;
+  flex: 1 1 260px;
   min-width: 0;
 }
 
@@ -591,6 +592,7 @@ async function onDeleteAccount() {
   gap: 10px;
   align-items: center;
   margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
 .head-meta {
@@ -633,12 +635,21 @@ async function onDeleteAccount() {
 }
 
 .inline-input {
-  max-width: 260px;
-  margin-right: 12px;
+  flex: 1 1 220px;
+  max-width: 460px;
 }
 
 .inline-choice {
-  margin-right: 12px;
+  flex: 1 1 180px;
+}
+
+.inline-form :deep(.el-form-item__content) {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.inline-form :deep(.el-button) {
+  margin-left: 0;
 }
 
 .narrow-form {
@@ -664,6 +675,13 @@ async function onDeleteAccount() {
   align-items: center;
   justify-content: space-between;
   padding: 12px 0;
+  flex-wrap: wrap;
+}
+
+.bind-row > div,
+.danger-row > div {
+  flex: 1 1 240px;
+  min-width: 0;
 }
 
 .bind-row + .bind-row,
@@ -697,7 +715,8 @@ async function onDeleteAccount() {
 }
 
 .mock .sub {
-  margin-left: 8px;
+  display: inline-block;
+  margin: 4px 0 0 8px;
   font-size: 12px;
   opacity: 0.85;
 }

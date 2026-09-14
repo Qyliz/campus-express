@@ -141,7 +141,7 @@ async function submitAppeal() {
     <el-dialog
       v-model="dialogOpen"
       title="申诉评价"
-      width="min(500px, 90vw)"
+      width="min(500px, calc(100vw - 24px))"
       :close-on-click-modal="!submitting"
       :show-close="!submitting"
       :close-on-press-escape="!submitting"

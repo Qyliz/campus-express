@@ -57,9 +57,10 @@ onMounted(load)
       <div>
         <p>{{ today }}</p>
         <h1>你好，{{ auth.username }}</h1>
-        <span>今天也让每一份托付准时抵达。</span>
+        <span class="welcome-subtitle">今天也让每一份托付准时抵达。</span>
       </div>
       <el-button
+        class="dashboard-primary-action"
         type="primary"
         size="large"
         :icon="Plus"

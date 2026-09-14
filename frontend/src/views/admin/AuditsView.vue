@@ -118,23 +118,33 @@ async function submitAudit() {
 <template>
   <div>
     <el-card shadow="never" class="page-card">
-      <el-form inline @submit.prevent>
+      <el-form inline class="filter-form" @submit.prevent>
         <el-form-item label="用户名">
           <el-input
             v-model="filters.username"
             placeholder="模糊搜索"
             clearable
-            style="width: 150px"
+            class="filter-control"
           />
         </el-form-item>
         <el-form-item label="手机号">
-          <el-input v-model="filters.phone" placeholder="模糊搜索" clearable style="width: 150px" />
+          <el-input
+            v-model="filters.phone"
+            placeholder="模糊搜索"
+            clearable
+            class="filter-control"
+          />
         </el-form-item>
         <el-form-item label="邮箱">
-          <el-input v-model="filters.email" placeholder="模糊搜索" clearable style="width: 180px" />
+          <el-input
+            v-model="filters.email"
+            placeholder="模糊搜索"
+            clearable
+            class="filter-control"
+          />
         </el-form-item>
         <el-form-item label="审核状态">
-          <el-select v-model="filters.auditStatus" placeholder="全部" style="width: 130px">
+          <el-select v-model="filters.auditStatus" placeholder="全部" class="filter-control">
             <el-option label="全部" value="" />
             <el-option
               v-for="o in auditStatusOptions"
@@ -146,14 +156,14 @@ async function submitAudit() {
         </el-form-item>
         <el-form-item label="删除状态">
           <!-- 三态：'' 不传 / false 未删除 / true 已删除。布尔值必须用 :value 绑定，否则会变成字符串。 -->
-          <el-select v-model="filters.deleted" placeholder="全部" style="width: 120px">
+          <el-select v-model="filters.deleted" placeholder="全部" class="filter-control">
             <el-option label="全部" value="" />
             <el-option label="未删除" :value="false" />
             <el-option label="已删除" :value="true" />
           </el-select>
         </el-form-item>
         <el-form-item label="排序">
-          <el-select v-model="filters.sort" placeholder="默认" style="width: 150px">
+          <el-select v-model="filters.sort" placeholder="默认" class="filter-control">
             <el-option label="默认" value="" />
             <el-option
               v-for="o in allSortOptions"
@@ -271,7 +281,8 @@ async function submitAudit() {
         v-model:current-page="currentPage"
         :page-size="PAGE_SIZE"
         :total="total"
-        layout="total, prev, pager, next, jumper"
+        :pager-count="5"
+        layout="prev, pager, next"
         background
         class="pager"
         @current-change="load"
@@ -281,7 +292,7 @@ async function submitAudit() {
     <el-dialog
       v-model="dialog.open"
       :title="dialog.status === 'NORMAL' ? '通过审核' : '驳回申请'"
-      width="460px"
+      width="min(460px, calc(100vw - 24px))"
     >
       <p v-if="dialog.row" class="dialog-target">
         {{ dialog.row.username }}

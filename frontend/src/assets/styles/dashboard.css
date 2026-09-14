@@ -15,11 +15,12 @@
   justify-content: space-between;
   gap: 24px;
   margin-bottom: 30px;
+  flex-wrap: wrap;
 }
 
 .dashboard-page .welcome p,
 .dashboard-page .welcome h1,
-.dashboard-page .welcome span {
+.dashboard-page .welcome-subtitle {
   margin: 0;
 }
 
@@ -34,17 +35,72 @@
   font-size: clamp(26px, 3vw, 36px);
 }
 
-.dashboard-page .welcome span {
+.dashboard-page .welcome-subtitle {
   display: block;
   margin-top: 8px;
   color: var(--ce-text-faint);
 }
 
+/* 工作台的主要入口保持同一视觉语言，在窄容器中可自然收缩。 */
+.dashboard-page .dashboard-primary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: auto;
+  max-width: 100%;
+  min-height: 46px;
+  padding: 0 22px;
+  --el-button-text-color: #fff;
+  --el-button-hover-text-color: #fff;
+  --el-button-active-text-color: #fff;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  background: linear-gradient(135deg, #409eff 0%, #287dcc 100%);
+  border: 0;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(40, 125, 204, 0.24);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
+}
+
+.dashboard-page .dashboard-primary-action:hover,
+.dashboard-page .dashboard-primary-action:focus-visible {
+  color: #fff;
+  filter: brightness(1.04);
+  box-shadow: 0 13px 28px rgba(40, 125, 204, 0.3);
+  transform: translateY(-2px);
+}
+
+.dashboard-page .dashboard-primary-action:active {
+  box-shadow: 0 7px 16px rgba(40, 125, 204, 0.22);
+  transform: translateY(0);
+}
+
+.dashboard-page .dashboard-primary-action .el-icon {
+  flex: 0 0 auto;
+  font-size: 18px;
+}
+
+.dashboard-page .dashboard-primary-action .el-icon + span {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  color: inherit;
+  line-height: 1;
+}
+
 /* 统计卡片网格（卡片本身在 StatCard 组件里） */
 .dashboard-page .stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(150px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: clamp(10px, 2vw, 18px);
 }
 
 .dashboard-page .dashboard-alert {
@@ -62,6 +118,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .dashboard-page .section-heading h2,
@@ -92,24 +150,4 @@
 /* 表格行可点击进详情 */
 .dashboard-page .el-table__row {
   cursor: pointer;
-}
-
-@media (max-width: 1050px) {
-  .dashboard-page .stats {
-    grid-template-columns: repeat(2, minmax(150px, 1fr));
-  }
-}
-
-@media (max-width: 720px) {
-  .dashboard-page .welcome {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-}
-
-@media (max-width: 480px) {
-  .dashboard-page .stats {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
 }

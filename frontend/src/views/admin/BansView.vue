@@ -88,38 +88,48 @@ async function onUnban(row: UserBanRecordVO) {
 <template>
   <div>
     <el-card shadow="never" class="page-card">
-      <el-form inline @submit.prevent>
+      <el-form inline class="filter-form" @submit.prevent>
         <el-form-item label="用户名">
           <el-input
             v-model="filters.username"
             placeholder="模糊搜索"
             clearable
-            style="width: 150px"
+            class="filter-control"
           />
         </el-form-item>
         <el-form-item label="手机号">
-          <el-input v-model="filters.phone" placeholder="模糊搜索" clearable style="width: 150px" />
+          <el-input
+            v-model="filters.phone"
+            placeholder="模糊搜索"
+            clearable
+            class="filter-control"
+          />
         </el-form-item>
         <el-form-item label="邮箱">
-          <el-input v-model="filters.email" placeholder="模糊搜索" clearable style="width: 180px" />
+          <el-input
+            v-model="filters.email"
+            placeholder="模糊搜索"
+            clearable
+            class="filter-control"
+          />
         </el-form-item>
         <el-form-item label="封禁状态">
           <!-- 三态查询参数是 Boolean：'' 不传 / false 封禁中 / true 已解封。布尔值必须用 :value 绑定。 -->
-          <el-select v-model="filters.unbanned" placeholder="全部" style="width: 120px">
+          <el-select v-model="filters.unbanned" placeholder="全部" class="filter-control">
             <el-option label="全部" value="" />
             <el-option label="封禁中" :value="false" />
             <el-option label="已解封" :value="true" />
           </el-select>
         </el-form-item>
         <el-form-item label="删除状态">
-          <el-select v-model="filters.deleted" placeholder="全部" style="width: 120px">
+          <el-select v-model="filters.deleted" placeholder="全部" class="filter-control">
             <el-option label="全部" value="" />
             <el-option label="未删除" :value="false" />
             <el-option label="已删除" :value="true" />
           </el-select>
         </el-form-item>
         <el-form-item label="排序">
-          <el-select v-model="filters.sort" placeholder="默认" style="width: 150px">
+          <el-select v-model="filters.sort" placeholder="默认" class="filter-control">
             <el-option label="默认" value="" />
             <el-option
               v-for="o in allSortOptions"
@@ -214,7 +224,8 @@ async function onUnban(row: UserBanRecordVO) {
         v-model:current-page="currentPage"
         :page-size="PAGE_SIZE"
         :total="total"
-        layout="total, prev, pager, next, jumper"
+        :pager-count="5"
+        layout="prev, pager, next"
         background
         class="pager"
         @current-change="load"

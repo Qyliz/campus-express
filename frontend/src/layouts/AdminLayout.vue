@@ -133,6 +133,11 @@ async function logout() {
   min-height: 100vh;
 }
 
+.admin-shell > .el-container {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .session-exit {
   display: grid;
   min-height: 100vh;
@@ -181,7 +186,10 @@ async function logout() {
 }
 
 .main {
-  padding: clamp(26px, 4vw, 48px);
+  min-width: 0;
+  max-width: 100%;
+  padding: clamp(16px, 4vw, 48px);
+  overflow-x: hidden;
   background: #f3f6fa;
 }
 
@@ -190,7 +198,7 @@ async function logout() {
     flex-direction: column;
   }
 
-  .shell-aside {
+  .admin-shell .shell-aside {
     position: static;
     height: auto;
     width: 100% !important;
@@ -222,17 +230,11 @@ async function logout() {
   }
 
   .header {
-    padding: 0 16px;
-  }
-
-  .header :deep(.el-breadcrumb) {
     display: none;
   }
 
   .main {
-    padding: 24px 16px;
-    /* 宽表格在内容区内部横向滚动，不允许撑宽整页连带侧栏重排 */
-    overflow-x: auto;
+    padding: clamp(14px, 4vw, 24px);
   }
 }
 </style>

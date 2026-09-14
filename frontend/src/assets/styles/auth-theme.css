@@ -7,12 +7,24 @@
 /* 认证类页面共用的居中窄卡片 */
 .auth-card {
   width: 100%;
-  margin: 48px auto;
+  margin: clamp(20px, 6vh, 48px) auto;
 }
 
 /* 首页 landing 区内嵌时贴边，不再自带外边距 */
 .auth-card--embedded {
   margin: 0;
+}
+
+.auth-card--login {
+  max-width: 420px;
+}
+
+.auth-card--recover {
+  max-width: 520px;
+}
+
+.auth-card--register {
+  max-width: 560px;
 }
 
 /* 根规则用双类提高特异性：路由懒加载后 Element Plus 的组件样式（.el-card 等）
@@ -53,6 +65,16 @@
   display: flex;
   gap: 12px;
   width: 100%;
+  flex-wrap: wrap;
+}
+
+.auth-card .code-row .el-input {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.auth-card .code-row .code-button {
+  flex: 1 1 auto;
 }
 
 /* ===== Element Plus 深色覆盖 ===== */

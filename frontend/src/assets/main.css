@@ -13,11 +13,14 @@
 html,
 body,
 #app {
+  width: 100%;
+  min-width: 0;
   height: 100%;
   margin: 0;
 }
 
 body {
+  overflow-x: hidden;
   background: var(--ce-page-bg);
   font-family:
     'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial,
@@ -31,6 +34,65 @@ body {
   margin-top: 16px;
 }
 
+/* Element Plus 的卡片、表格默认带有内容最小宽度；显式归零后，宽表格只会在
+   自己的滚动区域内移动，不会把整个页面撑出视口。 */
+.el-card,
+.el-card__body,
+.el-table {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.el-table .cell {
+  overflow-wrap: anywhere;
+}
+
+.el-space,
+.el-radio-group {
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+/* 筛选区采用内容驱动网格：能并排时自动增加列，空间不足时自然换行。 */
+.filter-form.el-form--inline {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  gap: 14px 16px;
+  align-items: end;
+}
+
+.filter-form.el-form--inline .el-form-item {
+  display: flex;
+  min-width: 0;
+  margin: 0;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.filter-form.el-form--inline .el-form-item__label {
+  height: auto;
+  margin: 0 0 6px;
+  line-height: 22px;
+  justify-content: flex-start;
+}
+
+.filter-form.el-form--inline .el-form-item__content,
+.filter-form .filter-control {
+  width: 100%;
+  min-width: 0;
+}
+
+.filter-form.el-form--inline .el-form-item:last-child .el-form-item__content {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-form.el-form--inline .el-form-item:last-child .el-button {
+  flex: 1 1 68px;
+  margin-left: 0;
+}
+
 .muted {
   color: #909399;
 }
@@ -41,8 +103,37 @@ body {
 
 /* 服务端分页的统一底边距与右对齐（账号 / 审核 / 封禁 / 订单 / 异常 / 申诉页共用） */
 .pager {
+  display: flex;
+  width: 100%;
   margin-top: 16px;
+  padding: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+  row-gap: 8px;
+}
+
+/* Teleport 到 body 的弹窗不受页面 scoped 样式约束，因此在全局统一限制视口宽度。 */
+.el-dialog,
+.el-message-box {
+  max-width: calc(100vw - 24px);
+}
+
+.el-dialog__body,
+.el-message-box__message {
+  overflow-wrap: anywhere;
+}
+
+.el-dialog__footer .dialog-footer,
+.el-message-box__btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.el-dialog__footer .el-button,
+.el-message-box__btns .el-button {
+  margin-left: 0;
 }
 
 /* ===== 管理端表格缩略图与确认弹窗的共享小样式（UsersView / AuditsView） ===== */

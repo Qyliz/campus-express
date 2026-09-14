@@ -57,9 +57,8 @@ async function onSubmit() {
 <template>
   <el-card
     shadow="never"
-    class="auth-card auth-card--backdrop"
+    class="auth-card auth-card--backdrop auth-card--login"
     :class="{ 'auth-card--embedded': embedded }"
-    style="max-width: 420px"
   >
     <template #header>
       <span class="title">登录</span>
@@ -132,6 +131,8 @@ async function onSubmit() {
 .links {
   display: flex;
   justify-content: space-between;
+  gap: 8px 16px;
   margin-top: 16px;
+  flex-wrap: wrap;
 }
 </style>

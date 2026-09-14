@@ -30,6 +30,14 @@ const loading = ref(false)
 const acting = ref('')
 const error = ref(false)
 let requestSequence = 0
+
+const assignedStatusOptions = orderStatusOptions.filter(
+  ({ value }) => value !== 'UNPAID' && value !== 'AVAILABLE',
+)
+const visibleStatusOptions = computed(() =>
+  scope.value === 'assigned' ? assignedStatusOptions : orderStatusOptions,
+)
+
 async function load() {
   const sequence = ++requestSequence
   loading.value = true
@@ -38,7 +46,7 @@ async function load() {
     const result = await listOrders(scope.value, {
       currentPage: page.value,
       relation: scope.value === 'mine' ? orUndefined(filters.relation) : undefined,
-      orderStatus: orUndefined(filters.orderStatus),
+      orderStatus: scope.value === 'available' ? undefined : orUndefined(filters.orderStatus),
       orderId: scope.value === 'admin' ? orUndefined(filters.orderId.trim()) : undefined,
     })
     if (sequence !== requestSequence) return
@@ -99,21 +107,20 @@ async function accept(id: string) {
 }
 </script>
 <template>
-  <el-card shadow="never" class="page-card">
-    <!-- 三个筛选条件与各 scope 的可见性都保持原样，只是换成账号管理的样式与「点查询才查」的逻辑 -->
-    <el-form inline @submit.prevent>
+  <el-card v-if="scope !== 'available'" shadow="never" class="page-card">
+    <el-form inline class="filter-form" @submit.prevent>
       <el-form-item v-if="scope === 'mine'" label="与我关系">
-        <el-select v-model="filters.relation" placeholder="全部" style="width: 130px">
+        <el-select v-model="filters.relation" placeholder="全部" class="filter-control">
           <el-option label="全部订单" value="" />
           <el-option label="我下的" value="CREATED" />
           <el-option label="我收到的" value="RECEIVED" />
         </el-select>
       </el-form-item>
-      <el-form-item v-if="scope !== 'available'" label="状态">
-        <el-select v-model="filters.orderStatus" placeholder="全部" style="width: 130px">
+      <el-form-item label="状态">
+        <el-select v-model="filters.orderStatus" placeholder="全部" class="filter-control">
           <el-option label="全部" value="" />
           <el-option
-            v-for="o in orderStatusOptions"
+            v-for="o in visibleStatusOptions"
             :key="o.value"
             :label="o.label"
             :value="o.value"
@@ -125,7 +132,7 @@ async function accept(id: string) {
           v-model="filters.orderId"
           placeholder="完整订单编号"
           clearable
-          style="width: 180px"
+          class="filter-control"
         />
       </el-form-item>
       <el-form-item>
@@ -152,7 +159,7 @@ async function accept(id: string) {
       :closable="false"
       class="notice"
     />
-    <el-table v-loading="loading" :data="rows" empty-text="暂无订单" style="width: 100%">
+    <el-table v-loading="loading" :data="rows" empty-text="暂无订单">
       <el-table-column prop="id" label="订单编号" min-width="190" />
       <el-table-column v-if="scope === 'mine'" label="与我关系" min-width="130">
         <template #default="{ row }"
@@ -226,7 +233,8 @@ async function accept(id: string) {
       v-model:current-page="page"
       :page-size="10"
       :total="total"
-      layout="prev, pager, next, total"
+      :pager-count="5"
+      layout="prev, pager, next"
       class="pager"
       @current-change="load"
     />

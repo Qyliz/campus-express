@@ -65,8 +65,8 @@ async function submit() {
       :closable="false"
     />
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="form">
-      <el-row :gutter="24">
-        <el-col :xs="24" :md="12">
+      <div class="address-grid">
+        <section>
           <h3>取件信息</h3>
           <el-form-item label="取件地址" prop="pickupAddress"
             ><el-input
@@ -80,8 +80,8 @@ async function submit() {
           <el-form-item label="取件联系电话" prop="pickupPhone"
             ><el-input v-model="form.pickupPhone" maxlength="11"
           /></el-form-item>
-        </el-col>
-        <el-col :xs="24" :md="12">
+        </section>
+        <section>
           <h3>送达信息</h3>
           <el-form-item label="送达地址" prop="deliveryAddress"
             ><el-input
@@ -96,8 +96,8 @@ async function submit() {
             ><el-input v-model="form.deliveryPhone" maxlength="11"
           /></el-form-item>
           <p class="muted">收件人无需注册也可下单；绑定该手机号的收件人可查看订单并确认取件。</p>
-        </el-col>
-      </el-row>
+        </section>
+      </div>
       <el-form-item label="物品说明" prop="itemDescription"
         ><el-input
           v-model="form.itemDescription"
@@ -111,20 +111,40 @@ async function submit() {
       <el-form-item label="配送费（元）" prop="fee"
         ><el-input-number v-model="form.fee" :min="0.01" :max="9999.99" :precision="2" :step="1"
       /></el-form-item>
-      <el-button type="primary" :loading="submitting" @click="submit">发布订单</el-button>
-      <el-button @click="router.push({ name: 'orders-mine' })">返回我的订单</el-button>
+      <div class="form-actions">
+        <el-button type="primary" :loading="submitting" @click="submit">发布订单</el-button>
+        <el-button @click="router.push({ name: 'orders-mine' })">返回我的订单</el-button>
+      </div>
     </el-form>
   </el-card>
 </template>
 <style scoped>
 .create-order {
+  width: 100%;
   max-width: 900px;
   margin: auto;
 }
 .form {
   margin-top: 20px;
 }
+
+.address-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 0 clamp(16px, 3vw, 24px);
+}
 h3 {
   font-size: 16px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.form-actions .el-button {
+  flex: 1 1 140px;
+  margin-left: 0;
 }
 </style>

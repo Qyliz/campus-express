@@ -187,7 +187,7 @@ async function onSubmit() {
 </script>
 
 <template>
-  <el-card shadow="never" class="auth-card auth-card--backdrop" style="max-width: 560px">
+  <el-card shadow="never" class="auth-card auth-card--backdrop auth-card--register">
     <template #header>
       <span class="title">注册</span>
     </template>
