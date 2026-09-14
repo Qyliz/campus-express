@@ -10,6 +10,9 @@ import java.util.List;
  */
 @Data
 public class PageResult<T> {
+    /** 服务层分页查询统一使用的默认每页条数。 */
+    public static final int DEFAULT_PAGE_SIZE = 10;
+
     private List<T> records;
     private long total;
     private long current;
@@ -23,6 +26,18 @@ public class PageResult<T> {
         vo.setCurrent(page.getCurrent());
         vo.setSize(page.getSize());
         vo.setPages(page.getPages());
+        return vo;
+    }
+
+    /** 按默认页大小构造分页参数，页码为空时默认第 1 页。 */
+    public static <T> Page<T> pageOf(Integer currentPage) {
+        return new Page<>(currentPage == null ? 1 : currentPage, DEFAULT_PAGE_SIZE);
+    }
+
+    /** 空分页结果，用于无需查库即可确定没有数据的场景。 */
+    public static <T> PageResult<T> empty() {
+        PageResult<T> vo = new PageResult<>();
+        vo.setRecords(List.of());
         return vo;
     }
 }

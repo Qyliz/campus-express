@@ -30,6 +30,7 @@ public enum ResultCodeEnum {
     VERIFY_CODE_ERROR(2011, "验证码错误"),
     VERIFY_CODE_EXPIRED(2012, "验证码已过期或失效"),
     ROLE_ALREADY_REGISTERED(2013, "该角色已注册，请直接登录"),
+    USER_UPDATE_ERROR(2014, "用户信息更新失败"),
     // 文件模块
     FILE_EMPTY(3001, "请选择文件"),
     FILE_TOO_LARGE(3002, "文件过大，请重试"),

@@ -1,5 +1,6 @@
 package cn.njust.campusexpress.model.user.service.impl;
 
+import cn.njust.campusexpress.common.PageResult;
 import cn.njust.campusexpress.common.enums.ResultCodeEnum;
 import cn.njust.campusexpress.common.enums.AuditStatusEnum;
 import cn.njust.campusexpress.common.enums.UserStatusEnum;
@@ -33,9 +34,7 @@ public class UserAuditRecordServiceImpl extends CrudRepository<UserAuditRecordMa
     //获取审核记录
     @Override
     public Page<UserAuditRecordVO> getRecordPage(UserAuditQueryDTO dto) {
-        //页码为空时默认为第1页
-        int currentPage = dto.getCurrentPage() == null ? 1 : dto.getCurrentPage();
-        Page<UserAuditRecordVO> page = new Page<>(currentPage, 10);
+        Page<UserAuditRecordVO> page = PageResult.pageOf(dto.getCurrentPage());
         //关联 user_audit_record、courier 与 user 表分页查询，查询条件与排序在 UserAuditRecordMapper.xml 中动态拼接
         mapper.selectAuditPage(page, dto);
         return page;
@@ -43,7 +42,7 @@ public class UserAuditRecordServiceImpl extends CrudRepository<UserAuditRecordMa
 
     //审核账号
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void auditUser(Long recordId, UserAuditDTO dto) {
         //审核结果只能是通过或驳回
         AuditStatusEnum result = dto.getStatus();

@@ -1,8 +1,8 @@
 package cn.njust.campusexpress.user;
 
+import cn.njust.campusexpress.IntegrationTestSupport;
+import cn.njust.campusexpress.TestAccounts;
 import cn.njust.campusexpress.common.enums.ResultCodeEnum;
-import cn.njust.campusexpress.model.user.entity.User;
-import cn.njust.campusexpress.model.user.service.UserService;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,7 +13,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -26,45 +25,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-public class AdminUserTest {
-    @Autowired private cn.njust.campusexpress.model.user.service.VerifyCodeService registrationCodes;
+public class AdminUserTest extends IntegrationTestSupport {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private UserService userService;
 
     private Cookie adminCookie;
 
     @BeforeEach
     void adminLogin() throws Exception {
-        //管理员由 data.sql 在启动时种子（admin@email.com / IamADMIN）
-        adminCookie = login("admin@email.com", "IamADMIN", "ADMIN");
+        //管理员由 data.sql 在启动时种子（TestAccounts 记录的凭证）
+        adminCookie = login(TestAccounts.ADMIN_EMAIL, TestAccounts.ADMIN_PASSWORD, "ADMIN");
         Assertions.assertNotNull(adminCookie, "管理员登录应返回 satoken");
-    }
-
-    //注册收寄件人（初始状态 NORMAL），返回其 userId（管理端接口按 userId + role 定位账号）
-    private Long registerCustomer(String username, String phone) throws Exception {
-        mockMvc.perform(cn.njust.campusexpress.user.RegistrationTestSupport.registration(registrationCodes)
-                        .param("username", username)
-                        .param("password", "1234567")
-                        .param("role", "CUSTOMER")
-                        .param("gender", "MALE")
-                        .param("phone", phone))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
-        User user = userService.lambdaQuery().eq(User::getUsername, username).one();
-        Assertions.assertNotNull(user);
-        return user.getId();
-    }
-
-    private Cookie login(String account, String password, String role) throws Exception {
-        String body = String.format("{\"account\":\"%s\",\"password\":\"%s\",\"role\":\"%s\"}", account, password, role);
-        MvcResult result = mockMvc.perform(post("/api/user/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(body)).andReturn();
-        return result.getResponse().getCookie("satoken");
     }
 
     //管理员分页查询所有账号（A1 查询串绑定）

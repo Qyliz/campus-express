@@ -6,10 +6,10 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.njust.campusexpress.common.PageResult;
 import cn.njust.campusexpress.common.Result;
 import cn.njust.campusexpress.common.enums.ResultCodeEnum;
-import cn.njust.campusexpress.common.enums.UserGenderEnum;
 import cn.njust.campusexpress.common.enums.UserRoleEnum;
 import cn.njust.campusexpress.common.enums.VerifySceneEnum;
 import cn.njust.campusexpress.common.exception.BusinessException;
+import cn.njust.campusexpress.common.util.SessionUtil;
 import cn.njust.campusexpress.model.user.dto.*;
 import cn.njust.campusexpress.model.user.service.UserAuditRecordService;
 import cn.njust.campusexpress.model.user.service.UserBanRecordService;
@@ -50,7 +50,7 @@ public class UserController {
     Result<Void> login(@Valid @RequestBody UserLoginDTO loginDTO) {
         Long userId = userService.login(loginDTO);
         StpUtil.login(userId);
-        StpUtil.getTokenSession().set("role", loginDTO.getRole().name());
+        StpUtil.getTokenSession().set(SessionUtil.ROLE_KEY, loginDTO.getRole().name());
         return Result.success();
     }
 
@@ -69,38 +69,30 @@ public class UserController {
         if (!StpUtil.isLogin()) {
             return Result.success();
         }
-        return Result.success(userService.getProfile(StpUtil.getLoginIdAsLong(), currentRole()));
+        return Result.success(userService.getProfile(SessionUtil.userId(), SessionUtil.role()));
     }
 
     //获取账号信息（受保护接口，未登录仍返回401）
     @GetMapping("/profile")
     @SaCheckLogin
     Result<UserProfileVO> getProfile() {
-        UserProfileVO profile = userService.getProfile(StpUtil.getLoginIdAsLong(), currentRole());
+        UserProfileVO profile = userService.getProfile(SessionUtil.userId(), SessionUtil.role());
         return Result.success(profile);
     }
 
-    //更新用户名
+    //更新用户名（非空由 UserUsernameDTO 的 @NotBlank 保证）
     @PutMapping("/username")
     @SaCheckLogin
     Result<UserProfileVO> updateUsername(@Valid @RequestBody UserUsernameDTO dto) {
-        String username = dto.getUsername();
-        if (username == null || username.isBlank()) {
-            throw new BusinessException(ResultCodeEnum.PARAM_MISSING);
-        }
-        UserProfileVO profile = userService.updateUsername(StpUtil.getLoginIdAsLong(), currentRole(), username);
+        UserProfileVO profile = userService.updateUsername(SessionUtil.userId(), SessionUtil.role(), dto.getUsername());
         return Result.success(profile);
     }
 
-    //更新性别
+    //更新性别（非空由 UserGenderDTO 的 @NotNull 保证）
     @PutMapping("/gender")
     @SaCheckLogin
     Result<UserProfileVO> updateGender(@Valid @RequestBody UserGenderDTO dto) {
-        UserGenderEnum gender = dto.getGender();
-        if (gender == null) {
-            throw new BusinessException(ResultCodeEnum.PARAM_MISSING);
-        }
-        UserProfileVO profile = userService.updateGender(StpUtil.getLoginIdAsLong(), currentRole(), gender);
+        UserProfileVO profile = userService.updateGender(SessionUtil.userId(), SessionUtil.role(), dto.getGender());
         return Result.success(profile);
     }
 
@@ -108,7 +100,7 @@ public class UserController {
     @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @SaCheckLogin
     Result<UserProfileVO> updateAvatar(@RequestParam("file") MultipartFile file) {
-        UserProfileVO profile = userService.updateAvatar(StpUtil.getLoginIdAsLong(), currentRole(), file);
+        UserProfileVO profile = userService.updateAvatar(SessionUtil.userId(), SessionUtil.role(), file);
         return Result.success(profile);
     }
 
@@ -116,7 +108,7 @@ public class UserController {
     @PutMapping("/password")
     @SaCheckLogin
     Result<Void> updatePassword(@Valid @RequestBody UserPasswordDTO dto) {
-        userService.updatePassword(StpUtil.getLoginIdAsLong(), dto);
+        userService.updatePassword(SessionUtil.userId(), dto);
         return Result.success();
     }
 
@@ -124,7 +116,7 @@ public class UserController {
     @DeleteMapping("/account")
     @SaCheckLogin
     Result<Void> deleteAccount() {
-        userService.deleteAccount(StpUtil.getLoginIdAsLong(), currentRole());
+        userService.deleteAccount(SessionUtil.userId(), SessionUtil.role());
         return Result.success();
     }
 
@@ -196,13 +188,11 @@ public class UserController {
         return Result.success(PageResult.of(page));
     }
 
-    //封禁账号
+    //封禁账号：服务层同步踢出被禁用户的在线会话，其后续请求将返回 KICKED_OUT
     @PostMapping("/{userId}/roles/{role}/ban")
     @SaCheckRole(UserRoleEnum.ROLE_ADMIN)
     Result<Void> banUser(@PathVariable Long userId, @PathVariable UserRoleEnum role, @Valid @RequestBody UserBanDTO dto) {
         userBanRecordService.banUser(userId, role, dto);
-        //踢出被禁用户的在线会话，其后续请求将返回 KICKED_OUT
-        StpUtil.kickout(userId);
         return Result.success();
     }
 
@@ -236,10 +226,5 @@ public class UserController {
     Result<Void> adminResetPassword(@PathVariable Long userId, @Valid @RequestBody AdminResetPasswordDTO dto) {
         userService.adminResetPassword(userId, dto);
         return Result.success();
-    }
-
-    //当前会话登录时所选的角色，由 login 写入 token session；StpInterfaceImpl 也依赖同一个键做权限判定
-    private UserRoleEnum currentRole() {
-        return UserRoleEnum.valueOf((String) StpUtil.getTokenSession().get("role"));
     }
 }

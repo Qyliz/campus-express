@@ -1,16 +1,14 @@
 package cn.njust.campusexpress.order;
 
-import cn.njust.campusexpress.TestPhones;
+import cn.njust.campusexpress.IntegrationTestSupport;
 import cn.njust.campusexpress.common.enums.*;
+import cn.njust.campusexpress.common.enums.OrderActionEnum;
 import cn.njust.campusexpress.model.order.dto.CreateOrderDTO;
 import cn.njust.campusexpress.model.order.entity.OrderStatusRecord;
 import cn.njust.campusexpress.model.order.mapper.*;
 import cn.njust.campusexpress.model.order.service.OrderService;
-import cn.njust.campusexpress.model.user.entity.User;
-import cn.njust.campusexpress.model.user.service.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -19,13 +17,14 @@ import java.math.BigDecimal;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@SpringBootTest
-class OrderTransactionTest {
+/**
+ * 验证真实提交/回滚边界，所以不能开测试级事务（会与服务的回滚合并成同一个事务），
+ * 数据清理交给 {@link #cleanupCreatedData()}。
+ */
+class OrderTransactionTest extends IntegrationTestSupport {
     @Autowired OrderService service;
     @Autowired ExpressOrderMapper orders;
     @MockitoSpyBean OrderStatusRecordMapper records;
-    @Autowired UserService users;
-    @Autowired RoleAccountService accounts;
     @Autowired PlatformTransactionManager manager;
     @Autowired JdbcTemplate jdbc;
 
@@ -34,14 +33,7 @@ class OrderTransactionTest {
         Long[] ids = new Long[2];
         try {
             new TransactionTemplate(manager).executeWithoutResult(status -> {
-                User user = new User();
-                user.setUsername("订单事务测试");
-                user.setGender(UserGenderEnum.UNKNOWN);
-                user.setPhone(TestPhones.next());
-                user.setPassword("unused");
-                users.save(user);
-                ids[0] = user.getId();
-                accounts.createAccount(user.getId(), UserRoleEnum.CUSTOMER, UserStatusEnum.NORMAL);
+                ids[0] = createUser(UserRoleEnum.CUSTOMER, "订单事务测试");
                 CreateOrderDTO form = new CreateOrderDTO();
                 form.setPickupAddress("站点");
                 form.setPickupName("甲");
@@ -51,11 +43,12 @@ class OrderTransactionTest {
                 form.setDeliveryPhone("13800000002");
                 form.setItemDescription("书籍");
                 form.setFee(new BigDecimal("5.00"));
-                ids[1] = service.create(user.getId(), UserRoleEnum.CUSTOMER, form);
+                ids[1] = service.create(ids[0], UserRoleEnum.CUSTOMER, form);
+                createdOrderIds.add(ids[1]);
             });
             doThrow(new IllegalStateException("模拟记录保存失败")).when(records).insert(any(OrderStatusRecord.class));
             assertThrows(IllegalStateException.class,
-                    () -> service.act(ids[0], UserRoleEnum.CUSTOMER, ids[1], "pay", null));
+                    () -> service.act(ids[0], UserRoleEnum.CUSTOMER, ids[1], OrderActionEnum.PAY, null));
             var order = orders.selectById(ids[1]);
             assertEquals(OrderStatusEnum.UNPAID, order.getOrderStatus());
             assertEquals(PaymentStatusEnum.UNPAID, order.getPaymentStatus());
@@ -64,14 +57,7 @@ class OrderTransactionTest {
                     "select count(*) from order_status_record where order_id = ?", Integer.class, ids[1]));
         } finally {
             reset(records);
-            if (ids[1] != null) {
-                jdbc.update("delete from order_status_record where order_id = ?", ids[1]);
-                jdbc.update("delete from express_order where id = ?", ids[1]);
-            }
-            if (ids[0] != null) {
-                jdbc.update("delete from customer where user_id = ?", ids[0]);
-                jdbc.update("delete from user where id = ?", ids[0]);
-            }
+            cleanupCreatedData();
         }
     }
 }

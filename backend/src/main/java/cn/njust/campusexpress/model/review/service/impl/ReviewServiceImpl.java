@@ -13,7 +13,7 @@ import cn.njust.campusexpress.model.review.vo.*;
 import cn.njust.campusexpress.model.user.entity.RoleAccount;
 import cn.njust.campusexpress.model.user.entity.User;
 import cn.njust.campusexpress.model.user.mapper.UserMapper;
-import cn.njust.campusexpress.model.user.service.RoleAccountService;
+import cn.njust.campusexpress.model.user.service.AccountGuard;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -23,26 +23,16 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static cn.njust.campusexpress.common.exception.BusinessException.invalid;
+
 @Service
 @RequiredArgsConstructor
 public class ReviewServiceImpl implements ReviewService {
     private final OrderService orders;
-    private final RoleAccountService accounts;
+    private final AccountGuard guard;
     private final ServiceReviewMapper reviews;
     private final ReviewAppealMapper appeals;
     private final UserMapper users;
-
-    private BusinessException invalid(String message) {
-        return new BusinessException(ResultCodeEnum.PARAM_ERROR, message);
-    }
-
-    private RoleAccount requireRole(Long userId, UserRoleEnum role, UserRoleEnum expected) {
-        if (role != expected) throw new BusinessException(ResultCodeEnum.NO_PERMISSION);
-        var account = accounts.getByUserAndRole(userId, role);
-        if (account == null || account.getStatus() != UserStatusEnum.NORMAL)
-            throw new BusinessException(ResultCodeEnum.NO_PERMISSION, "当前角色账户不可用");
-        return account;
-    }
 
     private String text(String value) {
         if (value == null || value.isBlank() || value.strip().length() > 500)
@@ -85,7 +75,7 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long create(Long userId, UserRoleEnum role, Long orderId, ReviewDTO dto) {
-        requireRole(userId, role, UserRoleEnum.CUSTOMER);
+        guard.requireRole(userId, role, UserRoleEnum.CUSTOMER);
         var order = orders.detail(userId, role, orderId).order();
         if (order.getOrderStatus() != OrderStatusEnum.COMPLETED || order.getCourierId() == null) throw invalid("仅已完成的配送订单可以评价");
         if (dto.rating() == null || dto.rating() < 1 || dto.rating() > 5) throw invalid("评分必须为1～5星");
@@ -96,7 +86,6 @@ public class ReviewServiceImpl implements ReviewService {
         review.setRating(dto.rating());
         review.setContent(text(dto.content()));
         review.setStatus(ReviewStatusEnum.VALID);
-        review.setCreateTime(new Date());
         try {
             if (reviews.insert(review) != 1) throw invalid("保存评价失败");
         } catch (DuplicateKeyException e) {
@@ -108,7 +97,7 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long appeal(Long userId, UserRoleEnum role, Long reviewId, AppealDTO dto) {
-        var courier = requireRole(userId, role, UserRoleEnum.COURIER);
+        var courier = guard.requireRole(userId, role, UserRoleEnum.COURIER);
         var review = getReview(reviewId);
         orders.detail(userId, role, review.getOrderId());
         if (!Objects.equals(courier.getId(), review.getCourierId()))
@@ -120,7 +109,6 @@ public class ReviewServiceImpl implements ReviewService {
         appeal.setCourierId(courier.getId());
         appeal.setReason(text(dto.reason()));
         appeal.setStatus(AppealStatusEnum.PENDING);
-        appeal.setCreateTime(new Date());
         try {
             if (appeals.insert(appeal) != 1) throw invalid("保存申诉失败");
         } catch (DuplicateKeyException e) {
@@ -131,8 +119,8 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public PageResult<ReviewAppeal> adminList(Long userId, UserRoleEnum role, AppealQueryDTO dto) {
-        requireRole(userId, role, UserRoleEnum.ADMIN);
-        return PageResult.of(appeals.selectPage(new Page<>(dto.getCurrentPage(), 10),
+        guard.requireRole(userId, role, UserRoleEnum.ADMIN);
+        return PageResult.of(appeals.selectPage(PageResult.pageOf(dto.getCurrentPage()),
             new LambdaQueryWrapper<ReviewAppeal>()
                 .eq(dto.getStatus() != null, ReviewAppeal::getStatus, dto.getStatus())
                 .eq(dto.getOrderId() != null, ReviewAppeal::getOrderId, dto.getOrderId())
@@ -142,7 +130,7 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void resolve(Long userId, UserRoleEnum role, Long id, ResolveAppealDTO dto) {
-        var admin = requireRole(userId, role, UserRoleEnum.ADMIN);
+        var admin = guard.requireRole(userId, role, UserRoleEnum.ADMIN);
         var appeal = appeals.selectById(id);
         if (appeal == null) throw invalid("申诉不存在");
         if (appeal.getStatus() != AppealStatusEnum.PENDING) throw invalid("申诉已处理，请刷新");

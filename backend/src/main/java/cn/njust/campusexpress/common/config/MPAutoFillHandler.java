@@ -8,6 +8,8 @@ import java.util.Date;
 
 @Component
 public class MPAutoFillHandler implements MetaObjectHandler {
+    // 插入时间统一交给数据库的 DEFAULT CURRENT_TIMESTAMP（schema.sql 的约定），
+    // MyBatis-Plus 插入时 null 字段不会出现在 INSERT 列清单里，所以这里不需要填充。
     @Override
     public void insertFill(MetaObject metaObject) {
 

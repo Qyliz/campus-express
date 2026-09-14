@@ -1,6 +1,6 @@
 package cn.njust.campusexpress.review;
 
-import cn.njust.campusexpress.TestPhones;
+import cn.njust.campusexpress.IntegrationTestSupport;
 import cn.njust.campusexpress.common.enums.*;
 import cn.njust.campusexpress.common.exception.BusinessException;
 import cn.njust.campusexpress.model.order.dto.*;
@@ -9,73 +9,48 @@ import cn.njust.campusexpress.model.review.dto.*;
 import cn.njust.campusexpress.model.review.entity.ReviewAppeal;
 import cn.njust.campusexpress.model.review.mapper.*;
 import cn.njust.campusexpress.model.review.service.ReviewService;
-import cn.njust.campusexpress.model.user.entity.User;
-import cn.njust.campusexpress.model.user.service.*;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.http.MediaType;
-import org.mindrot.jbcrypt.BCrypt;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import tools.jackson.databind.json.JsonMapper;
 import jakarta.servlet.http.Cookie;
 import java.math.BigDecimal;
 import java.util.*;
 import static cn.njust.campusexpress.common.enums.UserRoleEnum.*;
+import static cn.njust.campusexpress.common.enums.OrderActionEnum.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+/**
+ * 评价与申诉全程要真实提交（MockitoSpyBean 注入失败 + 跨请求读取），不开测试级事务，
+ * 数据清理统一走 {@link #cleanupCreatedData()}。
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
-class ReviewFlowTest {
+class ReviewFlowTest extends IntegrationTestSupport {
     @Autowired ReviewService service;
     @Autowired OrderService orders;
-    @Autowired UserService users;
-    @Autowired RoleAccountService accounts;
     @Autowired ServiceReviewMapper reviews;
     @MockitoSpyBean ReviewAppealMapper appeals;
-    @Autowired JdbcTemplate jdbc;
-    @Autowired MockMvc mvc;
     @Autowired tools.jackson.databind.json.JsonMapper json;
-    final List<Long> userIds = new ArrayList<>();
-    final List<Long> orderIds = new ArrayList<>();
     Long sender, recipient, courier, otherCourier, admin, stranger;
 
-    Long user(UserRoleEnum role) {
-        var user = new User();
-        user.setUsername("评价测试");
-        user.setGender(UserGenderEnum.UNKNOWN);
-        user.setPhone(TestPhones.next());
-        user.setEmail(UUID.randomUUID() + "@review.test");
-        user.setPassword(BCrypt.hashpw("test123", BCrypt.gensalt(4)));
-        users.save(user);
-        userIds.add(user.getId());
-        accounts.createAccount(user.getId(), role, UserStatusEnum.NORMAL);
-        return user.getId();
-    }
     @BeforeEach void setup() {
-        sender = user(CUSTOMER); recipient = user(CUSTOMER); courier = user(COURIER);
-        otherCourier = user(COURIER); admin = user(ADMIN); stranger = user(CUSTOMER);
+        sender = createUser(CUSTOMER, "评价测试"); recipient = createUser(CUSTOMER, "评价测试");
+        courier = createUser(COURIER, "评价测试");
+        otherCourier = createUser(COURIER, "评价测试"); admin = createUser(ADMIN, "评价测试");
+        stranger = createUser(CUSTOMER, "评价测试");
     }
     @AfterEach void cleanup() {
         reset(appeals);
-        for (var id : orderIds) {
-            jdbc.update("delete from delivery_exception where order_id = ?", id);
-            jdbc.update("delete from review_appeal where order_id = ?", id);
-            jdbc.update("delete from service_review where order_id = ?", id);
-            jdbc.update("delete from order_status_record where order_id = ?", id);
-            jdbc.update("delete from express_order where id = ?", id);
-        }
-        for (var id : userIds) {
-            jdbc.update("delete from customer where user_id = ?", id);
-            jdbc.update("delete from courier where user_id = ?", id);
-            jdbc.update("delete from admin where user_id = ?", id);
-            jdbc.update("delete from user where id = ?", id);
-        }
+        cleanupCreatedData();
     }
     Long order(Long receiver, boolean complete) {
         var dto = new CreateOrderDTO();
@@ -84,22 +59,17 @@ class ReviewFlowTest {
         dto.setDeliveryPhone(users.getById(receiver).getPhone());
         dto.setItemDescription("书籍"); dto.setFee(new BigDecimal("5.00"));
         var id = orders.create(sender, CUSTOMER, dto);
-        orderIds.add(id);
+        createdOrderIds.add(id);
         if (complete) {
-            orders.act(sender, CUSTOMER, id, "pay", null);
-            orders.act(courier, COURIER, id, "accept", null);
-            orders.act(courier, COURIER, id, "pickup", null);
-            orders.act(courier, COURIER, id, "deliver", null);
-            orders.act(receiver, CUSTOMER, id, "complete", null);
+            orders.act(sender, CUSTOMER, id, PAY, null);
+            orders.act(courier, COURIER, id, ACCEPT, null);
+            orders.act(courier, COURIER, id, PICKUP, null);
+            orders.act(courier, COURIER, id, DELIVER, null);
+            orders.act(receiver, CUSTOMER, id, COMPLETE, null);
         }
         return id;
     }
     Long review(Long orderId) { return service.create(sender, CUSTOMER, orderId, new ReviewDTO(4, " 服务及时 ")); }
-    Cookie login(Long id, UserRoleEnum role) throws Exception {
-        return mvc.perform(post("/api/user/login").contentType(MediaType.APPLICATION_JSON)
-            .content("{\"account\":\"" + users.getById(id).getEmail() + "\",\"password\":\"test123\",\"role\":\"" + role + "\"}"))
-            .andExpect(jsonPath("$.code").value(0)).andReturn().getResponse().getCookie("satoken");
-    }
 
     @Test void bothParticipantsCanReviewAndSamePersonOnlyOnce() {
         var id = order(recipient, true);
@@ -118,7 +88,7 @@ class ReviewFlowTest {
     @Test void invalidStageAndUnauthorizedRolesCannotReadOrWrite() {
         var unfinished = order(recipient, false);
         assertThrows(BusinessException.class, () -> review(unfinished));
-        orders.act(sender, CUSTOMER, unfinished, "cancel", "取消");
+        orders.act(sender, CUSTOMER, unfinished, CANCEL, "取消");
         assertThrows(BusinessException.class, () -> review(unfinished));
         var id = order(recipient, true);
         assertThrows(BusinessException.class, () -> service.create(stranger, CUSTOMER, id, new ReviewDTO(4, "评价")));
@@ -156,6 +126,7 @@ class ReviewFlowTest {
         assertThrows(BusinessException.class, () -> service.appeal(courier, COURIER, second, new AppealDTO("驳回后")));
         assertTrue(service.list(courier, COURIER, id).reviews().stream().noneMatch(r -> r.canAppeal()));
         assertEquals(2, service.list(admin, ADMIN, id).reviews().size());
+        // 断言始终按 orderId 过滤，避免 data.sql 新增的种子申诉影响计数。
         var query = new AppealQueryDTO(); query.setOrderId(id);
         assertEquals(2, service.adminList(admin, ADMIN, query).getTotal());
         query.setStatus(AppealStatusEnum.PENDING); assertEquals(0, service.adminList(admin, ADMIN, query).getTotal());
@@ -251,9 +222,9 @@ class ReviewFlowTest {
     // 异常的 type / resolution 两列本次从 VARCHAR 改成了 TINYINT：库里必须真的存数字，接口必须真的吐枚举名。
     @Test void exceptionEnumsPersistNumericCodesAndExposeNamesOverHttp() throws Exception {
         var id = order(recipient, false);
-        orders.act(sender, CUSTOMER, id, "pay", null);
-        orders.act(courier, COURIER, id, "accept", null);
-        orders.act(courier, COURIER, id, "pickup", null);
+        orders.act(sender, CUSTOMER, id, PAY, null);
+        orders.act(courier, COURIER, id, ACCEPT, null);
+        orders.act(courier, COURIER, id, PICKUP, null);
         var report = new ReportExceptionDTO();
         report.setType(ExceptionTypeEnum.ADDRESS);
         report.setDescription("门禁需要刷卡，无法进入");

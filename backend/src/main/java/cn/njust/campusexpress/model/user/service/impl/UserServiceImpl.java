@@ -1,6 +1,7 @@
 package cn.njust.campusexpress.model.user.service.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
+import cn.njust.campusexpress.common.PageResult;
 import cn.njust.campusexpress.common.enums.*;
 import cn.njust.campusexpress.common.exception.BusinessException;
 import cn.njust.campusexpress.common.util.FileUtil;
@@ -25,7 +26,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-@SuppressWarnings("DuplicatedCode")
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -92,12 +92,18 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
 
         //仅为配送员建立审核记录；审核材料必传，缺失/为空由 FileUtil 抛 FILE_EMPTY
         if (registerDTO.getRole() == UserRoleEnum.COURIER) {
+            //材料先落盘再入库，入库失败时删除孤儿文件，不让磁盘留下无记录指向的图片
             String materialPath = FileUtil.saveImage("upload/audit", material);
-            UserAuditRecord record = new UserAuditRecord();
-            record.setCourierId(account.getId());
-            record.setMaterial(materialPath);
-            //status 不显式设置，交由数据库默认值 2（审核中）
-            userAuditRecordService.save(record);
+            try {
+                UserAuditRecord record = new UserAuditRecord();
+                record.setCourierId(account.getId());
+                record.setMaterial(materialPath);
+                //status 不显式设置，交由数据库默认值 2（审核中）
+                userAuditRecordService.save(record);
+            } catch (Exception e) {
+                FileUtil.deleteImage(materialPath);
+                throw e;
+            }
         }
     }
 
@@ -109,23 +115,7 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
      */
     @Override
     public Long login(UserLoginDTO loginDTO) {
-        String account = loginDTO.getAccount();
-        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        //邮箱登录
-        if (account.contains("@") && account.length() < 255) {
-            wrapper.eq(User::getEmail, account);
-        }
-        //手机号登录
-        else if (account.matches("^1[3-9]\\d{9}$")) {
-            wrapper.eq(User::getPhone, account);
-        }
-        //账号格式错误
-        else {
-            throw new BusinessException(ResultCodeEnum.PARAM_ERROR, "请输入正确的邮箱或手机号");
-        }
-        //获取账号信息
-        wrapper.select(User::getId, User::getPassword);
-        User user = getOne(wrapper);
+        User user = resolveUserByAccount(loginDTO.getAccount());
         //账号不存在
         if (user == null) {
             throw new BusinessException(ResultCodeEnum.LOGIN_ERROR);
@@ -197,9 +187,8 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         //更新数据库
         try {
             user.setAvatar(newAvatar);
-            boolean success = updateById(user);
-            if (!success) {
-                throw new BusinessException(ResultCodeEnum.FILE_UPLOAD_ERROR);
+            if (!updateById(user)) {
+                throw new BusinessException(ResultCodeEnum.USER_UPDATE_ERROR);
             }
         } catch (Exception e) {
             FileUtil.deleteImage(newAvatar);
@@ -332,9 +321,7 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
     //获取所有账号信息
     @Override
     public Page<UserProfileAdminVO> getAllUsers(UserQueryDTO dto) {
-        //页码为空时默认为第1页
-        int currentPage = dto.getCurrentPage() == null ? 1 : dto.getCurrentPage();
-        Page<UserProfileAdminVO> page = new Page<>(currentPage, 10);
+        Page<UserProfileAdminVO> page = PageResult.pageOf(dto.getCurrentPage());
         //一人可持多个角色，故结果一行一个 (用户, 角色账户)；查询条件与排序在 UserMapper.xml 中动态拼接
         userMapper.selectUserPage(page, dto);
         return page;

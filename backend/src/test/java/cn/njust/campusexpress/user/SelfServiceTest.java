@@ -1,24 +1,18 @@
 package cn.njust.campusexpress.user;
 
+import cn.njust.campusexpress.IntegrationTestSupport;
 import cn.njust.campusexpress.common.enums.ResultCodeEnum;
-import cn.njust.campusexpress.model.user.entity.Customer;
-import cn.njust.campusexpress.model.user.entity.User;
-import cn.njust.campusexpress.model.user.service.CustomerService;
-import cn.njust.campusexpress.model.user.service.UserService;
 import jakarta.servlet.http.Cookie;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -27,41 +21,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-public class SelfServiceTest {
-    @Autowired private cn.njust.campusexpress.model.user.service.VerifyCodeService registrationCodes;
+public class SelfServiceTest extends IntegrationTestSupport {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private UserService userService;
-
-    @Autowired
-    private CustomerService customerService;
-
-    //注册收寄件人（NORMAL），并校验 user 主表行与 customer 角色账户行都已创建
-    private void registerCustomer(String username, String phone) throws Exception {
-        mockMvc.perform(cn.njust.campusexpress.user.RegistrationTestSupport.registration(registrationCodes)
-                        .param("username", username)
-                        .param("password", "1234567")
-                        .param("role", "CUSTOMER")
-                        .param("gender", "MALE")
-                        .param("phone", phone))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
-        User user = userService.lambdaQuery().eq(User::getUsername, username).one();
-        Assertions.assertNotNull(user);
-        Customer customer = customerService.lambdaQuery().eq(Customer::getUserId, user.getId()).one();
-        Assertions.assertNotNull(customer, "收寄件人账户行应已创建");
-    }
-
-    private Cookie login(String account, String password, String role) throws Exception {
-        String body = String.format("{\"account\":\"%s\",\"password\":\"%s\",\"role\":\"%s\"}", account, password, role);
-        MvcResult result = mockMvc.perform(post("/api/user/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(body)).andReturn();
-        return result.getResponse().getCookie("satoken");
-    }
 
     //修改密码：旧密码错误 -> 正确 -> 会话登出 -> 新密码可登录、旧密码失效
     @Test

@@ -78,7 +78,7 @@ public class RegisterLoginTest {
     }
 
     @Test
-    void RegisterTest() throws Exception {
+    void registerAndHijackProtection() throws Exception {
         //注册成功（收寄件人，无需材料）
         mockMvc.perform(register("zhangsan", "13788888888", "qwert@email.com", "CUSTOMER", false))
                 .andExpect(status().isOk())
@@ -95,7 +95,7 @@ public class RegisterLoginTest {
 
     //一人多角色：同手机号 + 同密码可追加新角色，但不覆盖已有资料，也不重复建 user 行
     @Test
-    void AddRoleToExistingUser() throws Exception {
+    void addRoleToExistingUser() throws Exception {
         mockMvc.perform(register("zhangsan", "13777777777", null, "CUSTOMER", false))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
@@ -130,7 +130,7 @@ public class RegisterLoginTest {
     }
 
     @Test
-    public void LoginTest() throws Exception {
+    void loginAndAccountStatusValidation() throws Exception {
         //注册
         mockMvc.perform(register("zhangsan", "13788888888", "qwert@email.com", "CUSTOMER", false))
                 .andExpect(status().isOk())
@@ -162,7 +162,7 @@ public class RegisterLoginTest {
     }
 
     @Test
-    void LogoutTest() throws Exception {
+    void logoutInvalidatesSession() throws Exception {
         //未登录
         mockMvc.perform(post("/api/user/logout"))
                 .andExpect(status().isUnauthorized())

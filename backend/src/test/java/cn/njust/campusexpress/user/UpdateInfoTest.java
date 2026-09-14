@@ -1,5 +1,6 @@
 package cn.njust.campusexpress.user;
 
+import cn.njust.campusexpress.TestAccounts;
 import cn.njust.campusexpress.common.enums.ResultCodeEnum;
 import jakarta.servlet.http.Cookie;
 import lombok.extern.slf4j.Slf4j;
@@ -13,9 +14,6 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -37,11 +35,11 @@ public class UpdateInfoTest {
 
         String json = """
                 {
-                    "account":"admin@email.com",
-                    "password":"IamADMIN",
+                    "account":"%s",
+                    "password":"%s",
                     "role":"ADMIN"
                 }
-                """;
+                """.formatted(TestAccounts.ADMIN_EMAIL, TestAccounts.ADMIN_PASSWORD);
 
         MvcResult result = mockMvc.perform(post("/api/user/login")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -77,7 +75,7 @@ public class UpdateInfoTest {
                 .value(ResultCodeEnum.SUCCESS.getCode())
         ).andExpect(jsonPath("$.data.username")
                 .value("aaa"));
-        //缺少参数
+        //缺少参数（@NotBlank 挡住）
         String json2 = """
                 {}
                 """;
@@ -87,7 +85,7 @@ public class UpdateInfoTest {
                 .content(json2)
         ).andExpect(status().isOk()
         ).andExpect(jsonPath("$.code")
-                .value(ResultCodeEnum.PARAM_MISSING.getCode()));
+                .value(ResultCodeEnum.PARAM_ERROR.getCode()));
 
         //错误参数
         String json3 = """
@@ -121,7 +119,7 @@ public class UpdateInfoTest {
                 .value(ResultCodeEnum.SUCCESS.getCode())
         ).andExpect(jsonPath("$.data.gender")
                 .value("MALE"));
-        //缺少参数
+        //缺少参数（@NotNull 挡住）
         String json2 = """
                 {}
                 """;
@@ -131,7 +129,7 @@ public class UpdateInfoTest {
                 .content(json2)
         ).andExpect(status().isOk()
         ).andExpect(jsonPath("$.code")
-                .value(ResultCodeEnum.PARAM_MISSING.getCode()));
+                .value(ResultCodeEnum.PARAM_ERROR.getCode()));
 
         //错误参数
         String json3 = """
@@ -150,8 +148,8 @@ public class UpdateInfoTest {
 
     @Test
     void updateAvatar() throws Exception {
-        //成功修改
-        byte[] image = Files.readAllBytes(Paths.get("upload/avatar/testAvatar.png"));
+        //成功修改（内存构造上传内容，不依赖磁盘上的固定文件；FileUtil 只校验 Content-Type）
+        byte[] image = new byte[]{(byte) 0x89, 'P', 'N', 'G', 1, 2, 3, 4};
         MockMultipartFile file = new MockMultipartFile(
                 "file",
                 "testAvatar.png",

@@ -1,6 +1,8 @@
 package cn.njust.campusexpress.model.order.service;
 
 import cn.njust.campusexpress.common.PageResult;
+import cn.njust.campusexpress.common.enums.OrderActionEnum;
+import cn.njust.campusexpress.common.enums.OrderListScopeEnum;
 import cn.njust.campusexpress.common.enums.UserRoleEnum;
 import cn.njust.campusexpress.model.order.dto.*;
 import cn.njust.campusexpress.model.order.entity.DeliveryException;
@@ -17,12 +19,12 @@ public interface OrderService {
     /** 创建待支付订单，返回订单 ID。 */
     Long create(Long userId, UserRoleEnum role, CreateOrderDTO dto);
 
-    /** 根据 mine、available、assigned、admin 范围分页查询订单。 */
-    PageResult<ExpressOrder> list(Long userId, UserRoleEnum role, String scope, OrderQueryDTO dto);
+    /** 按列表范围（我的/大厅/已接/管理）分页查询订单。 */
+    PageResult<ExpressOrder> list(Long userId, UserRoleEnum role, OrderListScopeEnum scope, OrderQueryDTO dto);
 
     /** 校验访问权限并查询订单详情、状态流转记录。 */
     OrderDetailVO detail(Long userId, UserRoleEnum role, Long id);
 
     /** 执行支付、接单、揽收、送达、确认取件或取消；取消时必须提供原因。 */
-    void act(Long userId, UserRoleEnum role, Long id, String action, String reason);
+    void act(Long userId, UserRoleEnum role, Long id, OrderActionEnum action, String reason);
 }

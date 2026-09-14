@@ -1,5 +1,6 @@
 package cn.njust.campusexpress.user;
 
+import cn.njust.campusexpress.TestAccounts;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,13 +38,13 @@ class SessionProbeTest {
     @Test
     void loggedInProbeReturnsProfileAndLogoutClearsIt() throws Exception {
         Cookie cookie = mvc.perform(post("/api/user/login").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"account\":\"admin@email.com\",\"password\":\"IamADMIN\",\"role\":\"ADMIN\"}"))
+                .content("{\"account\":\"" + TestAccounts.ADMIN_EMAIL + "\",\"password\":\"" + TestAccounts.ADMIN_PASSWORD + "\",\"role\":\"ADMIN\"}"))
                 .andExpect(jsonPath("$.code").value(0)).andReturn().getResponse().getCookie("satoken");
         assertNotNull(cookie);
         mvc.perform(get("/api/user/session").cookie(cookie))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.role").value("ADMIN"))
-                .andExpect(jsonPath("$.data.email").value("admin@email.com"));
+                .andExpect(jsonPath("$.data.email").value(TestAccounts.ADMIN_EMAIL));
         mvc.perform(post("/api/user/logout").cookie(cookie)).andExpect(jsonPath("$.code").value(0));
         mvc.perform(get("/api/user/session").cookie(cookie))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data").isEmpty());
