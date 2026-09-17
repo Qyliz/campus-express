@@ -1,11 +1,4 @@
-import type {
-  AuditStatusEnum,
-  GenderEnum,
-  RoleEnum,
-  SortEnum,
-  StatusEnum,
-  VerifySceneEnum,
-} from '@/types'
+import type { AuditStatusEnum, GenderEnum, RoleEnum, SortEnum, StatusEnum } from '@/types'
 
 /**
  * 一律用 Record<字面量联合, string>，不要写 { [k: string]: string }。
@@ -36,13 +29,6 @@ export const sortLabel: Record<SortEnum, string> = {
   CREATE_TIME_DESC: '创建时间降序',
   UPDATE_TIME_ASC: '更新时间升序',
   UPDATE_TIME_DESC: '更新时间降序',
-}
-
-export const verifySceneLabel: Record<VerifySceneEnum, string> = {
-  REGISTER: '注册',
-  FORGOT_PASSWORD: '忘记密码',
-  CHANGE_PHONE: '换绑手机号',
-  CHANGE_EMAIL: '换绑邮箱',
 }
 
 export type TagType = 'primary' | 'success' | 'warning' | 'info' | 'danger'
@@ -84,7 +70,6 @@ export const roleOptions = toOptions(roleLabel)
 export const registerRoleOptions = roleOptions.filter((option) => option.value !== 'ADMIN')
 export const genderOptions = toOptions(genderLabel)
 export const statusOptions = toOptions(statusLabel)
-export const verifySceneOptions = toOptions(verifySceneLabel)
 
 /** 审核列表、封禁记录列表：四种排序都可以 */
 export const allSortOptions = toOptions(sortLabel)

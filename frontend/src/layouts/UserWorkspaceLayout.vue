@@ -133,7 +133,7 @@ async function logout() {
       </div>
     </aside>
 
-    <main class="workspace-content">
+    <main class="workspace-content shell-content">
       <RouterView />
     </main>
   </div>
@@ -190,18 +190,17 @@ async function logout() {
 .nav-item:hover,
 .nav-item.active {
   color: #fff;
-  background: rgba(64, 158, 255, 0.18);
+  background: var(--ce-shell-hover);
 }
 
 .account .el-button {
   margin-left: auto;
 }
 
-.workspace-content {
-  min-width: 0;
-  max-width: 100%;
-  padding: clamp(16px, 4vw, 52px);
-  overflow-x: hidden;
+@media (min-width: 721px) {
+  .workspace-content {
+    padding: clamp(16px, 4vw, 52px);
+  }
 }
 
 @media (max-width: 720px) {
@@ -255,7 +254,6 @@ async function logout() {
 
   .workspace-content {
     flex: 1 1 auto;
-    padding: clamp(14px, 4vw, 24px);
   }
 }
 </style>

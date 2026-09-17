@@ -192,7 +192,6 @@
 }
 
 .auth-card--backdrop .code-button {
-  flex: 0 0 auto;
   color: #dff1ff;
   background: rgba(64, 158, 255, 0.22);
   border-color: rgba(101, 183, 255, 0.52);

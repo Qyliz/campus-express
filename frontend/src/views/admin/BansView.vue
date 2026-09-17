@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 
 import { pageBanRecords, unbanUser } from '@/api/admin'
+import { usePagedList } from '@/composables/usePagedList'
 import { allSortOptions, genderLabel, PAGE_SIZE, roleLabel, roleTagType } from '@/constants'
 import { formatDateTime } from '@/utils/date'
 import { orUndefined, type All } from '@/utils/query'
@@ -19,35 +20,25 @@ const filters = reactive({
   sort: '' as All<SortEnum>,
 })
 
-const rows = ref<UserBanRecordVO[]>([])
-const total = ref(0)
-const currentPage = ref(1)
-const loading = ref(false)
-
-async function load() {
-  loading.value = true
-  try {
-    const page = await pageBanRecords({
-      currentPage: currentPage.value,
-      username: orUndefined(filters.username),
-      phone: orUndefined(filters.phone),
-      email: orUndefined(filters.email),
-      unbanned: orUndefined(filters.unbanned),
-      deleted: orUndefined(filters.deleted),
-      sort: orUndefined(filters.sort),
-    })
-    rows.value = page.records
-    total.value = page.total
-  } catch {
-  } finally {
-    loading.value = false
-  }
-}
-
-function search() {
-  currentPage.value = 1
-  load()
-}
+const {
+  rows,
+  total,
+  page: currentPage,
+  loading,
+  error,
+  load,
+  search,
+} = usePagedList<UserBanRecordVO>((currentPage) =>
+  pageBanRecords({
+    currentPage,
+    username: orUndefined(filters.username),
+    phone: orUndefined(filters.phone),
+    email: orUndefined(filters.email),
+    unbanned: orUndefined(filters.unbanned),
+    deleted: orUndefined(filters.deleted),
+    sort: orUndefined(filters.sort),
+  }),
+)
 
 function resetFilters() {
   Object.assign(filters, {
@@ -147,6 +138,7 @@ async function onUnban(row: UserBanRecordVO) {
     </el-card>
 
     <el-card shadow="never" class="page-card">
+      <el-alert v-if="error" title="封禁记录加载失败，请刷新重试" type="error" :closable="false" />
       <el-table
         v-loading="loading"
         :data="rows"

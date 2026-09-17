@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, reactive } from 'vue'
+import { onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
 import {
@@ -12,6 +12,8 @@ import {
   type ExceptionStatusEnum,
   type ExceptionTypeEnum,
 } from '@/api/order'
+import { usePagedList } from '@/composables/usePagedList'
+import { PAGE_SIZE } from '@/constants'
 import { orUndefined, type All } from '@/utils/query'
 import { formatDateTime } from '@/utils/date'
 const router = useRouter()
@@ -19,40 +21,14 @@ const filters = reactive({
   status: '' as All<ExceptionStatusEnum>,
   orderId: '',
 })
-const rows = ref<DeliveryException[]>([])
-const page = ref(1)
-const total = ref(0)
-const loading = ref(false)
-const error = ref(false)
-let sequence = 0
-async function load() {
-  const current = ++sequence
-  loading.value = true
-  error.value = false
-  try {
-    const result = await listExceptions({
-      currentPage: page.value,
+const { rows, page, total, loading, error, load, search } = usePagedList<DeliveryException>(
+  (currentPage) =>
+    listExceptions({
+      currentPage,
       status: orUndefined(filters.status),
       orderId: orUndefined(filters.orderId.trim()),
-    })
-    if (current === sequence) {
-      rows.value = result.records
-      total.value = result.total
-    }
-  } catch {
-    if (current === sequence) {
-      rows.value = []
-      total.value = 0
-      error.value = true
-    }
-  } finally {
-    if (current === sequence) loading.value = false
-  }
-}
-function search() {
-  page.value = 1
-  void load()
-}
+    }),
+)
 function resetFilters() {
   Object.assign(filters, { status: '', orderId: '' })
   search()
@@ -123,7 +99,7 @@ onMounted(load)
     </el-table>
     <el-pagination
       v-model:current-page="page"
-      :page-size="10"
+      :page-size="PAGE_SIZE"
       :total="total"
       :pager-count="5"
       layout="prev, pager, next"

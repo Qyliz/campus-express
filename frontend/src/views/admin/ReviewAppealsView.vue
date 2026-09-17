@@ -14,6 +14,8 @@ import {
   type ReviewAppeal,
   type ReviewItem,
 } from '@/api/review'
+import { usePagedList } from '@/composables/usePagedList'
+import { PAGE_SIZE } from '@/constants'
 import { orUndefined, type All } from '@/utils/query'
 import { formatDateTime } from '@/utils/date'
 
@@ -21,10 +23,6 @@ const filters = reactive({
   status: '' as All<AppealStatusEnum>,
   orderId: '',
 })
-const page = ref(1)
-const total = ref(0)
-const rows = ref<ReviewAppeal[]>([])
-const loading = ref(false)
 const submitting = ref(false)
 const dialogOpen = ref(false)
 const selected = ref<ReviewAppeal>()
@@ -32,31 +30,15 @@ const original = ref<ReviewItem>()
 const detailLoading = ref(false)
 const resolution = ref<AppealStatusEnum>('UPHELD')
 const reason = ref('')
-let sequence = 0
 let detailSequence = 0
-async function load() {
-  const current = ++sequence
-  loading.value = true
-  try {
-    const result = await getAdminAppeals({
-      currentPage: page.value,
+const { rows, page, total, loading, error, load, search } = usePagedList<ReviewAppeal>(
+  (currentPage) =>
+    getAdminAppeals({
+      currentPage,
       status: orUndefined(filters.status),
       orderId: orUndefined(filters.orderId.trim()),
-    })
-    if (current === sequence) {
-      rows.value = result.records
-      total.value = result.total
-    }
-  } catch {
-    /* 统一提示 */
-  } finally {
-    if (current === sequence) loading.value = false
-  }
-}
-function search() {
-  page.value = 1
-  void load()
-}
+    }),
+)
 function resetFilters() {
   Object.assign(filters, { status: '', orderId: '' })
   search()
@@ -130,6 +112,7 @@ onMounted(load)
     </el-form>
   </el-card>
   <el-card shadow="never">
+    <el-alert v-if="error" title="申诉列表加载失败，请刷新重试" type="error" :closable="false" />
     <el-table v-loading="loading" :data="rows" row-key="id" border stripe>
       <el-table-column prop="id" label="申诉编号" min-width="180" />
       <el-table-column label="订单编号" min-width="180">
@@ -164,7 +147,7 @@ onMounted(load)
     </el-table>
     <el-pagination
       v-model:current-page="page"
-      :page-size="10"
+      :page-size="PAGE_SIZE"
       :total="total"
       :pager-count="5"
       layout="prev, pager, next"
@@ -229,7 +212,7 @@ onMounted(load)
   </el-dialog>
 </template>
 <style scoped>
-/* 分页底边距与右对齐复用全局 .pager（assets/main.css） */
+/* 分页底边距与居中布局复用全局 .pager（assets/main.css） */
 .text {
   white-space: pre-wrap;
   overflow-wrap: anywhere;

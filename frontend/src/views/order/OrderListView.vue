@@ -12,24 +12,20 @@ import {
   type OrderScope,
   type OrderStatusEnum,
 } from '@/api/order'
+import { usePagedList } from '@/composables/usePagedList'
+import { PAGE_SIZE } from '@/constants'
 import { orUndefined, type All } from '@/utils/query'
 import { formatDateTime } from '@/utils/date'
 const route = useRoute()
 const router = useRouter()
 const scope = computed(() => route.meta.orderScope as OrderScope)
-const rows = ref<ExpressOrder[]>([])
-const total = ref(0)
-const page = ref(1)
 const filters = reactive({
   // '' = 全部订单；省略该参数时后端 OrderQueryDTO.relation 的字段初始值就是 ALL。
   relation: '' as All<Exclude<OrderRelationEnum, 'ALL'>>,
   orderStatus: '' as All<OrderStatusEnum>,
   orderId: '',
 })
-const loading = ref(false)
 const acting = ref('')
-const error = ref(false)
-let requestSequence = 0
 
 const assignedStatusOptions = orderStatusOptions.filter(
   ({ value }) => value !== 'UNPAID' && value !== 'AVAILABLE',
@@ -38,34 +34,15 @@ const visibleStatusOptions = computed(() =>
   scope.value === 'assigned' ? assignedStatusOptions : orderStatusOptions,
 )
 
-async function load() {
-  const sequence = ++requestSequence
-  loading.value = true
-  error.value = false
-  try {
-    const result = await listOrders(scope.value, {
-      currentPage: page.value,
+const { rows, total, page, loading, error, load, search, clear } = usePagedList<ExpressOrder>(
+  (currentPage) =>
+    listOrders(scope.value, {
+      currentPage,
       relation: scope.value === 'mine' ? orUndefined(filters.relation) : undefined,
       orderStatus: scope.value === 'available' ? undefined : orUndefined(filters.orderStatus),
       orderId: scope.value === 'admin' ? orUndefined(filters.orderId.trim()) : undefined,
-    })
-    if (sequence !== requestSequence) return
-    rows.value = result.records
-    total.value = result.total
-  } catch {
-    if (sequence === requestSequence) {
-      rows.value = []
-      total.value = 0
-      error.value = true
-    }
-  } finally {
-    if (sequence === requestSequence) loading.value = false
-  }
-}
-function search() {
-  page.value = 1
-  void load()
-}
+    }),
+)
 function resetFilters() {
   Object.assign(filters, { relation: '', orderStatus: '', orderId: '' })
   search()
@@ -76,7 +53,7 @@ watch(
   () => {
     page.value = 1
     Object.assign(filters, { relation: '', orderStatus: '', orderId: '' })
-    rows.value = []
+    clear()
     void load()
   },
   { immediate: true },
@@ -231,7 +208,7 @@ async function accept(id: string) {
     </el-table>
     <el-pagination
       v-model:current-page="page"
-      :page-size="10"
+      :page-size="PAGE_SIZE"
       :total="total"
       :pager-count="5"
       layout="prev, pager, next"
@@ -241,7 +218,7 @@ async function accept(id: string) {
   </el-card>
 </template>
 <style scoped>
-/* 分页底边距与右对齐复用全局 .pager（assets/main.css） */
+/* 分页底边距与居中布局复用全局 .pager（assets/main.css） */
 .notice {
   margin-bottom: 16px;
 }

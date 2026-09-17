@@ -6,16 +6,22 @@ import type { PageResult } from '@/types'
 export type ReviewStatusEnum = 'VALID' | 'VOID'
 export type AppealStatusEnum = 'PENDING' | 'UPHELD' | 'REJECTED'
 export const reviewStatusLabels: Record<ReviewStatusEnum, string> = {
-  VALID: '有效', VOID: '已作废',
+  VALID: '有效',
+  VOID: '已作废',
 }
 export const reviewStatusTagType: Record<ReviewStatusEnum, TagType> = {
-  VALID: 'success', VOID: 'info',
+  VALID: 'success',
+  VOID: 'info',
 }
 export const appealStatusLabels: Record<AppealStatusEnum, string> = {
-  PENDING: '待处理', UPHELD: '申诉成立', REJECTED: '已驳回',
+  PENDING: '待处理',
+  UPHELD: '申诉成立',
+  REJECTED: '已驳回',
 }
 export const appealStatusTagType: Record<AppealStatusEnum, TagType> = {
-  PENDING: 'warning', UPHELD: 'danger', REJECTED: 'success',
+  PENDING: 'warning',
+  UPHELD: 'danger',
+  REJECTED: 'success',
 }
 export const appealStatusOptions = toOptions(appealStatusLabels)
 
@@ -48,7 +54,10 @@ export interface ReviewItem {
   canAppeal: boolean
   username?: string | null
 }
-export interface OrderReviews { reviews: ReviewItem[]; canReview: boolean }
+export interface OrderReviews {
+  reviews: ReviewItem[]
+  canReview: boolean
+}
 export const getReviews = (id: string) => http.get<OrderReviews>('/api/order/' + id + '/reviews')
 export const createReview = (id: string, rating: number, content: string) =>
   http.post<string>('/api/order/' + id + '/reviews', { rating, content })

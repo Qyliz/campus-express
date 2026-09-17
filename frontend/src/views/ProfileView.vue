@@ -18,9 +18,9 @@ import { genderLabel, genderOptions, roleLabel, roleTagType } from '@/constants'
 import { ACCEPT_ATTR, imageUrl, validateImageFile } from '@/utils/image'
 import {
   codeRules,
+  confirmPasswordRules,
   EMAIL_RE,
-  PASSWORD_MAX,
-  PASSWORD_MIN,
+  newPasswordRules,
   PHONE_RE,
   usernameRules,
 } from '@/utils/patterns'
@@ -197,25 +197,8 @@ const savingPwd = ref(false)
 const pwdForm = reactive({ oldPassword: '', newPassword: '', confirmPassword: '' })
 const pwdRules: FormRules<typeof pwdForm> = {
   oldPassword: [{ required: true, message: '请输入旧密码', trigger: 'blur' }],
-  newPassword: [
-    { required: true, message: '请输入新密码', trigger: 'blur' },
-    {
-      min: PASSWORD_MIN,
-      max: PASSWORD_MAX,
-      message: `密码长度必须在 ${PASSWORD_MIN}-${PASSWORD_MAX} 之间`,
-      trigger: 'blur',
-    },
-  ],
-  confirmPassword: [
-    { required: true, message: '请再次输入新密码', trigger: 'blur' },
-    {
-      validator: (_rule, value: string, callback) => {
-        if (value !== pwdForm.newPassword) return callback(new Error('两次输入的密码不一致'))
-        callback()
-      },
-      trigger: 'blur',
-    },
-  ],
+  newPassword: newPasswordRules,
+  confirmPassword: confirmPasswordRules(() => pwdForm.newPassword),
 }
 
 async function submitPassword() {

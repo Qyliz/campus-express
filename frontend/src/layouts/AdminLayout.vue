@@ -118,7 +118,7 @@ async function logout() {
         </el-breadcrumb>
       </el-header>
 
-      <el-main class="main">
+      <el-main class="main shell-content">
         <RouterView />
       </el-main>
     </el-container>
@@ -169,7 +169,7 @@ async function logout() {
 
 .menu :deep(.el-menu-item:hover),
 .menu :deep(.el-menu-item.is-active) {
-  background: rgba(64, 158, 255, 0.18);
+  background: var(--ce-shell-hover);
 }
 
 .header {
@@ -186,11 +186,13 @@ async function logout() {
 }
 
 .main {
-  min-width: 0;
-  max-width: 100%;
-  padding: clamp(16px, 4vw, 48px);
-  overflow-x: hidden;
   background: #f3f6fa;
+}
+
+@media (min-width: 721px) {
+  .main {
+    padding: clamp(16px, 4vw, 48px);
+  }
 }
 
 @media (max-width: 720px) {
@@ -231,10 +233,6 @@ async function logout() {
 
   .header {
     display: none;
-  }
-
-  .main {
-    padding: clamp(14px, 4vw, 24px);
   }
 }
 </style>

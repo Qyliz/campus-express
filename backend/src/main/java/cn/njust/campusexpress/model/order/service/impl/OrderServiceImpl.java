@@ -48,22 +48,13 @@ public class OrderServiceImpl implements OrderService {
         return user != null && user.getPhone() != null && !user.getPhone().isBlank();
     }
 
-    // 当前用户凭收件手机号在给定订单中能认领的部分。
-    private Set<Long> receivedIds(List<Long> orderIds, User user) {
-        if (!hasPhone(user)) return Set.of();
-        return orders.selectList(new LambdaQueryWrapper<ExpressOrder>()
-                        .in(ExpressOrder::getId, orderIds)
-                        .eq(ExpressOrder::getDeliveryPhone, user.getPhone()))
-                .stream().map(ExpressOrder::getId).collect(Collectors.toSet());
+    // 订单已经加载了收件手机号，直接比较即可，不再为权限判断重复查询同一张订单。
+    private static boolean recipient(ExpressOrder order, User user) {
+        return hasPhone(user) && Objects.equals(order.getDeliveryPhone(), user.getPhone());
     }
 
-    // 订单详情与参与校验用的「当前用户是否凭手机号认领了这张单」。
-    private boolean recipient(ExpressOrder order, Long userId) {
-        return receivedIds(List.of(order.getId()), users.selectById(userId)).contains(order.getId());
-    }
-
-    private void participant(ExpressOrder order, RoleAccount account, UserRoleEnum role, Long userId) {
-        if (role == UserRoleEnum.CUSTOMER && recipient(order, userId)) return;
+    private void participant(ExpressOrder order, RoleAccount account, UserRoleEnum role, User user) {
+        if (role == UserRoleEnum.CUSTOMER && recipient(order, user)) return;
         own(order, account, role);
     }
 
@@ -172,11 +163,11 @@ public class OrderServiceImpl implements OrderService {
             // 待接单订单的 courierId 恒为 null，且 available 范围直接跳过本块，所以大厅列表不需要隐藏骑手。
             attachCouriers(page.getRecords());
             if (role == UserRoleEnum.CUSTOMER) {
-                Set<Long> received = receivedIds(ids, user);
                 Long viewerCustomerId = customerId;
+                User viewer = user;
                 page.getRecords().forEach(o -> {
                     o.setCreatedByMe(Objects.equals(viewerCustomerId, o.getCustomerId()));
-                    o.setReceivedByMe(received.contains(o.getId()));
+                    o.setReceivedByMe(recipient(o, viewer));
                 });
             }
         }
@@ -204,9 +195,10 @@ public class OrderServiceImpl implements OrderService {
     public OrderDetailVO detail(Long userId, UserRoleEnum role, Long id) {
         RoleAccount account = guard.requireActiveAccount(userId, role);
         ExpressOrder order = get(id);
+        User user = role == UserRoleEnum.CUSTOMER ? users.selectById(userId) : null;
         if (role != UserRoleEnum.ADMIN) {
             // 大厅只提供摘要；完整详情仅向订单参与者开放。
-            participant(order, account, role, userId);
+            participant(order, account, role, user);
         }
         // 回填骑手信息放在权限校验之后，未授权的探测不会触发额外查询。
         attachCouriers(List.of(order));
@@ -220,7 +212,7 @@ public class OrderServiceImpl implements OrderService {
             actions.add(OrderActionEnum.ADMIN_CANCEL.getCode());
         if (role == UserRoleEnum.CUSTOMER) {
             order.setCreatedByMe(Objects.equals(account.getId(), order.getCustomerId()));
-            order.setReceivedByMe(recipient(order, userId));
+            order.setReceivedByMe(recipient(order, user));
             if (order.isCreatedByMe() && state == UNPAID) actions.add(OrderActionEnum.PAY.getCode());
             if (order.isCreatedByMe() && (state == UNPAID || state == AVAILABLE))
                 actions.add(OrderActionEnum.CANCEL.getCode());
@@ -247,7 +239,7 @@ public class OrderServiceImpl implements OrderService {
             case PAY, COMPLETE, CANCEL -> {
                 RoleAccount customer = guard.requireRole(userId, role, UserRoleEnum.CUSTOMER);
                 if (action == OrderActionEnum.COMPLETE)
-                    participant(order, customer, role, userId);
+                    participant(order, customer, role, users.selectById(userId));
                 else own(order, customer, role);
                 if (action == OrderActionEnum.PAY) {
                     expect(previous, UNPAID);
@@ -349,7 +341,8 @@ public class OrderServiceImpl implements OrderService {
         RoleAccount account = guard.requireActiveAccount(userId, role);
         ExpressOrder order = get(exception.getOrderId());
         if (role != UserRoleEnum.ADMIN)
-            participant(order, account, role, userId);
+            participant(order, account, role,
+                    role == UserRoleEnum.CUSTOMER ? users.selectById(userId) : null);
         return exception;
     }
 
@@ -363,9 +356,8 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(rollbackFor = Exception.class)
     public void resolveException(Long userId, UserRoleEnum role, Long id, ResolveExceptionDTO dto) {
         RoleAccount admin = guard.requireRole(userId, role, UserRoleEnum.ADMIN);
-        // 先读取订单版本，再读取异常，确保与所有订单操作竞争同一个版本。
-        ExpressOrder order = get(getException(id).getOrderId());
         DeliveryException exception = getException(id);
+        ExpressOrder order = get(exception.getOrderId());
         if (exception.getStatus() != ExceptionStatusEnum.PENDING)
             throw invalid("异常已处理，请刷新");
         validateDescription(dto.getDescription());

@@ -71,7 +71,7 @@ async function act(action: OrderAction) {
     } else {
       await ElMessageBox.confirm(
         action === 'pay'
-          ? '确认支付 ¥' + Number(order.value.fee).toFixed(2) + '？。'
+          ? '确认支付 ¥' + Number(order.value.fee).toFixed(2) + '？'
           : '确定执行“' + labels[action] + '”？',
         labels[action],
         { type: 'warning' },

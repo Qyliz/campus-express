@@ -4,6 +4,7 @@ import { Picture, Search } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 
 import { adminResetPassword, banUser, kickoutUser, pageUsers } from '@/api/admin'
+import { usePagedList } from '@/composables/usePagedList'
 import {
   createTimeSortOptions,
   genderLabel,
@@ -17,7 +18,7 @@ import {
 import { formatDateTime } from '@/utils/date'
 import { imageUrl } from '@/utils/image'
 import { orUndefined, type All } from '@/utils/query'
-import { PASSWORD_MAX, PASSWORD_MIN } from '@/utils/patterns'
+import { newPasswordRules } from '@/utils/patterns'
 import type { RoleEnum, SortEnum, StatusEnum, UserProfileAdminVO } from '@/types'
 
 /** 筛选值一律用 All<T>，'' 表示「全部」；发请求前统一走 orUndefined()，见 @/utils/query。 */
@@ -33,35 +34,25 @@ const filters = reactive({
   sort: '' as All<SortEnum>,
 })
 
-const rows = ref<UserProfileAdminVO[]>([])
-const total = ref(0)
-const currentPage = ref(1)
-const loading = ref(false)
-
-async function load() {
-  loading.value = true
-  try {
-    const page = await pageUsers({
-      currentPage: currentPage.value,
-      username: orUndefined(filters.username),
-      phone: orUndefined(filters.phone),
-      email: orUndefined(filters.email),
-      userStatus: orUndefined(filters.userStatus),
-      deleted: orUndefined(filters.deleted),
-      sort: orUndefined(filters.sort),
-    })
-    rows.value = page.records
-    total.value = page.total
-  } catch {
-  } finally {
-    loading.value = false
-  }
-}
-
-function search() {
-  currentPage.value = 1
-  load()
-}
+const {
+  rows,
+  total,
+  page: currentPage,
+  loading,
+  error,
+  load,
+  search,
+} = usePagedList<UserProfileAdminVO>((currentPage) =>
+  pageUsers({
+    currentPage,
+    username: orUndefined(filters.username),
+    phone: orUndefined(filters.phone),
+    email: orUndefined(filters.email),
+    userStatus: orUndefined(filters.userStatus),
+    deleted: orUndefined(filters.deleted),
+    sort: orUndefined(filters.sort),
+  }),
+)
 
 function resetFilters() {
   Object.assign(filters, {
@@ -224,6 +215,7 @@ async function submitReset() {
     </el-card>
 
     <el-card shadow="never" class="page-card">
+      <el-alert v-if="error" title="账号列表加载失败，请刷新重试" type="error" :closable="false" />
       <!-- 一个人拥有多个角色时，列表里会出现多行相同的 userId，
            所以 row-key 必须用 userId + role 组合，否则行复用/选中会串行 -->
       <el-table
@@ -365,19 +357,7 @@ async function submitReset() {
         <el-form-item label="账号">
           <el-input :model-value="resetDialog.row?.username ?? ''" disabled />
         </el-form-item>
-        <el-form-item
-          label="新密码"
-          prop="newPassword"
-          :rules="[
-            { required: true, message: '请输入新密码', trigger: 'blur' },
-            {
-              min: PASSWORD_MIN,
-              max: PASSWORD_MAX,
-              message: `密码长度必须在 ${PASSWORD_MIN}-${PASSWORD_MAX} 之间`,
-              trigger: 'blur',
-            },
-          ]"
-        >
+        <el-form-item label="新密码" prop="newPassword" :rules="newPasswordRules">
           <el-input
             v-model="resetDialog.newPassword"
             type="password"

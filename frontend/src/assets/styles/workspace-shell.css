@@ -14,6 +14,13 @@
   background: var(--ce-shell-bg);
 }
 
+/* 两套工作区内容容器使用不同标签和桌面间距，但基础收缩与防横向溢出行为相同。 */
+.app-shell .shell-content {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 /* ===== 品牌区：button 重置成纯文字行 ===== */
 
 .app-shell .brand {
@@ -126,4 +133,10 @@
 
 .app-shell .account .el-button {
   color: #8ea9bf;
+}
+
+@media (max-width: 720px) {
+  .app-shell .shell-content {
+    padding: clamp(14px, 4vw, 24px);
+  }
 }

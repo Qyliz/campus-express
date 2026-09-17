@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive } from 'vue'
 import { Picture, Search } from '@element-plus/icons-vue'
 
 import { auditUser, pageAuditRecords } from '@/api/admin'
+import { usePagedList } from '@/composables/usePagedList'
 import {
   allSortOptions,
   genderLabel,
@@ -28,35 +29,25 @@ const filters = reactive({
   sort: '' as All<SortEnum>,
 })
 
-const rows = ref<UserAuditRecordVO[]>([])
-const total = ref(0)
-const currentPage = ref(1)
-const loading = ref(false)
-
-async function load() {
-  loading.value = true
-  try {
-    const page = await pageAuditRecords({
-      currentPage: currentPage.value,
-      username: orUndefined(filters.username),
-      phone: orUndefined(filters.phone),
-      email: orUndefined(filters.email),
-      auditStatus: orUndefined(filters.auditStatus),
-      deleted: orUndefined(filters.deleted),
-      sort: orUndefined(filters.sort),
-    })
-    rows.value = page.records
-    total.value = page.total
-  } catch {
-  } finally {
-    loading.value = false
-  }
-}
-
-function search() {
-  currentPage.value = 1
-  load()
-}
+const {
+  rows,
+  total,
+  page: currentPage,
+  loading,
+  error,
+  load,
+  search,
+} = usePagedList<UserAuditRecordVO>((currentPage) =>
+  pageAuditRecords({
+    currentPage,
+    username: orUndefined(filters.username),
+    phone: orUndefined(filters.phone),
+    email: orUndefined(filters.email),
+    auditStatus: orUndefined(filters.auditStatus),
+    deleted: orUndefined(filters.deleted),
+    sort: orUndefined(filters.sort),
+  }),
+)
 
 function resetFilters() {
   Object.assign(filters, {
@@ -181,6 +172,7 @@ async function submitAudit() {
     </el-card>
 
     <el-card shadow="never" class="page-card">
+      <el-alert v-if="error" title="审核列表加载失败，请刷新重试" type="error" :closable="false" />
       <!-- 这张表一条审核记录一行（不是「一角色一行」），所以 row-key 用记录主键就够了 -->
       <el-table
         v-loading="loading"

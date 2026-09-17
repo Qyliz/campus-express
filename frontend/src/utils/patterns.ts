@@ -41,6 +41,33 @@ export const passwordRules: FormItemRule[] = [
   },
 ]
 
+export const newPasswordRules: FormItemRule[] = [
+  { required: true, message: '请输入新密码', trigger: 'blur' },
+  {
+    min: PASSWORD_MIN,
+    max: PASSWORD_MAX,
+    message: `密码长度必须在 ${PASSWORD_MIN}-${PASSWORD_MAX} 之间`,
+    trigger: 'blur',
+  },
+]
+
+/** 确认密码依赖页面内的响应式表单值，因此用取值函数生成校验规则。 */
+export function confirmPasswordRules(
+  password: () => string,
+  requiredMessage = '请再次输入新密码',
+): FormItemRule[] {
+  return [
+    { required: true, message: requiredMessage, trigger: 'blur' },
+    {
+      validator: (_rule, value: string, callback) => {
+        if (value !== password()) return callback(new Error('两次输入的密码不一致'))
+        callback()
+      },
+      trigger: 'blur',
+    },
+  ]
+}
+
 export const codeRules: FormItemRule[] = [
   { required: true, message: '请输入验证码', trigger: 'blur' },
   { pattern: CODE_RE, message: '验证码是 6 位数字', trigger: 'blur' },

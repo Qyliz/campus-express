@@ -10,11 +10,11 @@ import { useVerifyCode } from '@/composables/useVerifyCode'
 import { genderOptions, registerRoleOptions } from '@/constants'
 import { ACCEPT_ATTR, validateImageFile } from '@/utils/image'
 import {
-  PASSWORD_MAX,
-  PASSWORD_MIN,
   PHONE_RE,
   EMAIL_RE,
   codeRules,
+  confirmPasswordRules,
+  passwordRules,
   usernameRules,
 } from '@/utils/patterns'
 import type { GenderEnum, RoleEnum } from '@/types'
@@ -47,25 +47,8 @@ const rules: FormRules<typeof form> = {
   emailCode: codeRules,
   role: [{ required: true, message: '请选择注册身份', trigger: 'change' }],
   username: usernameRules,
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    {
-      min: PASSWORD_MIN,
-      max: PASSWORD_MAX,
-      message: `密码长度必须在 ${PASSWORD_MIN}-${PASSWORD_MAX} 之间`,
-      trigger: 'blur',
-    },
-  ],
-  confirmPassword: [
-    { required: true, message: '请再次输入密码', trigger: 'blur' },
-    {
-      validator: (_rule, value: string, callback) => {
-        if (value !== form.password) return callback(new Error('两次输入的密码不一致'))
-        callback()
-      },
-      trigger: 'blur',
-    },
-  ],
+  password: passwordRules,
+  confirmPassword: confirmPasswordRules(() => form.password, '请再次输入密码'),
   gender: [{ required: true, message: '请选择性别', trigger: 'change' }],
   // 手机号必填；邮箱可选：只写 type / max 而不写 required，空值才能通过校验
   phone: [

@@ -6,7 +6,13 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { ApiError } from '@/api/request'
 import { checkVerifyCode, resetPassword } from '@/api/user'
 import { useVerifyCode } from '@/composables/useVerifyCode'
-import { accountRule, codeRules, isAccount, PASSWORD_MAX, PASSWORD_MIN } from '@/utils/patterns'
+import {
+  accountRule,
+  codeRules,
+  confirmPasswordRules,
+  isAccount,
+  newPasswordRules,
+} from '@/utils/patterns'
 
 const router = useRouter()
 
@@ -29,25 +35,8 @@ const form = reactive({
 const rules: FormRules<typeof form> = {
   account: [accountRule],
   code: codeRules,
-  newPassword: [
-    { required: true, message: '请输入新密码', trigger: 'blur' },
-    {
-      min: PASSWORD_MIN,
-      max: PASSWORD_MAX,
-      message: `密码长度必须在 ${PASSWORD_MIN}-${PASSWORD_MAX} 之间`,
-      trigger: 'blur',
-    },
-  ],
-  confirmPassword: [
-    { required: true, message: '请再次输入新密码', trigger: 'blur' },
-    {
-      validator: (_rule, value: string, callback) => {
-        if (value !== form.newPassword) return callback(new Error('两次输入的密码不一致'))
-        callback()
-      },
-      trigger: 'blur',
-    },
-  ],
+  newPassword: newPasswordRules,
+  confirmPassword: confirmPasswordRules(() => form.newPassword),
 }
 
 const { mockCode, sending, disabled, buttonText, send, reset } = useVerifyCode(
