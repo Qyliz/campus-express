@@ -1,8 +1,5 @@
 @echo off
 title JavaWeb Dev Server
-echo ==========================================
-echo   Starting JavaWeb Frontend & Backend...
-echo ==========================================
 
 :: 启动后端服务
 echo [INFO] Starting Backend (Spring Boot)...
