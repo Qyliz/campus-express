@@ -32,10 +32,6 @@
 --
 -- 注意：CREATE TABLE IF NOT EXISTS 不会迁移已存在的旧表。修改过列类型/外键的本脚本
 --       要生效必须重建数据库（DROP DATABASE 后重启应用自动重建并补种子数据）。
-CREATE DATABASE IF NOT EXISTS `campus_express` DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci;
-
-USE `campus_express`;
-
 CREATE TABLE IF NOT EXISTS `user`
 (
     `id`          bigint       NOT NULL COMMENT '主键id',
