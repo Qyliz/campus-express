@@ -1,9 +1,4 @@
-/*
- * 全局基础样式：reset、页面底色、跨页面工具类。
- * 配套的全局样式按职责拆在同目录 styles/ 下：
- * tokens.css（设计变量）/ auth-theme.css（认证页卡片主题）/
- * dashboard.css（工作台共享）/ workspace-shell.css（布局外壳共享）。
- */
+/* 全局基础样式 */
 *,
 *::before,
 *::after {
@@ -28,14 +23,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ===== 跨页面工具类 ===== */
+/* 跨页面工具类 */
 
 .page-card + .page-card {
   margin-top: 16px;
 }
 
-/* Element Plus 的卡片、表格默认带有内容最小宽度；显式归零后，宽表格只会在
-   自己的滚动区域内移动，不会把整个页面撑出视口。 */
+/* 防止宽表格撑出页面 */
 .el-card,
 .el-card__body,
 .el-table {
@@ -53,7 +47,7 @@ body {
   flex-wrap: wrap;
 }
 
-/* 筛选区采用内容驱动网格：能并排时自动增加列，空间不足时自然换行。 */
+/* 自适应筛选栏 */
 .filter-form.el-form--inline {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
@@ -101,7 +95,7 @@ body {
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
 }
 
-/* 服务端分页的统一底边距与居中布局（账号 / 审核 / 封禁 / 订单 / 异常 / 申诉页共用） */
+/* 分页 */
 .pager {
   display: flex;
   width: 100%;
@@ -112,7 +106,7 @@ body {
   row-gap: 8px;
 }
 
-/* Teleport 到 body 的弹窗不受页面 scoped 样式约束，因此在全局统一限制视口宽度。 */
+/* 弹窗视口限制 */
 .el-dialog,
 .el-message-box {
   max-width: calc(100vw - 24px);
@@ -135,7 +129,7 @@ body {
   margin-left: 0;
 }
 
-/* ===== 管理端表格缩略图与确认弹窗的共享小样式（UsersView / AuditsView） ===== */
+/* 管理端缩略图和确认弹窗 */
 
 .thumb {
   width: 36px;

@@ -59,7 +59,7 @@ export interface ExpressOrder extends Omit<
   pendingException: boolean
   createdByMe: boolean
   receivedByMe: boolean
-  /** 接单骑手的展示信息，由后端 courierId → courier.user_id → user 两跳批量回填；未接单或骑手已注销时为空。 */
+  //未接单或骑手已注销时为空
   courierName: string | null
   courierPhone: string | null
 }
@@ -93,7 +93,7 @@ export const getOrder = (id: string) => http.get<OrderDetail>('/api/order/' + id
 export const actOnOrder = (id: string, action: OrderAction, reason?: string) =>
   http.post<void>('/api/order/' + id + '/' + action, reason === undefined ? undefined : { reason })
 
-// 配送异常。status/type/resolution 后端都是 @EnumValue 枚举：库里存 code，接口传枚举名。
+//接口传枚举名，数据库存枚举编码
 export type ExceptionStatusEnum = 'PENDING' | 'RESOLVED'
 export type ExceptionTypeEnum = 'CONTACT' | 'ADDRESS' | 'ITEM' | 'COURIER' | 'OTHER'
 export type ExceptionResolutionEnum = 'RESUME' | 'CANCEL'

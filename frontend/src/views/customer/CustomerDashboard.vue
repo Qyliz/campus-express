@@ -167,7 +167,7 @@ onMounted(load)
 </template>
 
 <style scoped>
-/* 插槽内容在父组件作用域编译，这里的样式能作用到 StatCard 图标区里的文字符号 */
+/* StatCard 插槽中的货币符号 */
 .currency {
   font-size: 23px;
   font-weight: 700;

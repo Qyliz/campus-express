@@ -1,18 +1,12 @@
-// ============ 通用信封 ============
+//通用响应
 
-/** 对应 cn.njust.campusexpress.common.Result。字段名是 message，不是 msg。 */
 export interface Result<T> {
   code: number
   message: string
   data: T
 }
 
-/**
- * 对应 common.PageResult。size 由服务端写死为 10，请求里只有 currentPage，没有 pageSize。
- *
- * 这四个数字是 Java 的原始类型 long，而后端 JacksonConfig 只把包装类型 Long 序列化成字符串
- * （雪花 ID 会超出 JS 的安全整数范围），所以它们仍然是 number，可以直接喂给 el-pagination。
- */
+//分页大小由服务端固定为 10
 export interface PageResult<T> {
   records: T[]
   total: number
@@ -21,7 +15,7 @@ export interface PageResult<T> {
   pages: number
 }
 
-// ============ 枚举：线上传输的是常量名字符串，不是数字 code ============
+//接口枚举使用常量名字符串
 
 export type RoleEnum = 'ADMIN' | 'CUSTOMER' | 'COURIER'
 export type GenderEnum = 'UNKNOWN' | 'MALE' | 'FEMALE'
@@ -31,25 +25,13 @@ export type VerifySceneEnum = 'REGISTER' | 'FORGOT_PASSWORD' | 'CHANGE_PHONE' | 
 export type SortEnum =
   'CREATE_TIME_ASC' | 'CREATE_TIME_DESC' | 'UPDATE_TIME_ASC' | 'UPDATE_TIME_DESC'
 
-/**
- * 后端主键是 MyBatis-Plus 雪花 ID（19 位 Long，约 1.9e18），超出 JS 的
- * Number.MAX_SAFE_INTEGER（约 9.0e15），直接当数字接收会被 JSON.parse 舍位。
- * 后端 JacksonConfig 已把它们序列化成字符串，所以前端一律用 string 承载，
- * 并且只原样回传、从不做算术（Jackson 能把 JSON 字符串反序列化回 Long）。
- */
+//雪花 ID 超出安全整数范围，前端始终按字符串处理
 export type EntityId = string
 
-/**
- * 后端的时间字段（java.util.Date）。
- *
- * 实测下发的是 ISO-8601 字符串，例如 "2026-09-09T16:35:30.000Z"（UTC）——
- * 因为 Jackson 3 默认关掉了 WRITE_DATES_AS_TIMESTAMPS，这和 Jackson 2
- * 「默认输出 epoch 毫秒数字」的行为正好相反，很容易按旧经验想当然。
- * formatDateTime() 两种形状都能吃，所以后端万一改了配置也不会白屏。
- */
+//兼容 ISO 时间和 epoch 毫秒
 export type ServerDate = string
 
-// ============ 响应 VO ============
+//响应模型
 
 export interface UserProfileVO {
   username: string
@@ -57,7 +39,7 @@ export interface UserProfileVO {
   gender: GenderEnum
   phone: string | null
   email: string | null
-  /** 形如 "/upload/avatar/uuid.png"，直接当同源相对路径用即可 */
+  //同源上传路径
   avatar: string | null
 }
 
@@ -70,7 +52,6 @@ export interface UserProfileAdminVO {
   email: string | null
   avatar: string | null
   status: StatusEnum
-  /** java.util.Date → ISO-8601 字符串，见 ServerDate */
   createTime: ServerDate
 }
 
@@ -82,7 +63,6 @@ export interface UserAuditRecordVO {
   email: string | null
   status: AuditStatusEnum
   reason: string | null
-  /** 形如 "/upload/audit/uuid.jpg" */
   material: string | null
   createTime: ServerDate
   updateTime: ServerDate
@@ -101,7 +81,7 @@ export interface UserBanRecordVO {
   createTime: ServerDate
 }
 
-// ============ 请求 DTO ============
+//请求模型
 
 export interface UserRegisterDTO {
   username: string
@@ -115,14 +95,14 @@ export interface UserRegisterDTO {
 }
 
 export interface UserLoginDTO {
-  /** 必须是邮箱或手机号，否则后端返回 code 1「请输入正确的邮箱或手机号」 */
+  //邮箱或手机号
   account: string
   password: string
   role: RoleEnum
 }
 
 export interface SendCodeDTO {
-  /** FORGOT_PASSWORD 用登录账号；CHANGE_PHONE / CHANGE_EMAIL 用「新」的手机号 / 邮箱 */
+  //找回密码传登录账号，换绑传新联系方式
   account: string
   scene: VerifySceneEnum
 }
@@ -138,7 +118,6 @@ export interface ResetPasswordDTO {
 }
 
 export interface UserUsernameDTO {
-  /** DTO 上没有 @NotBlank，但留空会被 controller 判为 code 2，所以前端必须必填 */
   username: string
 }
 
@@ -161,7 +140,7 @@ export interface ChangeEmailDTO {
   code: string
 }
 
-/** status 只接受 NORMAL(通过) / REJECTED(驳回)，传别的会被后端判为 code 1 */
+//审核结果只接受通过或驳回
 export interface UserAuditDTO {
   userAuditRecordId: EntityId
   status: 'NORMAL' | 'REJECTED'
@@ -170,7 +149,7 @@ export interface UserAuditDTO {
 
 export interface UserBanDTO {
   userId: EntityId
-  /** 必须和 userId 一起用：一个人可以有多个角色，封的是这一个角色账户 */
+  //封禁用户的指定角色
   role: RoleEnum
   reason?: string
 }
@@ -189,13 +168,9 @@ export interface AdminResetPasswordDTO {
   newPassword: string
 }
 
-// ============ 查询 DTO（GET，绑定自 query string） ============
+//查询参数
 
-/**
- * 分页查询的公共部分。
- * 可选字段用 undefined 表示「不传」，千万不要用 null ——
- * axios 会省略 undefined 参数，但会把 null 发成空字符串，Spring 绑不上 Boolean。
- */
+//空筛选项转为 undefined 后再提交
 export interface PageQuery {
   currentPage?: number
   sort?: SortEnum
@@ -209,7 +184,6 @@ export interface UserAuditQueryDTO extends PageQuery {
   deleted?: boolean
 }
 
-/** 与 UserAuditQueryDTO 唯一的区别：状态字段叫 userStatus，不是 auditStatus */
 export interface UserQueryDTO extends PageQuery {
   username?: string
   phone?: string

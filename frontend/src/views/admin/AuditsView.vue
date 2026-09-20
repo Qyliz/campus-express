@@ -17,14 +17,14 @@ import { imageUrl } from '@/utils/image'
 import { orUndefined, type All } from '@/utils/query'
 import type { GenderEnum, SortEnum, AuditStatusEnum, UserAuditRecordVO } from '@/types'
 
-/** 筛选值一律用 All<T>，'' 表示「全部」；发请求前统一走 orUndefined()，见 @/utils/query。 */
+//空串表示不限制该筛选项
 const filters = reactive({
   username: '',
   phone: '',
   email: '',
-  /** 这个查询 DTO 里的字段叫 auditStatus（账号管理页那个叫 userStatus） */
+  //审核查询使用 auditStatus
   auditStatus: '' as All<AuditStatusEnum>,
-  /** 布尔三态直接用真布尔承载：'' 不传 / false 未删除 / true 已删除 */
+  //空串表示全部，布尔值表示删除状态
   deleted: '' as All<boolean>,
   sort: '' as All<SortEnum>,
 })
@@ -63,13 +63,13 @@ function resetFilters() {
 
 onMounted(load)
 
-// ===== 审核（通过 / 驳回共用一个对话框） =====
+//审核
 
 const dialog = reactive({
   open: false,
   submitting: false,
   row: null as UserAuditRecordVO | null,
-  // 后端只接受 NORMAL(通过) 和 REJECTED(驳回)，传别的会被判为参数校验失败
+  //审核结果只接受通过或驳回
   status: 'NORMAL' as 'NORMAL' | 'REJECTED',
   reason: '',
 })
@@ -81,7 +81,7 @@ function openAudit(row: UserAuditRecordVO, status: 'NORMAL' | 'REJECTED') {
 async function submitAudit() {
   const row = dialog.row
   if (!row) return
-  // 驳回原因是服务端可选的，但没有原因的驳回对申请人毫无帮助，所以前端强制要求
+  //前端要求驳回时填写原因
   if (dialog.status === 'REJECTED' && !dialog.reason.trim()) {
     ElMessage.warning('驳回必须填写原因')
     return
@@ -146,7 +146,7 @@ async function submitAudit() {
           </el-select>
         </el-form-item>
         <el-form-item label="删除状态">
-          <!-- 三态：'' 不传 / false 未删除 / true 已删除。布尔值必须用 :value 绑定，否则会变成字符串。 -->
+          <!-- 布尔值使用 :value，空串表示全部 -->
           <el-select v-model="filters.deleted" placeholder="全部" class="filter-control">
             <el-option label="全部" value="" />
             <el-option label="未删除" :value="false" />
@@ -173,7 +173,6 @@ async function submitAudit() {
 
     <el-card shadow="never" class="page-card">
       <el-alert v-if="error" title="审核列表加载失败，请刷新重试" type="error" :closable="false" />
-      <!-- 这张表一条审核记录一行（不是「一角色一行」），所以 row-key 用记录主键就够了 -->
       <el-table
         v-loading="loading"
         :data="rows"
@@ -246,9 +245,7 @@ async function submitAudit() {
 
         <el-table-column label="操作" width="130" fixed="right">
           <template #default="{ row }">
-            <!-- 只有「审核中」的申请才能操作；已经审完的行按钮置灰 -->
-            <!-- el-table 把插槽里的 row 标成自己的 DefaultRow（松散类型），
-                 传给强类型函数时要在调用点收窄一次 -->
+            <!-- 只有审核中的申请可以处理 -->
             <el-button
               link
               type="success"
@@ -304,7 +301,7 @@ async function submitAudit() {
         </template>
       </el-image>
 
-      <!-- 通过时不需要原因；驳回时必填（下面 submitAudit 里拦） -->
+      <!-- 驳回时必须填写原因 -->
       <el-input
         v-if="dialog.status === 'REJECTED'"
         v-model="dialog.reason"
@@ -355,14 +352,13 @@ async function submitAudit() {
 </template>
 
 <style scoped>
-/* .thumb / .thumb-fallback / .dialog-target / .dialog-tip 的共性在 assets/main.css，
-  这里只留审核页自己的差异与材料预览 */
+/* 审核页差异样式，公共弹窗样式见 main.css */
 .thumb-fallback {
   font-size: 12px;
 }
 
 .dialog-target {
-  /* 用户名后面跟的是联系方式文本，基线对齐比居中更自然 */
+  /* 联系方式按文字基线对齐 */
   align-items: baseline;
 }
 

@@ -29,12 +29,12 @@ import type { GenderEnum } from '@/types'
 const auth = useAuthStore()
 const router = useRouter()
 
-// 路由守卫已经 await 过 auth.init()，进到这一页 profile 必然非空
+//进入页面前路由守卫已确认登录状态
 const p = computed(() => auth.profile!)
 const roleText = computed(() => roleLabel[p.value.role])
 const initial = computed(() => p.value.username.charAt(0) || 'U')
 
-// ===== 卡 1：基本资料 =====
+//基本资料
 
 const uploadingAvatar = ref(false)
 const usernameFormRef = ref<FormInstance>()
@@ -46,11 +46,7 @@ const usernameFormRules: FormRules<typeof usernameForm> = { username: usernameRu
 const savingGender = ref(false)
 const genderValue = ref<GenderEnum>(p.value.gender)
 
-/**
- * el-upload 一律 :auto-upload="false"，由我们自己调 axios ——
- * 用 action= 会绕过 axios 实例（丢掉 Result 解包、错误提示、401 处理），
- * 而且它的 on-success 在 HTTP 200 时就触发，即使 code !== 0，被拒的上传看起来像成功。
- */
+//关闭 el-upload 自动上传，统一走项目的请求拦截器
 async function onAvatarChange(file: UploadFile) {
   const problem = validateImageFile(file.raw)
   if (problem) {
@@ -61,7 +57,6 @@ async function onAvatarChange(file: UploadFile) {
 
   uploadingAvatar.value = true
   try {
-    // 返回的就是更新后的 UserProfileVO，直接喂给 store，不用再查一次
     auth.applyProfile(await uploadAvatar(file.raw))
     ElMessage.success('头像已更新')
   } catch {
@@ -96,7 +91,7 @@ async function saveGender() {
   }
 }
 
-// ===== 卡 2：换绑手机号 / 邮箱 =====
+//换绑手机号和邮箱
 
 const phoneFormRef = ref<FormInstance>()
 const phoneDialog = reactive({ open: false, submitting: false, newPhone: '', code: '' })
@@ -107,13 +102,7 @@ const phoneRules: FormRules<typeof phoneDialog> = {
   ],
   code: codeRules,
 }
-/**
- * 关键：验证码是发给「新手机号」的 —— 后端校验的是 verify(dto.getNewPhone(), CHANGE_PHONE, code)，
- * 所以这里的 account 取表单里的 newPhone，而不是当前已绑定的手机号。
- *
- * 解构成顶层绑定：模板只会自动展开「顶层」的 ref，
- * 如果留着 useVerifyCode() 返回的那个对象，模板里就得写 phoneCode.sending.value。
- */
+//换绑验证码发送到新联系方式
 const {
   mockCode: phoneMockCode,
   sending: phoneSending,
@@ -140,7 +129,7 @@ async function submitPhone() {
     await updatePhone({ newPhone: phoneDialog.newPhone, code: phoneDialog.code })
     phoneDialog.open = false
     ElMessage.success('手机号已换绑')
-    await auth.refresh() // 该接口返回 void，必须重新拉一次资料
+    await auth.refresh()
   } catch {
   } finally {
     phoneDialog.submitting = false
@@ -190,7 +179,7 @@ async function submitEmail() {
   }
 }
 
-// ===== 卡 3：修改密码 =====
+//修改密码
 
 const pwdFormRef = ref<FormInstance>()
 const savingPwd = ref(false)
@@ -210,11 +199,10 @@ async function submitPassword() {
       oldPassword: pwdForm.oldPassword,
       newPassword: pwdForm.newPassword,
     })
-    // 后端改完密码会顺手登出当前会话，所以本地状态必须清掉并回首页登录区
+    //服务端已结束会话
     auth.clear()
     await router.replace({ name: 'home' })
-    // showClose / closeOnPressEscape 都关掉：alert 被 X 或 ESC 关掉时会 reject，
-    // 那样就会跳过下面的跳转，把用户留在一个会话已死的页面上。
+    //提示关闭后再回到首页
     await ElMessageBox.alert('密码修改成功，当前会话已失效，请重新登录。', '提示', {
       type: 'success',
       confirmButtonText: '去登录',
@@ -222,13 +210,13 @@ async function submitPassword() {
       closeOnPressEscape: false,
     }).catch(() => {})
   } catch {
-    // 2010 旧密码不正确，拦截器已提示
+    //提示由请求拦截器处理
   } finally {
     savingPwd.value = false
   }
 }
 
-// ===== 卡 4：登出 =====
+//退出和注销
 
 async function logout() {
   await auth.logout()
@@ -238,8 +226,7 @@ async function logout() {
 
 async function onDeleteAccount() {
   const roleName = roleText.value
-  // confirm 单独一个 try：用户点「再想想」时它会 reject，
-  // 如果和下面的 API 调用共用一个 catch，取消就会被当成接口失败处理。
+  //取消确认不应进入接口错误处理
   try {
     await ElMessageBox.confirm(
       `<p>此操作将<b>永久注销你的「${roleName}」角色账户</b>。</p>
@@ -265,7 +252,7 @@ async function onDeleteAccount() {
 
   try {
     await deleteAccount()
-    // 后端注销角色时已经结束会话；安全布局会在资料清空后立即显示首页登录区。
+    //注销角色后清空本地会话
     auth.clear()
     await router.replace({ name: 'home' })
     ElMessage.success('已注销当前角色')
@@ -287,7 +274,6 @@ async function onDeleteAccount() {
           <div class="avatar-box" v-loading="uploadingAvatar">
             <el-image :src="imageUrl(p.avatar)" fit="cover" class="avatar-img">
               <template #error>
-                <!-- 类名带 profile- 前缀：布局侧栏另有一个同名但样式不同的 .avatar-fallback -->
                 <span class="profile-avatar-fallback">{{ initial }}</span>
               </template>
             </el-image>
@@ -437,7 +423,6 @@ async function onDeleteAccount() {
       </div>
     </el-card>
 
-    <!-- 换绑手机号 -->
     <el-dialog v-model="phoneDialog.open" title="换绑手机号" width="min(440px, calc(100vw - 24px))">
       <el-form
         ref="phoneFormRef"
@@ -471,7 +456,6 @@ async function onDeleteAccount() {
       </template>
     </el-dialog>
 
-    <!-- 换绑邮箱 -->
     <el-dialog v-model="emailDialog.open" title="换绑邮箱" width="min(440px, calc(100vw - 24px))">
       <el-form
         ref="emailFormRef"

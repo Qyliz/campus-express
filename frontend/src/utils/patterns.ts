@@ -2,13 +2,13 @@ import type { FormItemRule } from 'element-plus'
 
 export const PHONE_RE = /^1[3-9]\d{9}$/
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-/** 与后端 UserRegisterDTO / UserUsernameDTO 上的 @Pattern 逐字符一致 */
+//与后端用户名规则一致
 export const USERNAME_RE = /^[a-zA-Z0-9_\-\u4e00-\u9fa5]{1,10}$/
 export const CODE_RE = /^\d{6}$/
 export const PASSWORD_MIN = 6
 export const PASSWORD_MAX = 20
 
-/** 登录 / 找回密码的账号：必须是邮箱或手机号，文案照抄后端 */
+//登录账号只接受邮箱或手机号
 export function isAccount(value: string): boolean {
   return EMAIL_RE.test(value) || PHONE_RE.test(value)
 }
@@ -51,7 +51,7 @@ export const newPasswordRules: FormItemRule[] = [
   },
 ]
 
-/** 确认密码依赖页面内的响应式表单值，因此用取值函数生成校验规则。 */
+//通过取值函数读取最新密码
 export function confirmPasswordRules(
   password: () => string,
   requiredMessage = '请再次输入新密码',

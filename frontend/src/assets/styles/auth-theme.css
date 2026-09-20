@@ -1,16 +1,12 @@
-/*
- * 认证类页面（登录 / 注册 / 找回密码 / 首页登录区）共用的卡片主题。
- * 这里集中了 .auth-card--backdrop 深色毛玻璃卡片对 Element Plus 的全部深度覆盖；
- * 这套深色色板只在本文件使用，因此直接写字面值，不进 tokens.css。
- */
+/* 认证页卡片主题 */
 
-/* 认证类页面共用的居中窄卡片 */
+/* 居中窄卡片 */
 .auth-card {
   width: 100%;
   margin: clamp(20px, 6vh, 48px) auto;
 }
 
-/* 首页 landing 区内嵌时贴边，不再自带外边距 */
+/* 首页内嵌卡片 */
 .auth-card--embedded {
   margin: 0;
 }
@@ -27,8 +23,7 @@
   max-width: 560px;
 }
 
-/* 根规则用双类提高特异性：路由懒加载后 Element Plus 的组件样式（.el-card 等）
-   会随异步 chunk 在本文件之后注入，单类选择器会被 .el-card 的背景/圆角同特异性反超。 */
+/* 双类选择器用于覆盖异步加载的 Element Plus 样式 */
 .auth-card.auth-card--backdrop {
   --el-text-color-primary: #f5f9ff;
   --el-text-color-regular: rgba(245, 249, 255, 0.86);
@@ -42,25 +37,25 @@
   backdrop-filter: blur(18px);
 }
 
-/* ===== 三个认证页共用的页面级小样式 ===== */
+/* 认证页公共样式 */
 
-/* 卡片标题（el-card header 里的 span） */
+/* 标题 */
 .auth-card .title {
   font-size: 17px;
   font-weight: 600;
 }
 
-/* 通栏提交按钮 */
+/* 提交按钮 */
 .auth-card .submit {
   width: 100%;
 }
 
-/* 底部链接区：布局（左右分布 or 居中）与外边距由各页面自己定 */
+/* 底部链接 */
 .auth-card .links {
   font-size: 13px;
 }
 
-/* 「验证码输入 + 发送按钮」行（注册 / 找回密码） */
+/* 验证码 */
 .auth-card .code-row {
   display: flex;
   gap: 12px;
@@ -77,7 +72,7 @@
   flex: 1 1 auto;
 }
 
-/* ===== Element Plus 深色覆盖 ===== */
+/* Element Plus 深色覆盖 */
 
 .auth-card--backdrop .el-card__header {
   border-bottom-color: rgba(255, 255, 255, 0.14);

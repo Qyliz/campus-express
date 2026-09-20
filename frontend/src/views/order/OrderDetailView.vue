@@ -85,7 +85,7 @@ async function act(action: OrderAction) {
     await actOnOrder(order.value.id, action, reason)
     ElMessage.success(labels[action] + '成功')
   } catch {
-    /* 统一提示后刷新最新状态 */
+    //刷新服务端最新状态
   } finally {
     await load()
     submitting.value = false

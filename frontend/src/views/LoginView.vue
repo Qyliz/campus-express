@@ -16,7 +16,7 @@ withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
 
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
-/** 审核中 / 审核驳回时额外显示的常驻提示，toast 一闪而过看不清 */
+//审核状态需要常驻提示
 const reviewTip = ref('')
 
 const form = reactive({
@@ -42,7 +42,7 @@ async function onSubmit() {
     ElMessage.success('登录成功')
     router.replace(auth.isAdmin ? { name: 'admin-dashboard' } : { name: 'home' })
   } catch (e) {
-    // 拦截器已经弹过 toast 了，这里只针对审核相关的两个码补一条常驻说明
+    //审核异常额外显示常驻说明
     if (e instanceof ApiError && e.code === 2005) {
       reviewTip.value = '该配送员账号还在审核中，需要管理员审核通过后才能登录。'
     } else if (e instanceof ApiError && e.code === 2006) {
@@ -79,7 +79,7 @@ async function onSubmit() {
         />
       </el-form-item>
 
-      <!-- radio 组没有可标注的输入控件：置空 for 让 label 按 div 渲染，避免 Chrome 的 label[for] 无效引用警告 -->
+      <!-- radio 组不关联单个输入控件 -->
       <el-form-item for="" label="登录身份" prop="role">
         <el-radio-group v-model="form.role">
           <el-radio-button v-for="o in roleOptions" :key="o.value" :value="o.value">
@@ -117,7 +117,7 @@ async function onSubmit() {
 </template>
 
 <style scoped>
-/* .title / .submit / .links 的字号在 styles/auth-theme.css 里统一，这里只留本页布局 */
+/* 认证页公共样式见 auth-theme.css */
 .tip {
   margin-top: 4px;
   font-size: 13px;

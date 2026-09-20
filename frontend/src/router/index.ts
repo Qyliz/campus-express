@@ -6,7 +6,7 @@ import AdminLayout from '@/layouts/AdminLayout.vue'
 import type { OrderScope } from '@/api/order'
 import type { RoleEnum } from '@/types'
 
-/** 让 to.meta.xxx 有类型，而不是 unknown */
+//路由元信息类型
 declare module 'vue-router' {
   interface RouteMeta {
     title?: string
@@ -86,11 +86,7 @@ const routes: RouteRecordRaw[] = [
     ],
   },
 
-  // ===== 管理端 =====
-  // meta 写在父记录上即可：to.meta 是所有匹配记录 meta 的合并结果，子路由自动继承。
-  // 页面组件全部 () => import() 懒加载：Element Plus 按需打包后单 bundle 仍超过 600KB，
-  // 按路由分包后首屏只下载登录/首页用到的部分，管理端的大表格页面留在各自 chunk 里按需取。
-  // 两个 Layout 保持静态导入：它们小且每次导航必现，拆出去只多一次请求。
+  //管理端子路由继承父级权限配置
   {
     path: '/admin',
     component: AdminLayout,
@@ -162,9 +158,7 @@ const routes: RouteRecordRaw[] = [
 ]
 
 const router = createRouter({
-  // createWebHistory 需要服务端把所有未知路径回退到 index.html。
-  // 开发期 Vite dev server 自动做了这件事；vite preview 也做了。
-  // 真正部署到 nginx 时要自己加 try_files $uri $uri/ /index.html;
+  //生产环境需将未知路径回退到 index.html
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
   scrollBehavior: () => ({ top: 0 }),
@@ -173,11 +167,10 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
 
-  // 首次导航查询 GET /api/user/session，匿名访问返回空数据，之后复用同一个 Promise。
-  // 守卫是 async 的 → 首屏在探测结束前不渲染任何路由组件，因此不会闪一下未登录的样子。
+  //首次导航先确认服务端会话
   await auth.init()
 
-  // 管理员的个人中心留在后台布局中，避免切换页面后丢失侧栏。
+  //管理员个人中心保留后台布局
   if (auth.isAdmin && to.name === 'profile') {
     return { name: 'admin-profile' }
   }
@@ -186,7 +179,7 @@ router.beforeEach(async (to) => {
     return { name: 'home' }
   }
 
-  // 后端 @SaCheckRole("ADMIN") 本来也会回 403，这里只是提前拦住，体验更好
+  //前端提前拦截无权限导航
   if (to.meta.requiresAdmin && !auth.isAdmin) {
     ElMessage.warning('该功能仅管理员可用')
     return { name: 'home' }
@@ -197,8 +190,7 @@ router.beforeEach(async (to) => {
     return { name: 'home' }
   }
 
-  // 已登录的人还去看登录/注册页没有意义。
-  // 注意：追加角色也必须先登出 —— 后端 is-concurrent: false，一个用户同时只能有一个在线会话。
+  //登录后不再进入游客页面
   if (to.meta.guestOnly && auth.isLoggedIn) {
     return { name: 'home' }
   }

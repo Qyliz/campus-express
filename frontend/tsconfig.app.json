@@ -9,18 +9,17 @@
     "src/**/__tests__/*"
   ],
   "compilerOptions": {
-    // Extra safety for array and object lookups, but may have false positives.
+    //检查数组和对象索引可能返回 undefined
     "noUncheckedIndexedAccess": true,
-    "noUnusedLocals": true, // 报告未使用的局部变量
-    "noUnusedParameters": true, // 报告未使用的函数参数
-    // Path mapping for cleaner imports.
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    //源码路径别名
     "paths": {
       "@/*": [
         "./src/*"
       ]
     },
-    // `vue-tsc --build` produces a .tsbuildinfo file for incremental type-checking.
-    // Specified here to keep it out of the root directory.
+    //增量检查缓存不放在项目根目录
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo"
   }
 }

@@ -2,7 +2,7 @@ import { http } from './request'
 import { toOptions, type TagType } from '@/constants'
 import type { PageResult } from '@/types'
 
-// 评价与申诉的状态后端都是 @EnumValue 枚举：库里存 code，接口传枚举名。
+//接口传枚举名，数据库存枚举编码
 export type ReviewStatusEnum = 'VALID' | 'VOID'
 export type AppealStatusEnum = 'PENDING' | 'UPHELD' | 'REJECTED'
 export const reviewStatusLabels: Record<ReviewStatusEnum, string> = {
@@ -47,7 +47,7 @@ export interface ReviewAppeal {
   createTime: string
   resolvedTime?: string
 }
-/** username 由后端从 user 表解析，供用户端展示评价人；管理端申诉页仍按裸 ID 定位账户。 */
+//用户端显示评价人名称，管理端仍用账户 ID 定位
 export interface ReviewItem {
   review: ServiceReview
   appeal?: ReviewAppeal

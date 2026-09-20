@@ -2,12 +2,11 @@
 import { computed, defineAsyncComponent } from 'vue'
 import { useRoute } from 'vue-router'
 
-// 首屏游客侧的背景大图：1920 宽 WebP（由 2MB 原图压缩而来，不到 200KB）
+//游客首页背景图
 import heroImage from '@/assets/images/campus-delivery-hero.webp'
 import { useAuthStore } from '@/stores/auth'
 
-// HomeView 同时是「/」路由的页面组件，UserWorkspaceLayout 是登录后非管理员的外壳；
-// DefaultLayout 是入口 chunk，异步引用避免把这两块（及它们引用的页面）全打进首屏包。
+//用户工作台异步加载，避免进入游客首页时下载
 const UserWorkspaceLayout = defineAsyncComponent(() => import('@/layouts/UserWorkspaceLayout.vue'))
 const HomeView = defineAsyncComponent(() => import('@/views/HomeView.vue'))
 

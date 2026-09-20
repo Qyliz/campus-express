@@ -21,16 +21,16 @@ import { orUndefined, type All } from '@/utils/query'
 import { newPasswordRules } from '@/utils/patterns'
 import type { RoleEnum, SortEnum, StatusEnum, UserProfileAdminVO } from '@/types'
 
-/** 筛选值一律用 All<T>，'' 表示「全部」；发请求前统一走 orUndefined()，见 @/utils/query。 */
+//空串表示不限制该筛选项
 const filters = reactive({
   username: '',
   phone: '',
   email: '',
-  /** 注意字段名是 userStatus —— 审核页那个查询 DTO 里叫 auditStatus */
+  //账号查询使用 userStatus
   userStatus: '' as All<StatusEnum>,
-  /** 布尔三态直接用真布尔承载：'' 不传 / false 未删除 / true 已删除 */
+  //空串表示全部，布尔值表示删除状态
   deleted: '' as All<boolean>,
-  /** 账号列表产品上只允许按创建时间排序，所以选项用 createTimeSortOptions 而不是全部四种 */
+  //账号列表只支持按创建时间排序
   sort: '' as All<SortEnum>,
 })
 
@@ -68,7 +68,7 @@ function resetFilters() {
 
 onMounted(load)
 
-// ===== 封禁 =====
+//封禁
 
 const banDialog = reactive({
   open: false,
@@ -86,8 +86,7 @@ async function submitBan() {
   if (!row) return
   banDialog.submitting = true
   try {
-    // 封禁要同时发 userId + role：一个人可以有多个角色，封的是这一个角色账户，
-    // 同一个人的其他角色不受影响。（对比：踢人和重置密码只发 userId。）
+    //只封禁用户的当前角色
     await banUser({ userId: row.userId, role: row.role, reason: banDialog.reason || undefined })
     banDialog.open = false
     ElMessage.success('已封禁，该用户已被强制下线')
@@ -98,10 +97,10 @@ async function submitBan() {
   }
 }
 
-// ===== 强制下线 =====
+//强制下线
 
 async function onKickout(row: UserProfileAdminVO) {
-  // confirm 单独一个 try：点「取消」时它 reject，不能和接口错误混在一个 catch 里
+  //取消确认不应进入接口错误处理
   try {
     await ElMessageBox.confirm(
       `确定把「${row.username}」强制下线吗？该用户的所有在线会话都会立即失效。`,
@@ -117,7 +116,7 @@ async function onKickout(row: UserProfileAdminVO) {
   } catch {}
 }
 
-// ===== 重置密码 =====
+//重置密码
 
 const resetFormRef = ref<FormInstance>()
 const resetDialog = reactive({
@@ -189,7 +188,7 @@ async function submitReset() {
           </el-select>
         </el-form-item>
         <el-form-item label="删除状态">
-          <!-- 三态：'' 不传 / false 未删除 / true 已删除。布尔值必须用 :value 绑定，否则会变成字符串。 -->
+          <!-- 布尔值使用 :value，空串表示全部 -->
           <el-select v-model="filters.deleted" placeholder="全部" class="filter-control">
             <el-option label="全部" value="" />
             <el-option label="未删除" :value="false" />
@@ -216,8 +215,7 @@ async function submitReset() {
 
     <el-card shadow="never" class="page-card">
       <el-alert v-if="error" title="账号列表加载失败，请刷新重试" type="error" :closable="false" />
-      <!-- 一个人拥有多个角色时，列表里会出现多行相同的 userId，
-           所以 row-key 必须用 userId + role 组合，否则行复用/选中会串行 -->
+      <!-- 多角色用户使用 userId 和 role 组合作为行键 -->
       <el-table
         v-loading="loading"
         :data="rows"
@@ -292,8 +290,6 @@ async function submitReset() {
 
         <el-table-column label="操作" width="230" fixed="right">
           <template #default="{ row }">
-            <!-- el-table 把插槽里的 row 标成自己的 DefaultRow（松散类型），
-                 传给强类型函数时要在调用点收窄一次 -->
             <el-button
               link
               type="danger"
@@ -312,7 +308,6 @@ async function submitReset() {
         </el-table-column>
       </el-table>
 
-      <!-- 服务端把每页条数写死为 10，所以这里不提供 size 选择器 -->
       <el-pagination
         v-model:current-page="currentPage"
         :page-size="PAGE_SIZE"

@@ -3,8 +3,7 @@ import { defineAsyncComponent } from 'vue'
 
 import { useAuthStore } from '@/stores/auth'
 
-// 三个组件都不小且游客首屏只需要登录区：异步引用让它们留在各自的路由 chunk 里，
-// 首页真正渲染到哪块才下载哪块（登录成功后才会渲染 Dashboard）。
+//按登录状态异步加载对应首页内容
 const LoginView = defineAsyncComponent(() => import('@/views/LoginView.vue'))
 const CustomerDashboard = defineAsyncComponent(
   () => import('@/views/customer/CustomerDashboard.vue'),

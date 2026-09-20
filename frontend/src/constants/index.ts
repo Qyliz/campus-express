@@ -1,10 +1,6 @@
 import type { AuditStatusEnum, GenderEnum, RoleEnum, SortEnum, StatusEnum } from '@/types'
 
-/**
- * 一律用 Record<字面量联合, string>，不要写 { [k: string]: string }。
- * tsconfig.app.json 开了 noUncheckedIndexedAccess，索引签名会让取值变成 string | undefined，
- * 每次都要 ?? 兜底；而字面量键的 Record 用枚举值去索引，结果仍然是 string。
- */
+//标签表使用精确枚举键，避免索引结果带 undefined
 export const roleLabel: Record<RoleEnum, string> = {
   CUSTOMER: '收寄件人',
   COURIER: '配送员',
@@ -46,11 +42,7 @@ export const roleTagType: Record<RoleEnum, TagType> = {
   ADMIN: 'danger',
 }
 
-/**
- * 把「枚举名 → 中文」的标签表转成 el-option 需要的 { value, label } 数组。
- * 顺序来自 Object.keys，所以想调下拉框里的顺序就改标签表的键序。
- * value 带上枚举的精确类型，筛选栏的 modelValue 才能直接用 All<T> 接住。
- */
+//将枚举标签转为下拉选项
 export function toOptions<T extends string>(map: Record<T, string>) {
   return (Object.keys(map) as T[]).map((value) => ({ value, label: map[value] }))
 }
@@ -71,13 +63,13 @@ export const registerRoleOptions = roleOptions.filter((option) => option.value !
 export const genderOptions = toOptions(genderLabel)
 export const statusOptions = toOptions(statusLabel)
 
-/** 审核列表、封禁记录列表：四种排序都可以 */
+//完整排序选项
 export const allSortOptions = toOptions(sortLabel)
 
-/** 账号管理列表：产品上只允许按创建时间排序 */
+//账号列表只按创建时间排序
 export const createTimeSortOptions = allSortOptions.filter(
   (o) => o.value === 'CREATE_TIME_ASC' || o.value === 'CREATE_TIME_DESC',
 )
 
-/** 服务端 PageResult.size 写死为 10，前端不提供「每页条数」选择器 */
+//服务端固定分页大小
 export const PAGE_SIZE = 10

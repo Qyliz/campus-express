@@ -58,7 +58,7 @@ async function open(row: ReviewAppeal) {
       if (original.value?.appeal) selected.value = original.value.appeal
     }
   } catch {
-    /* 显示失败状态，禁止处理 */
+    //加载失败时禁止处理
   } finally {
     if (current === detailSequence) detailLoading.value = false
   }
@@ -76,7 +76,7 @@ async function submit() {
     ElMessage.success('申诉已处理')
     await load()
   } catch {
-    /* 保留处理理由 */
+    //保留输入的处理理由
   } finally {
     submitting.value = false
   }
@@ -122,7 +122,7 @@ onMounted(load)
           }}</router-link></template
         >
       </el-table-column>
-      <!-- 管理端按裸 ID 定位账户：courierId 是 courier 表主键、adminId 是 admin 表主键，换成都可能重名且会变的用户名反而不好核对 -->
+      <!-- 管理端使用账户 ID 定位配送员和管理员 -->
       <el-table-column prop="courierId" label="配送员账户" min-width="180" />
       <el-table-column prop="reason" label="申诉理由" min-width="200" show-overflow-tooltip />
       <el-table-column label="状态" width="110"
@@ -212,7 +212,7 @@ onMounted(load)
   </el-dialog>
 </template>
 <style scoped>
-/* 分页底边距与居中布局复用全局 .pager（assets/main.css） */
+/* 分页使用全局 pager 样式 */
 .text {
   white-space: pre-wrap;
   overflow-wrap: anywhere;

@@ -50,7 +50,7 @@ const rules: FormRules<typeof form> = {
   password: passwordRules,
   confirmPassword: confirmPasswordRules(() => form.password, '请再次输入密码'),
   gender: [{ required: true, message: '请选择性别', trigger: 'change' }],
-  // 手机号必填；邮箱可选：只写 type / max 而不写 required，空值才能通过校验
+  //邮箱可选，不设置 required
   phone: [
     { required: true, message: '请输入手机号', trigger: 'blur' },
     { pattern: PHONE_RE, message: '手机号格式不正确', trigger: 'blur' },
@@ -61,7 +61,7 @@ const rules: FormRules<typeof form> = {
   ],
 }
 
-// 两种联系方式分别发送、校验；输入目标变化后清除旧验证码及倒计时。
+//手机号和邮箱分别维护验证码状态
 const phoneVerification = useVerifyCode(
   'REGISTER',
   () => form.phone,
@@ -87,7 +87,7 @@ watch(
   },
 )
 
-// 切换身份时清掉已选的材料：从配送员切走后，这个文件不应该再被提交
+//切换到收寄件人时清除审核材料
 watch(
   () => form.role,
   (role) => {
@@ -98,11 +98,7 @@ watch(
   },
 )
 
-/**
- * 上传前预校验类型和大小，省掉一次必然失败(3002/3003)的往返。
- * 材料没有走 el-form 的 rules：async-validator 不理解 File 对象，
- * 硬塞进 form model 需要一个假字段再手动 validateField，不如在提交时判三行来得直白。
- */
+//上传前检查材料类型和大小
 function onMaterialChange(file: UploadFile) {
   const problem = validateImageFile(file.raw)
   if (problem) {
@@ -139,14 +135,13 @@ async function onSubmit() {
         password: form.password,
         role: form.role,
         gender: form.gender,
-        // 空串要转成 undefined，否则 FormData 会把 "" 发过去，后端的 @Pattern/@Email 会判失败
+        //空联系方式不提交
         phone: form.phone || undefined,
         email: form.email || undefined,
         phoneCode: form.phone ? form.phoneCode : undefined,
         emailCode: form.email ? form.emailCode : undefined,
       },
-      // material 是 File | null，而 register 收 File | undefined；
-      // 上面已经拦过「配送员必须有材料」，这里只是把 null 收敛成 undefined
+      //收寄件人不提交审核材料
       form.role === 'COURIER' ? (material.value ?? undefined) : undefined,
     )
     ElMessage.success(
@@ -156,7 +151,7 @@ async function onSubmit() {
     )
     returnToLogin()
   } catch (error) {
-    // 验证码错误时保留输入供修正；其他失败可能已消费验证码，允许立即重新获取。
+    //验证码错误时保留输入，其他失败允许重新获取
     if (!(error instanceof ApiError) || error.code !== 2011) {
       form.phoneCode = ''
       form.emailCode = ''
@@ -184,7 +179,7 @@ async function onSubmit() {
     </el-alert>
 
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent>
-      <!-- radio 组没有可标注的输入控件：置空 for 让 label 按 div 渲染，避免 Chrome 的 label[for] 无效引用警告 -->
+      <!-- radio 组不关联单个输入控件 -->
       <el-form-item for="" label="注册身份" prop="role">
         <el-radio-group v-model="form.role">
           <el-radio-button v-for="o in registerRoleOptions" :key="o.value" :value="o.value">
@@ -297,7 +292,7 @@ async function onSubmit() {
 </template>
 
 <style scoped>
-/* .title / .submit / .code-row / .links 的共性在 styles/auth-theme.css 里统一 */
+/* 认证页公共样式见 auth-theme.css */
 .append-tip {
   margin-bottom: 20px;
   font-size: 13px;

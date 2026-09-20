@@ -2,10 +2,7 @@ import { ref, shallowRef } from 'vue'
 
 import type { PageResult } from '@/types'
 
-/**
- * 分页列表的通用状态与加载流程。
- * sequence 保证连续筛选或切页时，较慢的旧请求不会覆盖最新结果。
- */
+//sequence 防止旧请求覆盖最新列表
 export function usePagedList<T>(request: (currentPage: number) => Promise<PageResult<T>>) {
   const rows = shallowRef<T[]>([])
   const total = ref(0)
@@ -38,7 +35,7 @@ export function usePagedList<T>(request: (currentPage: number) => Promise<PageRe
     void load()
   }
 
-  /** 供同一组件切换列表范围时立即清掉旧页面数据。 */
+  //切换列表范围时立即清空旧数据
   function clear() {
     sequence++
     rows.value = []

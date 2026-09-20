@@ -1,14 +1,10 @@
-/*
- * 三个工作台（AdminDashboard / CustomerDashboard / CourierDashboard）共享的页面骨架样式。
- * 页面根元素统一挂 .dashboard-page，把通用类名（.welcome / .stats 等）圈在命名空间里，
- * 避免提升为全局样式后与其他页面撞名。统计卡片是独立组件 components/StatCard.vue。
- */
+/* 工作台公共样式 */
 
 .dashboard-page {
   width: 100%;
 }
 
-/* 顶部欢迎区 */
+/* 欢迎区 */
 .dashboard-page .welcome {
   display: flex;
   align-items: center;
@@ -41,7 +37,7 @@
   color: var(--ce-text-faint);
 }
 
-/* 工作台的主要入口保持同一视觉语言，在窄容器中可自然收缩。 */
+/* 主要入口 */
 .dashboard-page .dashboard-primary-action {
   display: inline-flex;
   align-items: center;
@@ -96,7 +92,7 @@
   line-height: 1;
 }
 
-/* 统计卡片网格（卡片本身在 StatCard 组件里） */
+/* 统计卡片 */
 .dashboard-page .stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
@@ -107,7 +103,7 @@
   margin-top: 20px;
 }
 
-/* 最近订单表格卡片 */
+/* 最近订单 */
 .dashboard-page .recent-card {
   margin-top: 24px;
   border: 1px solid var(--ce-border);
@@ -147,7 +143,7 @@
   color: var(--ce-text-body);
 }
 
-/* 表格行可点击进详情 */
+/* 可点击行 */
 .dashboard-page .el-table__row {
   cursor: pointer;
 }

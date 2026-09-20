@@ -140,8 +140,7 @@ async function logout() {
 </template>
 
 <style scoped>
-/* 品牌区 / 账户区 / 头像的共性样式在 styles/workspace-shell.css（.app-shell 命名空间），
-   这里只保留用户工作台自己的部分：布局网格、导航按钮、内容区。 */
+/* 用户工作台布局，公共外壳样式见 workspace-shell.css */
 .workbench-shell {
   display: grid;
   grid-template-columns: 236px minmax(0, 1fr);
@@ -180,10 +179,10 @@ async function logout() {
   border: 0;
   border-radius: 10px;
   transition: 0.2s ease;
-  /* 导航是 li/button 之外也禁止选中：触屏长按会拉出浅色选区 */
+  /* 避免触屏长按选中文字 */
   -webkit-user-select: none;
   user-select: none;
-  /* 触屏点按默认的半透明高亮块在深色导航上像一块色斑 */
+  /* 去掉触屏点击高亮 */
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -205,7 +204,7 @@ async function logout() {
 
 @media (max-width: 720px) {
   .workbench-shell {
-    /* 与管理端一致地改为纵向弹性外壳，避免网格隐式行随页面内容加载而拉伸导航。 */
+    /* 移动端改为纵向布局 */
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -225,13 +224,13 @@ async function logout() {
   }
 
   .side-nav {
-    /* 移动端不需要撑满侧栏，固定内容高度，杜绝任何瞬态拉伸 */
+    /* 导航高度跟随内容 */
     flex: 0 0 auto;
     flex-direction: row;
     align-items: center;
     overflow-x: auto;
     overflow-y: hidden;
-    /* 触屏上横滑即可，露出的滚动条在深色底上像一块色斑 */
+    /* 横向滚动时隐藏滚动条 */
     scrollbar-width: none;
   }
 
@@ -244,7 +243,7 @@ async function logout() {
     width: auto;
     min-width: 116px;
     height: 45px;
-    /* 压缩后文字空间不足会折行，把导航行撑高 */
+    /* 防止导航文字换行 */
     white-space: nowrap;
   }
 

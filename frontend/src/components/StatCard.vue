@@ -1,11 +1,10 @@
 <script setup lang="ts">
-// 三个工作台（Admin / Customer / Courier）共用的统计卡片。
-// 图标走默认插槽（Element Plus 图标组件或任意元素），点击等事件透传到根元素。
+//工作台共用的统计卡片
 withDefaults(
   defineProps<{
     label: string
     value: number | string
-    /** 图标区的配色，对应各工作台原来的 blue/amber/violet/red/green 变体 */
+    //图标区配色
     tone?: 'blue' | 'amber' | 'violet' | 'red' | 'green'
   }>(),
   { tone: 'blue' },
@@ -42,7 +41,7 @@ withDefaults(
   box-shadow: var(--ce-shadow-card-hover);
 }
 
-/* 图标尺寸走 font-size：el-icon 内部是 1em 的 svg，文字图标（如 ¥）也按同一字号对齐 */
+/* 图标和文字符号共用字号 */
 .stat-icon {
   display: grid;
   flex: 0 0 auto;

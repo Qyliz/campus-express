@@ -1,9 +1,4 @@
-/*
- * 两个布局外壳（AdminLayout / UserWorkspaceLayout）共享的侧栏样式：
- * 品牌区、账户区、头像。两布局根元素统一挂 .app-shell、侧栏统一挂 .shell-aside，
- * 只收拢两边逐字相同的规则；内边距、菜单/导航等差异留在各自的 scoped 样式里
- * （scoped 选择器带 data-v 属性，与这里同名规则叠加时以后加载的为准，行为可预期）。
- */
+/* 管理端和用户工作台共用的外壳样式 */
 
 .app-shell .shell-aside {
   position: sticky;
@@ -14,14 +9,14 @@
   background: var(--ce-shell-bg);
 }
 
-/* 两套工作区内容容器使用不同标签和桌面间距，但基础收缩与防横向溢出行为相同。 */
+/* 内容区 */
 .app-shell .shell-content {
   min-width: 0;
   max-width: 100%;
   overflow-x: hidden;
 }
 
-/* ===== 品牌区：button 重置成纯文字行 ===== */
+/* 品牌区 */
 
 .app-shell .brand {
   display: flex;
@@ -68,7 +63,7 @@
   width: 21px;
 }
 
-/* ===== 账户区 ===== */
+/* 账户区 */
 
 .app-shell .account {
   display: flex;

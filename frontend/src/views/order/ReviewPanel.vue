@@ -32,7 +32,7 @@ async function load() {
     const result = await getReviews(props.orderId)
     if (current === sequence) data.value = result
   } catch {
-    /* 统一错误提示 */
+    //提示由请求拦截器处理
   } finally {
     if (current === sequence) loading.value = false
   }
@@ -62,7 +62,7 @@ async function submitReview() {
     ElMessage.success('评价成功')
     await load()
   } catch {
-    /* 保留输入 */
+    //提交失败时保留输入
   } finally {
     submitting.value = false
   }
@@ -85,7 +85,7 @@ async function submitAppeal() {
     ElMessage.success('申诉已提交')
     await load()
   } catch {
-    /* 保留输入 */
+    //提交失败时保留输入
   } finally {
     submitting.value = false
   }

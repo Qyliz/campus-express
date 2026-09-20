@@ -39,7 +39,7 @@ onMounted(load)
   <el-card shadow="never" class="page-card">
     <el-form inline class="filter-form" @submit.prevent>
       <el-form-item label="状态">
-        <!-- 默认「全部」：空串哨兵 + 显式的全部选项，不加 clearable -->
+        <!-- 空串表示全部 -->
         <el-select v-model="filters.status" placeholder="全部" class="filter-control">
           <el-option label="全部" value="" />
           <el-option

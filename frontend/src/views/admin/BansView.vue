@@ -9,12 +9,12 @@ import { formatDateTime } from '@/utils/date'
 import { orUndefined, type All } from '@/utils/query'
 import type { GenderEnum, RoleEnum, SortEnum, UserBanRecordVO } from '@/types'
 
-/** 筛选值一律用 All<T>，'' 表示「全部」；发请求前统一走 orUndefined()，见 @/utils/query。 */
+//空串表示不限制该筛选项
 const filters = reactive({
   username: '',
   phone: '',
   email: '',
-  /** 布尔三态直接用真布尔承载：'' 不传 / false 封禁中 / true 已解封 */
+  //空串表示全部，布尔值表示解封状态
   unbanned: '' as All<boolean>,
   deleted: '' as All<boolean>,
   sort: '' as All<SortEnum>,
@@ -55,7 +55,7 @@ function resetFilters() {
 onMounted(load)
 
 async function onUnban(row: UserBanRecordVO) {
-  // confirm 单独一个 try：点「取消」时它 reject，不能和接口错误混在一个 catch 里
+  //取消确认不应进入接口错误处理
   try {
     await ElMessageBox.confirm(
       `确定解封「${row.username}」的${roleLabel[row.role]}账号吗？解封后他可以重新登录。`,
@@ -66,12 +66,12 @@ async function onUnban(row: UserBanRecordVO) {
     return
   }
   try {
-    // 解封和封禁一样要同时发 userId + role：针对的是这一个角色账户
+    //解封用户的指定角色
     await unbanUser({ userId: row.userId, role: row.role })
     ElMessage.success('已解封')
     load()
   } catch {
-    // 列表数据过期时后端会返回 2009 账号未被封禁，拦截器已提示
+    //提示由请求拦截器处理
   }
 }
 </script>
@@ -105,7 +105,7 @@ async function onUnban(row: UserBanRecordVO) {
           />
         </el-form-item>
         <el-form-item label="封禁状态">
-          <!-- 三态查询参数是 Boolean：'' 不传 / false 封禁中 / true 已解封。布尔值必须用 :value 绑定。 -->
+          <!-- 布尔值使用 :value，空串表示全部 -->
           <el-select v-model="filters.unbanned" placeholder="全部" class="filter-control">
             <el-option label="全部" value="" />
             <el-option label="封禁中" :value="false" />

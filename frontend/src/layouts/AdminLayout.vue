@@ -41,7 +41,7 @@ async function logout() {
         <span><b>校园配送</b><small>管理后台</small></span>
       </button>
 
-      <!-- :router="true" + index 等于路由路径 ⇒ default-active 自动跟随 URL，不用写点击处理 -->
+      <!-- 菜单索引直接使用路由路径 -->
       <el-menu
         :default-active="activeMenu"
         router
@@ -127,8 +127,7 @@ async function logout() {
 </template>
 
 <style scoped>
-/* 品牌区 / 账户区 / 头像的共性样式在 styles/workspace-shell.css（.app-shell 命名空间），
-   这里只保留管理端自己的部分：侧栏内边距、菜单、面包屑头、内容区。 */
+/* 管理端布局，公共外壳样式见 workspace-shell.css */
 .admin-shell {
   min-height: 100vh;
 }
@@ -160,10 +159,10 @@ async function logout() {
   height: 46px;
   margin: 4px 18px;
   border-radius: 10px;
-  /* el-menu-item 是 li：触屏长按会拉出浅色文字选区 */
+  /* 避免触屏长按选中文字 */
   -webkit-user-select: none;
   user-select: none;
-  /* 触屏点按默认的半透明高亮块在深色导航上像一块色斑 */
+  /* 去掉触屏点击高亮 */
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -214,7 +213,7 @@ async function logout() {
     display: flex;
     overflow-x: auto;
     padding: 0 10px 14px;
-    /* 触屏上横滑即可，露出的滚动条在深色底上像一块色斑 */
+    /* 横向滚动时隐藏滚动条 */
     scrollbar-width: none;
   }
 

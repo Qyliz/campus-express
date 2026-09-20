@@ -50,7 +50,7 @@ async function submit() {
     ElMessage.success('订单已发布，请完成支付')
     await router.push({ name: 'order-detail', params: { id } })
   } catch {
-    /* 统一接口提示 */
+    //提示由请求拦截器处理
   } finally {
     submitting.value = false
   }

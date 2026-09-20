@@ -20,7 +20,7 @@ const route = useRoute()
 const router = useRouter()
 const scope = computed(() => route.meta.orderScope as OrderScope)
 const filters = reactive({
-  // '' = 全部订单；省略该参数时后端 OrderQueryDTO.relation 的字段初始值就是 ALL。
+  //空串沿用后端默认的全部关系
   relation: '' as All<Exclude<OrderRelationEnum, 'ALL'>>,
   orderStatus: '' as All<OrderStatusEnum>,
   orderId: '',
@@ -47,7 +47,7 @@ function resetFilters() {
   Object.assign(filters, { relation: '', orderStatus: '', orderId: '' })
   search()
 }
-// immediate: true 让这一段同时充当首屏加载；切 scope 时清空筛选而不只是清列表。
+//切换范围时重置筛选并重新加载
 watch(
   scope,
   () => {
@@ -150,7 +150,7 @@ async function accept(id: string) {
           ><span v-else>—</span></template
         >
       </el-table-column>
-      <!-- 待接单订单还没有骑手，骑手信息对用户端也是空白，所以大厅不显示这一列 -->
+      <!-- 接单大厅不显示骑手列 -->
       <el-table-column
         v-if="scope !== 'available'"
         label="配送员"
@@ -218,7 +218,7 @@ async function accept(id: string) {
   </el-card>
 </template>
 <style scoped>
-/* 分页底边距与居中布局复用全局 .pager（assets/main.css） */
+/* 分页使用全局 pager 样式 */
 .notice {
   margin-bottom: 16px;
 }

@@ -75,7 +75,7 @@ async function nextStep() {
     })
     step.value = 1
   } catch {
-    // 后端会区分验证码错误与验证码过期，统一拦截器已经提示。
+    //提示由请求拦截器处理
   } finally {
     checking.value = false
   }
@@ -95,8 +95,7 @@ async function onSubmit() {
     ElMessage.success('密码已重置，请用新密码登录')
     returnToLogin()
   } catch (e) {
-    // 2011 验证码错误 → 留在原步骤让用户重填；
-    // 2012 验证码已过期或失效 → 这个码已经废了，退回第一步重新获取
+    //验证码过期后退回获取步骤，输入错误则留在当前步骤
     if (e instanceof ApiError && e.code === 2012) {
       reset()
       form.code = ''
@@ -201,7 +200,7 @@ async function onSubmit() {
 </template>
 
 <style scoped>
-/* .title / .submit / .code-row / .links 的共性在 styles/auth-theme.css 里统一 */
+/* 认证页公共样式见 auth-theme.css */
 .steps {
   margin-bottom: 24px;
 }
