@@ -49,7 +49,7 @@ public class RegisterLoginTest {
     @Autowired
     private UserAuditRecordService userAuditRecordService;
 
-    //构造注册（multipart）请求，密码固定 1234567；配送员需带审核材料，收寄件人不带
+    //构造注册请求并按角色决定是否携带审核材料
     private MockMultipartHttpServletRequestBuilder register(String username, String phone, String email,
                                                              String role, boolean withMaterial) {
         return register(username, "1234567", phone, email, role, withMaterial);
@@ -83,7 +83,7 @@ public class RegisterLoginTest {
         mockMvc.perform(register("zhangsan", "13788888888", "qwert@email.com", "CUSTOMER", false))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
-        //手机号已绑定：同手机号但密码不符，不能借注册之名接管他人账号
+        //已绑定手机号不能通过不同密码注册接管账号
         mockMvc.perform(register("lisi", "wrongpass", "13788888888", null, "COURIER", true))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.PHONE_ALREADY_BIND.getCode()));
@@ -93,14 +93,14 @@ public class RegisterLoginTest {
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.PARAM_ERROR.getCode()));
     }
 
-    //一人多角色：同手机号 + 同密码可追加新角色，但不覆盖已有资料，也不重复建 user 行
+    //相同手机号和密码可追加新角色但不覆盖资料或重复创建用户
     @Test
     void addRoleToExistingUser() throws Exception {
         mockMvc.perform(register("zhangsan", "13777777777", null, "CUSTOMER", false))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
 
-        //追加配送员角色（第二次填的用户名应被忽略）
+        //追加配送员角色时忽略重复提交的用户资料
         mockMvc.perform(register("lisi", "13777777777", null, "COURIER", true))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
@@ -151,11 +151,11 @@ public class RegisterLoginTest {
         mockMvc.perform(login("13788888888", "12345678", "CUSTOMER"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.LOGIN_ERROR.getCode()));
-        //注册配送员（需材料）-> 审核中
+        //配送员携带材料注册后进入审核中状态
         mockMvc.perform(register("lisi", "13888888888", null, "COURIER", true))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
-        //账号状态异常（审核中不可登录）
+        //审核中的账号不能登录
         mockMvc.perform(login("13888888888", "1234567", "COURIER"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.ACCOUNT_REVIEWING.getCode()));

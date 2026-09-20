@@ -64,7 +64,7 @@ class OrderFlowTest extends IntegrationTestSupport {
         service.act(courier, COURIER, id, PICKUP, null);
         service.act(courier, COURIER, id, DELIVER, null);
         service.act(customer, CUSTOMER, id, COMPLETE, null);
-        ExpressOrder result = service.detail(customer, CUSTOMER, id).order();
+        ExpressOrder result = service.detail(customer, CUSTOMER, id).getOrder();
         assertEquals(COMPLETED, result.getOrderStatus());
         assertEquals(PAID, result.getPaymentStatus());
         assertEquals(5, result.getVersion());
@@ -85,7 +85,7 @@ class OrderFlowTest extends IntegrationTestSupport {
         service.act(customer, CUSTOMER, paid, CANCEL, "地址填写错误");
         assertEquals(REFUNDED, orders.selectById(paid).getPaymentStatus());
         assertEquals(CANCELLED, orders.selectById(paid).getOrderStatus());
-        assertEquals("地址填写错误", service.detail(customer, CUSTOMER, paid).records().get(2).getDescription());
+        assertEquals("地址填写错误", service.detail(customer, CUSTOMER, paid).getRecords().get(2).getDescription());
     }
 
     @Test
@@ -138,7 +138,7 @@ class OrderFlowTest extends IntegrationTestSupport {
         Long customer = createUser(CUSTOMER, "订单测试"), courier = createUser(COURIER, "订单测试");
         Long id = service.create(customer, CUSTOMER, form());
         service.act(customer, CUSTOMER, id, PAY, null);
-        // MyBatis 一级缓存会复用实体对象，复制快照才能模拟另一个事务读到的旧版本。
+        //复制快照以模拟另一事务读取到的旧版本
         ExpressOrder stale = new ExpressOrder();
         org.springframework.beans.BeanUtils.copyProperties(orders.selectById(id), stale);
         service.act(courier, COURIER, id, ACCEPT, null);
@@ -150,13 +150,13 @@ class OrderFlowTest extends IntegrationTestSupport {
         assertEquals(3, count(id));
     }
 
-    // 匿名请求一律 401，与后面的登录态用例拆开，避免一个方法混多个场景。
+    //匿名请求统一返回未登录
     @Test
     void orderEndpointsRejectAnonymousRequests() throws Exception {
         mvc.perform(get("/api/order/mine")).andExpect(status().isUnauthorized());
     }
 
-    // 下单与分页参数的校验全部走 @Valid，非法值统一返回 PARAM_ERROR。
+    //下单与分页参数非法时统一返回参数错误
     @Test
     void createOrderValidatesFeeAndPageParameters() throws Exception {
         Cookie cookie = registerAndLoginCustomer();
@@ -175,7 +175,7 @@ class OrderFlowTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.code").value(1));
     }
 
-    // 雪花 id 超过 JS 的安全整数范围，HTTP 层必须序列化成字符串。
+    //订单长整型标识在接口中序列化为字符串
     @Test
     void orderIdIsSerializedAsString() throws Exception {
         Cookie cookie = registerAndLoginCustomer();
@@ -188,7 +188,7 @@ class OrderFlowTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.code").value(0)).andExpect(jsonPath("$.data").isString());
     }
 
-    // 接单大厅是配送员专属，收寄件人访问返回 NO_PERMISSION。
+    //收寄件人访问接单大厅时返回无权限
     @Test
     void customerCannotEnterCourierHall() throws Exception {
         Cookie cookie = registerAndLoginCustomer();

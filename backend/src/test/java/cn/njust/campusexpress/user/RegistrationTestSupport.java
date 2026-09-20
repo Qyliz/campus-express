@@ -5,7 +5,7 @@ import cn.njust.campusexpress.model.user.service.VerifyCodeService;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 
-/** 普通业务测试通过真实验证码服务准备注册请求；验证码异常由专门测试覆盖。 */
+//为用户业务测试构造带真实验证码的注册请求
 public final class RegistrationTestSupport {
     private RegistrationTestSupport() {}
 

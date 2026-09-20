@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.EnumValue;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-/** 配送异常类型：数据库保存数字，接口使用枚举名称。 */
+//配送异常类型
 @Getter
 @AllArgsConstructor
 public enum ExceptionTypeEnum {

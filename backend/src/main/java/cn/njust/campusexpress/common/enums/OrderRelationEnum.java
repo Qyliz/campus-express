@@ -3,7 +3,7 @@ package cn.njust.campusexpress.common.enums;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-/** 当前收寄件人与订单的关系，仅用于接口筛选，不对应数据库字段。 */
+//当前收寄件人与订单的关系
 @Getter
 @AllArgsConstructor
 public enum OrderRelationEnum {

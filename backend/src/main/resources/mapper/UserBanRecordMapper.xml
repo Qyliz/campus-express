@@ -6,8 +6,7 @@
 <mapper namespace="cn.njust.campusexpress.model.user.mapper.UserBanRecordMapper">
 
     <!-- 分页查询封禁记录列表：被封禁账户的角色已作为 user_ban_record.role 列存下，
-         故只需联 user 主表取用户名、性别、手机号、邮箱。
-         注意：deleted 过滤只能判断 u.deleted，角色账户行已注销不再隐藏其历史封禁记录（封禁记录本就用于留痕）。 -->
+         故只需联 user 主表取用户名、性别、手机号、邮箱。 -->
     <select id="selectBanPage" resultType="cn.njust.campusexpress.model.user.vo.UserBanRecordVO">
         SELECT b.id AS userBanRecordId,
         b.user_id AS userId,
@@ -22,7 +21,7 @@
         FROM user_ban_record b
         INNER JOIN user u ON b.user_id = u.id
         <where>
-            <!-- deleted 为空则不过滤（完整留痕）；true 仅已注销；false 仅活跃 -->
+            <!-- deleted 为空则不过滤；true 仅已注销；false 仅活跃 -->
             <if test="dto.deleted != null">
                 <choose>
                     <when test="dto.deleted">

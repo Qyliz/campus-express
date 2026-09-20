@@ -29,10 +29,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * 集成测试公共支撑：统一的用户 fixture、登录助手与外键安全的清理。
- * 基类不带 @Transactional —— 需要回滚的测试自行标注，需要真实提交的测试（并发/回滚验证）直接复用清理助手。
- */
+//提供集成测试共用的用户、登录和数据清理方法
 @SpringBootTest
 @AutoConfigureMockMvc
 public abstract class IntegrationTestSupport {
@@ -44,15 +41,12 @@ public abstract class IntegrationTestSupport {
     @Autowired protected MockMvc mvc;
     @Autowired protected JdbcTemplate jdbc;
 
-    /** 本测试类创建过的 user id；非事务测试在 @AfterEach 里用 {@link #cleanupCreatedData()} 清掉。 */
+    //记录非事务测试创建的用户
     protected final List<Long> createdUserIds = new ArrayList<>();
-    /** 本测试类创建过的订单 id，清理时必须先于用户删除（订单对角色账户是 NO ACTION 引用）。 */
+    //记录非事务测试创建的订单
     protected final List<Long> createdOrderIds = new ArrayList<>();
 
-    /**
-     * 建一个带角色账户的测试用户：手机号走 14 号段随机（见 TestPhones），邮箱随机，
-     * 密码统一 test123，可直接凭邮箱登录。
-     */
+    //创建带指定角色账户的测试用户
     protected Long createUser(UserRoleEnum role, String username) {
         User user = new User();
         user.setUsername(username);
@@ -66,7 +60,7 @@ public abstract class IntegrationTestSupport {
         return user.getId();
     }
 
-    /** 通过 HTTP 注册一个收寄件人（NORMAL），并断言 user 主表行与 customer 角色账户行都已创建。 */
+    //通过接口注册收寄件人并校验用户和角色账户均已创建
     protected Long registerCustomer(String username, String phone) throws Exception {
         mvc.perform(RegistrationTestSupport.registration(registrationCodes)
                         .param("username", username)
@@ -83,12 +77,12 @@ public abstract class IntegrationTestSupport {
         return user.getId();
     }
 
-    /** 用 fixture 用户的随机邮箱 + test123 登录，返回 satoken Cookie。 */
+    //使用测试用户凭证登录并返回会话Cookie
     protected Cookie login(Long userId, UserRoleEnum role) throws Exception {
         return login(users.getById(userId).getEmail(), "test123", role.name());
     }
 
-    /** 通过 HTTP 注册一个随机手机号（14 号段）、随机邮箱的收寄件人并登录，返回 satoken Cookie。 */
+    //注册并登录随机收寄件人
     protected Cookie registerAndLoginCustomer() throws Exception {
         String email = UUID.randomUUID() + "@example.com";
         mvc.perform(RegistrationTestSupport.registration(registrationCodes)
@@ -103,17 +97,14 @@ public abstract class IntegrationTestSupport {
         return login(email, "1234567", UserRoleEnum.CUSTOMER.name());
     }
 
-    /** 用任意凭证登录，返回 satoken Cookie（登录失败时为 null，由调用方断言）。 */
+    //使用指定凭证登录并返回会话Cookie
     protected Cookie login(String account, String password, String role) throws Exception {
         return mvc.perform(post("/api/user/login").contentType(MediaType.APPLICATION_JSON)
                         .content(String.format("{\"account\":\"%s\",\"password\":\"%s\",\"role\":\"%s\"}", account, password, role)))
                 .andReturn().getResponse().getCookie("satoken");
     }
 
-    /**
-     * 非事务测试的 @AfterEach 清理，顺序由外键决定：
-     * 先删订单（级联清掉流转记录/异常/评价/申诉），再删用户（级联清掉角色账户与审核/封禁记录）。
-     */
+    //按外键依赖顺序清理订单和用户测试数据
     protected void cleanupCreatedData() {
         for (Long id : createdOrderIds) {
             jdbc.update("delete from express_order where id = ?", id);

@@ -1,12 +1,13 @@
 package cn.njust.campusexpress.model.order.entity;
-import com.baomidou.mybatisplus.annotation.*;
-import cn.njust.campusexpress.common.enums.UserRoleEnum;
+
 import cn.njust.campusexpress.common.enums.OrderStatusEnum;
+import cn.njust.campusexpress.common.enums.UserRoleEnum;
 import lombok.Data;
+
 import java.util.Date;
+
 @Data
 public class OrderStatusRecord {
-    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
     private Long orderId;
     private OrderStatusEnum fromStatus;

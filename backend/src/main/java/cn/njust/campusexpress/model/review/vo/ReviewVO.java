@@ -1,4 +1,14 @@
 package cn.njust.campusexpress.model.review.vo;
-import cn.njust.campusexpress.model.review.entity.*;
-/** 评价条目。username 由 user 表解析，供用户端展示；管理端申诉页仍按裸 ID 定位账户。 */
-public record ReviewVO(ServiceReview review, ReviewAppeal appeal, boolean canAppeal, String username) {}
+
+import cn.njust.campusexpress.model.review.entity.ReviewAppeal;
+import cn.njust.campusexpress.model.review.entity.ServiceReview;
+import lombok.Data;
+
+//订单评价VO
+@Data
+public class ReviewVO {
+    private ServiceReview review;
+    private ReviewAppeal appeal;
+    private boolean canAppeal;
+    private String username;
+}

@@ -8,10 +8,7 @@ import lombok.Data;
 
 import java.util.Date;
 
-/**
- * 角色账户表的公共结构，对应 customer / courier / admin 三张同构表。
- * 抽象基类不能加 @TableName，表名由各具体子类按驼峰转下划线推导。
- */
+//角色账户表的公共结构，对应customer、courier、admin三张同构表。
 @Data
 public abstract class RoleAccount {
     private Long id;

@@ -3,9 +3,7 @@ package cn.njust.campusexpress.common.enums;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-/**
- * 验证码使用场景。不同场景的验证码相互隔离，不可跨场景复用。
- */
+//验证码使用场景，不同场景的验证码相互隔离
 @Getter
 @AllArgsConstructor
 public enum VerifySceneEnum {

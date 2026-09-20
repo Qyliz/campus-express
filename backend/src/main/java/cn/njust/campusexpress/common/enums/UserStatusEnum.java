@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.EnumValue;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+//账号审核状态
 @Getter
 @AllArgsConstructor
 public enum UserStatusEnum {

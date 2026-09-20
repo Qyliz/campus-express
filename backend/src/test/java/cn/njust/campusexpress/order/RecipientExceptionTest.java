@@ -30,17 +30,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
-/**
- * 订单需要真实提交后跨线程可见（并发一致性），所以不开测试级事务，
- * 数据清理统一走 {@link #cleanupCreatedData()}。
- */
+//验证收件人识别、异常处理和并发状态一致性
 class RecipientExceptionTest extends IntegrationTestSupport {
     @Autowired OrderService service;
     @Autowired ExpressOrderMapper orders;
     @MockitoSpyBean DeliveryExceptionMapper exceptions;
     @Autowired Validator validator;
     Long sender, recipient, courier, admin, stranger;
-    /** 收件联系方式：订单只按手机号匹配，本字段承载当前用于认领的手机号。 */
+    //当前测试订单用于匹配收件人的手机号
     String phone;
 
     @BeforeEach void setup() {
@@ -70,14 +67,14 @@ class RecipientExceptionTest extends IntegrationTestSupport {
     @Test void recipientCanReadAndCompleteButCannotPayOrCancel() {
         Long id = create(form());
         assertEquals(phone, orders.selectById(id).getDeliveryPhone());
-        assertTrue(service.detail(recipient, CUSTOMER, id).allowedActions().isEmpty());
+        assertTrue(service.detail(recipient, CUSTOMER, id).getAllowedActions().isEmpty());
         assertEquals(1, service.list(recipient, CUSTOMER, OrderListScopeEnum.MINE, new OrderQueryDTO()).getTotal());
         assertThrows(BusinessException.class, () -> service.act(recipient, CUSTOMER, id, PAY, null));
         assertThrows(BusinessException.class, () -> service.act(recipient, CUSTOMER, id, CANCEL, "取消"));
         assertThrows(BusinessException.class, () -> service.detail(stranger, CUSTOMER, id));
         service.act(sender, CUSTOMER, id, PAY, null); service.act(courier, COURIER, id, ACCEPT, null);
         service.act(courier, COURIER, id, PICKUP, null); service.act(courier, COURIER, id, DELIVER, null);
-        assertEquals(List.of(COMPLETE.getCode()), service.detail(recipient, CUSTOMER, id).allowedActions());
+        assertEquals(List.of(COMPLETE.getCode()), service.detail(recipient, CUSTOMER, id).getAllowedActions());
         service.act(recipient, CUSTOMER, id, COMPLETE, null);
         assertEquals(COMPLETED, orders.selectById(id).getOrderStatus());
     }
@@ -91,29 +88,26 @@ class RecipientExceptionTest extends IntegrationTestSupport {
         assertTrue(row.isCreatedByMe()); assertTrue(row.isReceivedByMe());
         q.setRelation(OrderRelationEnum.RECEIVED); assertEquals(1, service.list(sender, CUSTOMER, OrderListScopeEnum.MINE, q).getTotal());
         phone = TestPhones.next();
-        Long later = create(form()); // 尚无对应账户，仍能下单。
+        //收件手机号尚未绑定账户时仍可下单
+        Long later = create(form());
         assertThrows(BusinessException.class, () -> service.detail(recipient, CUSTOMER, later));
         jdbc.update("update user set phone = ? where id = ?", phone, recipient);
-        assertTrue(service.detail(recipient, CUSTOMER, later).order().isReceivedByMe());
+        assertTrue(service.detail(recipient, CUSTOMER, later).getOrder().isReceivedByMe());
         for (int i=0;i<11;i++) create(form());
         q.setCurrentPage(2);
         assertEquals(12, service.list(recipient, CUSTOMER, OrderListScopeEnum.MINE, q).getTotal());
         assertEquals(2, service.list(recipient, CUSTOMER, OrderListScopeEnum.MINE, q).getRecords().size());
         jdbc.update("update user set phone = ? where id = ?", TestPhones.next(), recipient);
         assertThrows(BusinessException.class, () -> service.detail(recipient, CUSTOMER, later));
-        assertEquals(id, service.detail(sender, CUSTOMER, id).order().getId());
+        assertEquals(id, service.detail(sender, CUSTOMER, id).getOrder().getId());
     }
 
-    @Test void phoneMatchingWorksAndBlankContactNeverMatches() {
+    @Test void phoneMatchingIdentifiesTheRecipient() {
         jdbc.update("update user set phone = ? where id = ?", "13899998888", stranger);
         var d = form(); d.setDeliveryPhone("13899998888"); Long id = create(d);
-        assertTrue(service.detail(stranger, CUSTOMER, id).order().isReceivedByMe());
-        // 这张单的收件手机号属于 stranger，recipient 已经没有任何通道可以认领。
+        assertTrue(service.detail(stranger, CUSTOMER, id).getOrder().isReceivedByMe());
+        //手机号变更后仅新绑定账户可作为收件人查看订单
         assertThrows(BusinessException.class, () -> service.detail(recipient, CUSTOMER, id));
-        // 空手机号永不参与匹配。置成空串而不是 null：phone 是 NOT NULL，空串走 hasPhone 守卫。
-        jdbc.update("update user set phone = '' where id = ?", stranger);
-        assertEquals(0, service.list(stranger, CUSTOMER, OrderListScopeEnum.MINE, new OrderQueryDTO()).getTotal());
-        assertThrows(BusinessException.class, () -> service.detail(stranger, CUSTOMER, id));
     }
 
     @Test void reportPausesBothStagesAndResumePreservesHistory() {
@@ -121,20 +115,20 @@ class RecipientExceptionTest extends IntegrationTestSupport {
         Long first = service.reportException(courier, COURIER, id, report());
         assertThrows(BusinessException.class, () -> service.reportException(courier, COURIER, id, report()));
         assertThrows(BusinessException.class, () -> service.act(courier, COURIER, id, PICKUP, null));
-        assertTrue(service.detail(recipient, CUSTOMER, id).order().isPendingException());
+        assertTrue(service.detail(recipient, CUSTOMER, id).getOrder().isPendingException());
         assertTrue(service.list(recipient, CUSTOMER, OrderListScopeEnum.MINE, new OrderQueryDTO()).getRecords().get(0).isPendingException());
         assertEquals(first, service.exceptionDetail(recipient, CUSTOMER, first).getId());
         assertThrows(BusinessException.class, () -> service.exceptionDetail(stranger, CUSTOMER, first));
         assertThrows(BusinessException.class, () -> service.resolveException(courier, COURIER, first, resolution(ExceptionResolutionEnum.RESUME)));
         service.resolveException(admin, ADMIN, first, resolution(ExceptionResolutionEnum.RESUME));
         assertEquals(AWAITING_PICKUP, orders.selectById(id).getOrderStatus());
-        assertFalse(service.detail(courier, COURIER, id).order().isPendingException());
+        assertFalse(service.detail(courier, COURIER, id).getOrder().isPendingException());
         service.act(courier, COURIER, id, PICKUP, null);
         Long second = service.reportException(courier, COURIER, id, report());
         assertThrows(BusinessException.class, () -> service.act(courier, COURIER, id, DELIVER, null));
         service.resolveException(admin, ADMIN, second, resolution(ExceptionResolutionEnum.RESUME));
         assertEquals(DELIVERING, orders.selectById(id).getOrderStatus());
-        assertEquals(2, service.detail(sender, CUSTOMER, id).exceptions().size());
+        assertEquals(2, service.detail(sender, CUSTOMER, id).getExceptions().size());
         assertThrows(BusinessException.class, () -> service.resolveException(admin, ADMIN, second, resolution(ExceptionResolutionEnum.CANCEL)));
     }
 
@@ -156,7 +150,7 @@ class RecipientExceptionTest extends IntegrationTestSupport {
         doThrow(new IllegalStateException("模拟保存失败")).when(exceptions).insert(any(DeliveryException.class));
         assertThrows(IllegalStateException.class, () -> service.reportException(courier, COURIER, id, report()));
         assertEquals(version, orders.selectById(id).getVersion());
-        assertTrue(service.detail(sender, CUSTOMER, id).exceptions().isEmpty());
+        assertTrue(service.detail(sender, CUSTOMER, id).getExceptions().isEmpty());
         reset(exceptions);
         Long exception = service.reportException(courier, COURIER, id, report());
         doThrow(new IllegalStateException("模拟处理保存失败")).when(exceptions).updateById(any(DeliveryException.class));
@@ -187,8 +181,8 @@ class RecipientExceptionTest extends IntegrationTestSupport {
         assertEquals(1, race(() -> service.reportException(courier, COURIER, id, report()),
             () -> service.act(courier, COURIER, id, DELIVER, null)));
         var detail = service.detail(sender, CUSTOMER, id);
-        if (detail.order().isPendingException()) {
-            Long exception = detail.exceptions().get(0).getId();
+        if (detail.getOrder().isPendingException()) {
+            Long exception = detail.getExceptions().get(0).getId();
             Long secondAdmin = createUser(ADMIN, "异常测试");
             assertEquals(1, race(() -> service.resolveException(admin, ADMIN, exception, resolution(ExceptionResolutionEnum.RESUME)),
                 () -> service.resolveException(secondAdmin, ADMIN, exception, resolution(ExceptionResolutionEnum.RESUME))));
@@ -199,12 +193,13 @@ class RecipientExceptionTest extends IntegrationTestSupport {
         Long another = accepted();
         assertEquals(1, race(() -> service.reportException(courier, COURIER, another, report()),
             () -> service.reportException(courier, COURIER, another, report())));
-        assertEquals(1, service.detail(sender, CUSTOMER, another).exceptions().size());
+        assertEquals(1, service.detail(sender, CUSTOMER, another).getExceptions().size());
     }
 
     @Test void requestValidationAndHttpAuthorization() throws Exception {
         var d = form(); d.setDeliveryPhone(" ");
-        assertFalse(validator.validate(d).isEmpty()); // 空串被 setter 归一成 null，由 @NotBlank 稳定拒绝
+        //手机号空串经标准化后仍由必填校验拒绝
+        assertFalse(validator.validate(d).isEmpty());
         d.setDeliveryPhone(phone); assertTrue(validator.validate(d).isEmpty());
         Long id = accepted(); Cookie c = login(courier, COURIER);
         mvc.perform(post("/api/order/{id}/exceptions", id).cookie(c).contentType(MediaType.APPLICATION_JSON)

@@ -1,7 +1,7 @@
 package cn.njust.campusexpress.model.user.dto;
 
-import cn.njust.campusexpress.common.enums.SortEnum;
 import cn.njust.campusexpress.common.enums.AuditStatusEnum;
+import cn.njust.campusexpress.common.enums.SortEnum;
 import jakarta.validation.constraints.Min;
 import lombok.Data;
 
@@ -13,7 +13,7 @@ public class UserAuditQueryDTO {
     private String email;
     //审核状态
     private AuditStatusEnum auditStatus;
-    //删除状态筛选：null=全部（完整留痕），false=仅未删除，true=仅已删除
+    //删除状态筛选：null=全部，false=仅未删除，true=仅已删除
     private Boolean deleted;
 
     @Min(value = 1, message = "页码必须大于0")

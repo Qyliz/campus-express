@@ -3,7 +3,7 @@ package cn.njust.campusexpress.common.enums;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-/** 订单列表范围：每个值对应 OrderController 的一个查询端点。 */
+//订单列表范围，每个值对应 OrderController 的一个查询端点
 @Getter
 @AllArgsConstructor
 public enum OrderListScopeEnum {

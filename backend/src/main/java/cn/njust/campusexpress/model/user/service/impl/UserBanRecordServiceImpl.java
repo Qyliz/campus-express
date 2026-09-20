@@ -20,7 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
+//角色账户封禁模块ServiceImpl
 @Service
 @RequiredArgsConstructor
 public class UserBanRecordServiceImpl extends CrudRepository<UserBanRecordMapper, UserBanRecord>
@@ -29,6 +29,7 @@ public class UserBanRecordServiceImpl extends CrudRepository<UserBanRecordMapper
     private final UserBanRecordMapper mapper;
     private final RoleAccountService roleAccountService;
 
+    //封禁指定角色账户
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void banUser(Long userId, UserRoleEnum role, UserBanDTO dto) {
@@ -39,6 +40,7 @@ public class UserBanRecordServiceImpl extends CrudRepository<UserBanRecordMapper
         if (account.getStatus() == UserStatusEnum.DISABLED) {
             throw new BusinessException(ResultCodeEnum.ACCOUNT_DISABLED);
         }
+        //账户状态与封禁记录必须在同一事务内同步落库
         roleAccountService.updateStatus(account, role, UserStatusEnum.DISABLED);
         UserBanRecord record = new UserBanRecord();
         record.setUserId(userId);
@@ -46,10 +48,11 @@ public class UserBanRecordServiceImpl extends CrudRepository<UserBanRecordMapper
         record.setUnbanned(false);
         record.setReason(dto.getReason());
         save(record);
-        //踢出被禁用户的在线会话，其后续请求将返回 KICKED_OUT
+        //踢出被禁用户的在线会话
         StpUtil.kickout(userId);
     }
 
+    //解封指定角色账户
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void unbanUser(Long userId, UserRoleEnum role) {
@@ -61,7 +64,7 @@ public class UserBanRecordServiceImpl extends CrudRepository<UserBanRecordMapper
         if (account.getStatus() != UserStatusEnum.DISABLED) {
             throw new BusinessException(ResultCodeEnum.ACCOUNT_NOT_BANNED);
         }
-        //解封该账号最近一条生效中的封禁记录；找不到说明状态与记录不一致，拒绝静默修复
+        //解封该账号最近一条生效中的封禁记录
         UserBanRecord record = lambdaQuery()
                 .eq(UserBanRecord::getUserId, userId)
                 .eq(UserBanRecord::getRole, role)
@@ -78,6 +81,7 @@ public class UserBanRecordServiceImpl extends CrudRepository<UserBanRecordMapper
         roleAccountService.updateStatus(account, role, UserStatusEnum.NORMAL);
     }
 
+    //分页查询角色账户封禁记录
     @Override
     public Page<UserBanRecordVO> getBanRecordPage(UserBanQueryDTO dto) {
         Page<UserBanRecordVO> page = PageResult.pageOf(dto.getCurrentPage());

@@ -10,9 +10,9 @@ public class UserBanQueryDTO {
     private String username;
     private String phone;
     private String email;
-    //封禁状态筛选：null=全部，false=仅封禁中(未解封)，true=仅已解封
+    //封禁状态筛选：null=全部，false=仅封禁中，true=仅已解封
     private Boolean unbanned;
-    //删除状态筛选：null=全部（完整留痕），false=仅未删除，true=仅已删除
+    //删除状态筛选：null=全部，false=仅未删除，true=仅已删除
     private Boolean deleted;
 
     @Min(value = 1, message = "页码必须大于0")

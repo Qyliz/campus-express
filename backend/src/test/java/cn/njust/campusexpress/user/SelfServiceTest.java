@@ -26,7 +26,7 @@ public class SelfServiceTest extends IntegrationTestSupport {
     @Autowired
     private MockMvc mockMvc;
 
-    //修改密码：旧密码错误 -> 正确 -> 会话登出 -> 新密码可登录、旧密码失效
+    //验证修改密码、会话登出以及新旧密码登录结果
     @Test
     void changePassword() throws Exception {
         registerCustomer("pwd_user", "13900000201");
@@ -40,7 +40,7 @@ public class SelfServiceTest extends IntegrationTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.OLD_PASSWORD_ERROR.getCode()));
 
-        //旧密码正确 -> 修改成功
+        //旧密码正确时修改成功
         mockMvc.perform(put("/api/user/password")
                         .cookie(c)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -68,7 +68,7 @@ public class SelfServiceTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.LOGIN_ERROR.getCode()));
     }
 
-    //新密码长度不合法 -> 参数校验失败
+    //新密码长度不合法时返回参数错误
     @Test
     void changePasswordParamInvalid() throws Exception {
         registerCustomer("pwd_user2", "13900000202");
@@ -81,7 +81,7 @@ public class SelfServiceTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.PARAM_ERROR.getCode()));
     }
 
-    //注销当前角色账号后，该角色无法再登录
+    //注销当前角色账号后该角色无法再次登录
     @Test
     void deleteAccountThenLoginFails() throws Exception {
         registerCustomer("del_user", "13900000203");
@@ -91,7 +91,7 @@ public class SelfServiceTest extends IntegrationTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
 
-        //角色已逻辑删除 -> 登录失败
+        //角色逻辑删除后登录失败
         mockMvc.perform(post("/api/user/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"account\":\"13900000203\",\"password\":\"1234567\",\"role\":\"CUSTOMER\"}"))

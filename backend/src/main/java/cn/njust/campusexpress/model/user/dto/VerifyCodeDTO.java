@@ -1,6 +1,7 @@
 package cn.njust.campusexpress.model.user.dto;
 
 import cn.njust.campusexpress.common.enums.VerifySceneEnum;
+import cn.njust.campusexpress.common.util.StringUtil;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -18,10 +19,10 @@ public class VerifyCodeDTO {
     private String code;
 
     public void setAccount(String account) {
-        this.account = account == null ? null : account.trim();
+        this.account = StringUtil.clean(account);
     }
 
     public void setCode(String code) {
-        this.code = code == null ? null : code.trim();
+        this.code = StringUtil.clean(code);
     }
 }

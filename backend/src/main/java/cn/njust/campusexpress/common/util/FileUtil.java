@@ -11,9 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 
-/**
- * 文件处理工具类
- */
+//文件处理工具类
 @Slf4j
 public final class FileUtil {
 
@@ -28,10 +26,11 @@ public final class FileUtil {
      * @return 图片的访问路径，例如 "/upload/avatar/xxx.png"
      */
     public static String saveImage(String dirPath, MultipartFile file) {
-        //检查文件类型
+        //检查文件是否为空
         if (file == null || file.isEmpty()) {
             throw new BusinessException(ResultCodeEnum.FILE_EMPTY);
         }
+        //根据文件类型添加后缀
         String suffix;
         String contentType = file.getContentType();
         if (contentType == null) {
@@ -44,6 +43,7 @@ public final class FileUtil {
             default ->
                     throw new BusinessException(ResultCodeEnum.FILE_TYPE_ERROR);
         }
+        //随机生成文件名
         String filename;
         Path path;
         do {

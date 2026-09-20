@@ -1,11 +1,14 @@
 package cn.njust.campusexpress.order;
 
 import cn.njust.campusexpress.IntegrationTestSupport;
-import cn.njust.campusexpress.common.enums.*;
 import cn.njust.campusexpress.common.enums.OrderActionEnum;
+import cn.njust.campusexpress.common.enums.OrderStatusEnum;
+import cn.njust.campusexpress.common.enums.PaymentStatusEnum;
+import cn.njust.campusexpress.common.enums.UserRoleEnum;
 import cn.njust.campusexpress.model.order.dto.CreateOrderDTO;
 import cn.njust.campusexpress.model.order.entity.OrderStatusRecord;
-import cn.njust.campusexpress.model.order.mapper.*;
+import cn.njust.campusexpress.model.order.mapper.ExpressOrderMapper;
+import cn.njust.campusexpress.model.order.mapper.OrderStatusRecordMapper;
 import cn.njust.campusexpress.model.order.service.OrderService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,20 +16,25 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+
 import java.math.BigDecimal;
-import static org.junit.jupiter.api.Assertions.*;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
-/**
- * 验证真实提交/回滚边界，所以不能开测试级事务（会与服务的回滚合并成同一个事务），
- * 数据清理交给 {@link #cleanupCreatedData()}。
- */
+//验证订单状态变更与流转记录写入保持事务一致性
 class OrderTransactionTest extends IntegrationTestSupport {
-    @Autowired OrderService service;
-    @Autowired ExpressOrderMapper orders;
-    @MockitoSpyBean OrderStatusRecordMapper records;
-    @Autowired PlatformTransactionManager manager;
-    @Autowired JdbcTemplate jdbc;
+    @Autowired
+    OrderService service;
+    @Autowired
+    ExpressOrderMapper orders;
+    @MockitoSpyBean
+    OrderStatusRecordMapper records;
+    @Autowired
+    PlatformTransactionManager manager;
+    @Autowired
+    JdbcTemplate jdbc;
 
     @Test
     void recordFailureRollsBackPaymentAndVersion() {

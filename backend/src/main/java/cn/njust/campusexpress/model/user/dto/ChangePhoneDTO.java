@@ -1,9 +1,11 @@
 package cn.njust.campusexpress.model.user.dto;
 
+import cn.njust.campusexpress.common.util.StringUtil;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
+//换绑手机号DTO
 @SuppressWarnings("unused")
 @Data
 public class ChangePhoneDTO {
@@ -16,10 +18,10 @@ public class ChangePhoneDTO {
     private String code;
 
     public void setNewPhone(String newPhone) {
-        this.newPhone = newPhone == null ? null : newPhone.trim();
+        this.newPhone = StringUtil.clean(newPhone);
     }
 
     public void setCode(String code) {
-        this.code = code == null ? null : code.trim();
+        this.code = StringUtil.clean(code);
     }
 }

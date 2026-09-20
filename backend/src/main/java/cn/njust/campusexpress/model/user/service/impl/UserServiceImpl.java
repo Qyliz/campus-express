@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+//用户模块ServiceImpl
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -37,7 +38,7 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
     private final UserMapper userMapper;
     private final VerifyCodeService verifyCodeService;
 
-    //注册：新账号，或凭密码给已有账号追加一个新角色
+    //注册新用户，或凭密码为已有用户追加角色
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void register(UserRegisterDTO registerDTO, MultipartFile material) {
@@ -45,14 +46,14 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
             throw new BusinessException(ResultCodeEnum.PARAM_ERROR, "角色不能为管理员");
         }
 
-        // 手机号必填由 UserRegisterDTO 的 @NotBlank 保证；邮箱选填，未填时为 null 并跳过它的验证码校验。
+        //手机号必填，邮箱选填
         String phone = registerDTO.getPhone();
         String email = registerDTO.getEmail();
 
-        // 新注册及追加角色都验证所填写联系方式，两项均填写时必须全部校验成功。
+        //校验注册时填写的全部联系方式
         verifyCodeService.verifyRegistration(phone, registerDTO.getPhoneCode(), email, registerDTO.getEmailCode());
 
-        //回查已有账号（逻辑删除的行查不到）。命中同一个 user 说明是本人追加角色，命中两个不同 user 则是参数冲突
+        //回查已有账号，命中同一个 user 说明是本人追加角色，命中两个不同 user 则是参数冲突
         User byPhone = phone == null ? null : lambdaQuery().eq(User::getPhone, phone).one();
         User byEmail = email == null ? null : lambdaQuery().eq(User::getEmail, email).one();
         if (byPhone != null && byEmail != null && !byPhone.getId().equals(byEmail.getId())) {
@@ -62,7 +63,7 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         User existing = byPhone != null ? byPhone : byEmail;
         User user;
         if (existing == null) {
-            //新账号：用户名、性别、头像属于「人」的共有资料，与凭证一起存在 user 主表
+            //注册新账号
             user = new User();
             user.setUsername(registerDTO.getUsername());
             user.setGender(registerDTO.getGender());
@@ -71,7 +72,7 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
             user.setPassword(BCrypt.hashpw(registerDTO.getPassword(), BCrypt.gensalt()));
             save(user);
         } else {
-            //追加角色：必须凭正确密码证明是本人；密码不符时沿用「已被注册」提示，不额外泄露账号是否存在
+            //追加角色
             if (!BCrypt.checkpw(registerDTO.getPassword(), existing.getPassword())) {
                 throw new BusinessException(byPhone != null
                         ? ResultCodeEnum.PHONE_ALREADY_BIND
@@ -80,7 +81,7 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
             if (roleAccountService.getByUserAndRole(existing.getId(), registerDTO.getRole()) != null) {
                 throw new BusinessException(ResultCodeEnum.ROLE_ALREADY_REGISTERED);
             }
-            //已有资料不覆盖：第二次注册填的用户名/性别一律忽略
+            //已有资料不覆盖，第二次注册填的用户名/性别一律忽略
             user = existing;
         }
 
@@ -90,15 +91,15 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
                 : UserStatusEnum.REVIEWING;
         RoleAccount account = roleAccountService.createAccount(user.getId(), registerDTO.getRole(), status);
 
-        //仅为配送员建立审核记录；审核材料必传，缺失/为空由 FileUtil 抛 FILE_EMPTY
+        //仅为配送员建立审核记录，审核材料必传，缺失/为空由 FileUtil 抛 FILE_EMPTY
         if (registerDTO.getRole() == UserRoleEnum.COURIER) {
-            //材料先落盘再入库，入库失败时删除孤儿文件，不让磁盘留下无记录指向的图片
+            //存储审核材料
             String materialPath = FileUtil.saveImage("upload/audit", material);
             try {
                 UserAuditRecord record = new UserAuditRecord();
                 record.setCourierId(account.getId());
                 record.setMaterial(materialPath);
-                //status 不显式设置，交由数据库默认值 2（审核中）
+                //status 不显式设置，交由数据库默认值2审核中）
                 userAuditRecordService.save(record);
             } catch (Exception e) {
                 FileUtil.deleteImage(materialPath);
@@ -107,12 +108,7 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         }
     }
 
-    /**
-     * 登录。返回 user.id 作为 Sa-Token 的 loginId，角色名由 controller 写入 token session。
-     * <p>取舍：loginId 不带角色，且 sa-token.is-concurrent=false，所以一个人同一时刻只有一个在线会话，
-     * 切换角色等于重新登录（旧 token 变为 BE_REPLACED）；同理踢下线也只能按用户整体踢，
-     * 封禁其任一角色都会让其当前会话失效。换来的是登录态各处直接用 userId，无需在三张角色表间分发。</p>
-     */
+    //校验登录信息，返回用户ID
     @Override
     public Long login(UserLoginDTO loginDTO) {
         User user = resolveUserByAccount(loginDTO.getAccount());
@@ -151,13 +147,13 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         return user.getId();
     }
 
-    //获取账号资料
+    //查询当前用户资料
     @Override
     public UserProfileVO getProfile(Long userId, UserRoleEnum role) {
         return toProfile(requireUser(userId), role);
     }
 
-    //更新用户名
+    //更新当前用户的用户名
     @Override
     public UserProfileVO updateUsername(Long userId, UserRoleEnum role, String username) {
         User user = requireUser(userId);
@@ -166,7 +162,7 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         return toProfile(user, role);
     }
 
-    //更新性别
+    //更新当前用户的性别
     @Override
     public UserProfileVO updateGender(Long userId, UserRoleEnum role, UserGenderEnum gender) {
         User user = requireUser(userId);
@@ -175,7 +171,7 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         return toProfile(user, role);
     }
 
-    //更新头像
+    //更新当前用户的头像
     @Override
     public UserProfileVO updateAvatar(Long userId, UserRoleEnum role, MultipartFile file) {
         //获取账号数据
@@ -199,7 +195,7 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         return toProfile(user, role);
     }
 
-    //修改密码
+    //校验旧密码并修改当前用户密码
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updatePassword(Long userId, UserPasswordDTO dto) {
@@ -215,11 +211,10 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         StpUtil.logout();
     }
 
-    //注销账号（仅逻辑删除当前角色账户）
+    //注销当前角色账户
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteAccount(Long userId, UserRoleEnum role) {
-        //只软删当前角色那一行（@TableLogic 置 deleted=id），user 主表与其他角色账户保留
         boolean removed = roleAccountService.deleteByUserAndRole(userId, role);
         if (!removed) {
             throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
@@ -228,6 +223,7 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         StpUtil.logout();
     }
 
+    //校验找回密码账号
     @Override
     public void validatePasswordResetAccount(String account) {
         if (resolveUserByAccount(account) == null) {
@@ -235,20 +231,21 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         }
     }
 
-    //忘记密码：校验验证码 -> 重置密码 -> 踢出在线会话
+    //通过验证码重置密码
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void resetPassword(ResetPasswordDTO dto) {
         verifyCodeService.verify(dto.getAccount(), VerifySceneEnum.FORGOT_PASSWORD, dto.getCode());
         User user = resolveUserByAccount(dto.getAccount());
-        if (user == null) throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
+        if (user == null)
+            throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
         user.setPassword(BCrypt.hashpw(dto.getNewPassword(), BCrypt.gensalt()));
         updateById(user);
         //密码为该用户名下所有角色共享，改密后踢下线强制重新登录
         StpUtil.kickout(user.getId());
     }
 
-    //管理员重置他人密码：改密 -> 踢出在线会话
+    //管理员重置指定用户密码
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void adminResetPassword(Long userId, AdminResetPasswordDTO dto) {
@@ -258,7 +255,7 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         StpUtil.kickout(user.getId());
     }
 
-    //换绑手机号（登录态）：校验验证码 -> 唯一性 -> 更新
+    //换绑当前用户手机号
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updatePhone(Long userId, ChangePhoneDTO dto) {
@@ -271,7 +268,7 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         updateById(user);
     }
 
-    //换绑邮箱（登录态）：校验验证码 -> 唯一性 -> 更新
+    //换绑当前用户邮箱
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateEmail(Long userId, ChangeEmailDTO dto) {
@@ -282,6 +279,15 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         }
         user.setEmail(dto.getNewEmail());
         updateById(user);
+    }
+
+    //管理员分页查询用户及其角色账户
+    @Override
+    public Page<UserProfileAdminVO> getAllUsers(UserQueryDTO dto) {
+        Page<UserProfileAdminVO> page = PageResult.pageOf(dto.getCurrentPage());
+        //一个用户可以持有多个角色，查询结果中的一行表示一个用户角色账户
+        userMapper.selectUserPage(page, dto);
+        return page;
     }
 
     //按手机号或邮箱解析 user（格式非法抛 PARAM_ERROR，未找到返回 null）
@@ -318,12 +324,4 @@ public class UserServiceImpl extends CrudRepository<UserMapper, User>
         return profile;
     }
 
-    //获取所有账号信息
-    @Override
-    public Page<UserProfileAdminVO> getAllUsers(UserQueryDTO dto) {
-        Page<UserProfileAdminVO> page = PageResult.pageOf(dto.getCurrentPage());
-        //一人可持多个角色，故结果一行一个 (用户, 角色账户)；查询条件与排序在 UserMapper.xml 中动态拼接
-        userMapper.selectUserPage(page, dto);
-        return page;
-    }
 }

@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.EnumValue;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-/** 审核记录的状态，与配送员账户是否封禁相互独立；保留原数据库取值。 */
+//审核记录状态，与配送员账户是否封禁相互独立
 @Getter
 @AllArgsConstructor
 public enum AuditStatusEnum {

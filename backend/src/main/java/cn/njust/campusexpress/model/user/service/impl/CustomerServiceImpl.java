@@ -6,6 +6,7 @@ import cn.njust.campusexpress.model.user.service.CustomerService;
 import com.baomidou.mybatisplus.spring.repository.CrudRepository;
 import org.springframework.stereotype.Service;
 
+//收寄件人账户基础ServiceImpl
 @Service
 public class CustomerServiceImpl extends CrudRepository<CustomerMapper, Customer>
         implements CustomerService {

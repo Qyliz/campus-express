@@ -1,5 +1,6 @@
 package cn.njust.campusexpress.model.user.dto;
 
+import cn.njust.campusexpress.common.util.StringUtil;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -16,10 +17,10 @@ public class UserPasswordDTO {
     private String newPassword;
 
     public void setOldPassword(String oldPassword) {
-        this.oldPassword = oldPassword == null ? null : oldPassword.trim();
+        this.oldPassword = StringUtil.clean(oldPassword);
     }
 
     public void setNewPassword(String newPassword) {
-        this.newPassword = newPassword == null ? null : newPassword.trim();
+        this.newPassword = StringUtil.clean(newPassword);
     }
 }

@@ -14,6 +14,7 @@ import com.baomidou.mybatisplus.extension.repository.IRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+//角色账户路由ServiceImpl
 @Service
 @RequiredArgsConstructor
 public class RoleAccountServiceImpl implements RoleAccountService {
@@ -22,6 +23,7 @@ public class RoleAccountServiceImpl implements RoleAccountService {
     private final CourierService courierService;
     private final AdminService adminService;
 
+    //查询用户的指定角色账户
     @Override
     public RoleAccount getByUserAndRole(Long userId, UserRoleEnum role) {
         return switch (role) {
@@ -31,6 +33,7 @@ public class RoleAccountServiceImpl implements RoleAccountService {
         };
     }
 
+    //为用户创建指定角色账户
     @Override
     public RoleAccount createAccount(Long userId, UserRoleEnum role, UserStatusEnum status) {
         return switch (role) {
@@ -40,6 +43,7 @@ public class RoleAccountServiceImpl implements RoleAccountService {
         };
     }
 
+    //更新指定角色账户状态
     @Override
     public void updateStatus(RoleAccount account, UserRoleEnum role, UserStatusEnum status) {
         account.setStatus(status);
@@ -50,6 +54,7 @@ public class RoleAccountServiceImpl implements RoleAccountService {
         }
     }
 
+    //逻辑删除用户的指定角色账户
     @Override
     public boolean deleteByUserAndRole(Long userId, UserRoleEnum role) {
         RoleAccount account = getByUserAndRole(userId, role);
@@ -63,6 +68,7 @@ public class RoleAccountServiceImpl implements RoleAccountService {
         };
     }
 
+    //复用三类角色账户共有的初始化与保存步骤
     private <T extends RoleAccount> T saveNew(T account, IRepository<T> service,
                                               Long userId, UserStatusEnum status) {
         account.setUserId(userId);

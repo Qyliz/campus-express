@@ -1,37 +1,5 @@
--- 建表脚本（角色账户三表拆分版 + 订单/评价模块），应用启动时幂等创建。
--- 幂等：统一使用 CREATE TABLE IF NOT EXISTS，应用重复启动不会报错。
---
--- 通用约定：
---   1) 主键 id 为 BIGINT 且非自增，由 MyBatis-Plus 雪花算法(ASSIGN_ID)在应用侧生成；
---      雪花 id 是 19 位大整数，永远不会落在 0~99，该区段保留给 db/data.sql 的种子数据。
---   2) 建表顺序遵循外键依赖：user -> customer/courier/admin -> user_audit_record / user_ban_record
---      -> express_order -> order_status_record / delivery_exception / service_review -> review_appeal。
---   3) username/gender/avatar 属于「人」的共有资料，统一放在 user 主表；
---      三张角色账户表结构对称，只保留该身份的账户状态，一个 user 在每张表至多一行有效数据。
---   4) 逻辑删除列 deleted 参与唯一索引，配合 @TableLogic(delval="id") 实现软删后可重新注册。
---   5) 外键约束名在 MySQL 中是库级唯一的，三张角色表的约束名必须互不相同；索引名是表级的，可以重复。
---   6) 所有状态/类型列都是「数据库存 TINYINT 数字码、接口传枚举名」，由 MyBatis-Plus 的 @EnumValue 负责翻译。
---      列注释里的数字与枚举常量的 code 一一对应，改枚举 code 必须同步改这张表和 db/data.sql 的种子值。
---   7) 时间列统一 DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP（不用 TIMESTAMP，避免 2038 上限和时区隐式转换）；
---      插入时间一律交给数据库默认值，更新时间由 MyBatis-Plus 的 MetaObjectHandler 填充。
---
--- 外键策略（应用只做软删，外键只在物理删除时生效，用于兜底防脏库）：
---   * 组成关系——子行离开父行没有意义，随父行级联删除：ON DELETE CASCADE。
---       角色账户属于用户（customer/courier/admin.user_id），
---       审核/封禁记录属于账户（user_audit_record.courier_id、user_ban_record.user_id），
---       流转记录/异常/评价属于订单（order_status_record、delivery_exception、service_review 的 order_id），
---       申诉属于评价（review_appeal.review_id）。
---   * 跨实体引用——子行是独立业务数据，被引用行不允许直接物理删除：ON DELETE NO ACTION
---       （InnoDB 中 NO ACTION 与 RESTRICT 等价，都会立即拒绝）。
---       订单引用收寄件人/配送员账户，异常引用处理管理员，流转记录引用操作人，
---       评价引用评价人/骑手，申诉引用处理管理员——有业务数据引用时物理删除会被数据库拒绝。
---   * review_appeal.order_id、review_appeal.courier_id 是自 service_review 冗余的查询列，
---     不建外键：完整性经 review_id 级联链间接保证；若再加一条指向 express_order 的 NO ACTION 外键，
---     会与「删单 -> 级联删评价 -> 级联删申诉」的链路冲突，导致订单无法物理删除。
---   * 所有外键 ON UPDATE NO ACTION：主键由雪花算法/种子约定生成，永不更新。
---
--- 注意：CREATE TABLE IF NOT EXISTS 不会迁移已存在的旧表。修改过列类型/外键的本脚本
---       要生效必须重建数据库（DROP DATABASE 后重启应用自动重建并补种子数据）。
+-- 建表脚本
+-- 幂等：统一使用 CREATE TABLE IF NOT EXISTS
 CREATE TABLE IF NOT EXISTS `user`
 (
     `id`          bigint       NOT NULL COMMENT '主键id',
@@ -47,7 +15,7 @@ CREATE TABLE IF NOT EXISTS `user`
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_phone` (`phone`, `deleted`),
     UNIQUE KEY `uk_email` (`email`, `deleted`)
-) ENGINE = InnoDB
+)
     COMMENT ='用户表';
 
 CREATE TABLE IF NOT EXISTS `customer`
@@ -61,7 +29,7 @@ CREATE TABLE IF NOT EXISTS `customer`
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_user_id` (`user_id`, `deleted`),
     CONSTRAINT `fk_customer_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-) ENGINE = InnoDB
+)
     COMMENT ='收寄件人账户表';
 
 CREATE TABLE IF NOT EXISTS `courier`
@@ -75,7 +43,7 @@ CREATE TABLE IF NOT EXISTS `courier`
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_user_id` (`user_id`, `deleted`),
     CONSTRAINT `fk_courier_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-) ENGINE = InnoDB
+)
     COMMENT ='配送员账户表';
 
 CREATE TABLE IF NOT EXISTS `admin`
@@ -89,7 +57,7 @@ CREATE TABLE IF NOT EXISTS `admin`
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_user_id` (`user_id`, `deleted`),
     CONSTRAINT `fk_admin_user_id` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-) ENGINE = InnoDB
+)
     COMMENT ='管理员账户表';
 
 CREATE TABLE IF NOT EXISTS `user_audit_record`
@@ -104,7 +72,7 @@ CREATE TABLE IF NOT EXISTS `user_audit_record`
     PRIMARY KEY (`id`),
     KEY `idx_audit_courier` (`courier_id`),
     CONSTRAINT `fk_user_audit_record` FOREIGN KEY (`courier_id`) REFERENCES `courier` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-) ENGINE = InnoDB
+)
     COMMENT ='账户审核记录表';
 
 CREATE TABLE IF NOT EXISTS `user_ban_record`
@@ -119,7 +87,7 @@ CREATE TABLE IF NOT EXISTS `user_ban_record`
     PRIMARY KEY (`id`),
     KEY `idx_ban_user` (`user_id`),
     CONSTRAINT `fk_user_ban_record` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
-) ENGINE = InnoDB
+)
     COMMENT ='账户封禁记录表';
 
 -- 配送订单：地址和联系人保留下单时的值。节点时间统一保存在 order_status_record 中。
@@ -150,7 +118,7 @@ CREATE TABLE IF NOT EXISTS `express_order`
     KEY `idx_order_delivery_phone` (`delivery_phone`, `create_time`),
     CONSTRAINT `fk_order_customer` FOREIGN KEY (`customer_id`) REFERENCES `customer` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT `fk_order_courier` FOREIGN KEY (`courier_id`) REFERENCES `courier` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE = InnoDB
+)
     COMMENT ='配送订单表';
 
 CREATE TABLE IF NOT EXISTS `delivery_exception`
@@ -172,7 +140,7 @@ CREATE TABLE IF NOT EXISTS `delivery_exception`
     CONSTRAINT `fk_exception_order` FOREIGN KEY (`order_id`) REFERENCES `express_order` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
     CONSTRAINT `fk_exception_courier` FOREIGN KEY (`courier_id`) REFERENCES `courier` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT `fk_exception_admin` FOREIGN KEY (`admin_id`) REFERENCES `admin` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE = InnoDB
+)
     COMMENT ='配送异常表';
 
 CREATE TABLE IF NOT EXISTS `order_status_record`
@@ -189,7 +157,7 @@ CREATE TABLE IF NOT EXISTS `order_status_record`
     KEY `idx_order_record_time` (`order_id`, `create_time`, `id`),
     CONSTRAINT `fk_order_record_order` FOREIGN KEY (`order_id`) REFERENCES `express_order` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
     CONSTRAINT `fk_order_record_operator` FOREIGN KEY (`operator_id`) REFERENCES `user` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE = InnoDB
+)
     COMMENT ='订单状态流转记录表';
 
 -- 服务评价：同一用户在同一订单最多评价一次，下单人和收件人都可以评。
@@ -209,7 +177,7 @@ CREATE TABLE IF NOT EXISTS `service_review`
     CONSTRAINT `fk_review_order` FOREIGN KEY (`order_id`) REFERENCES `express_order` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
     CONSTRAINT `fk_review_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT `fk_review_courier` FOREIGN KEY (`courier_id`) REFERENCES `courier` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE = InnoDB
+)
     COMMENT ='服务评价表';
 
 -- 配送员对评价的申诉：一条评价最多申诉一次。申诉成立时原评价作废，但保留评价与全部处理信息。
@@ -232,5 +200,5 @@ CREATE TABLE IF NOT EXISTS `review_appeal`
     KEY `idx_appeal_status_time` (`status`, `create_time`, `id`),
     CONSTRAINT `fk_appeal_review` FOREIGN KEY (`review_id`) REFERENCES `service_review` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
     CONSTRAINT `fk_appeal_admin` FOREIGN KEY (`admin_id`) REFERENCES `admin` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE = InnoDB
+)
     COMMENT ='评价申诉表';

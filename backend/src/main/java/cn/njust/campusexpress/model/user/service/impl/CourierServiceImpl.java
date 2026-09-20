@@ -6,6 +6,7 @@ import cn.njust.campusexpress.model.user.service.CourierService;
 import com.baomidou.mybatisplus.spring.repository.CrudRepository;
 import org.springframework.stereotype.Service;
 
+//配送员账户基础ServiceImpl
 @Service
 public class CourierServiceImpl extends CrudRepository<CourierMapper, Courier>
         implements CourierService {

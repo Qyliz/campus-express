@@ -3,7 +3,7 @@ package cn.njust.campusexpress.common.enums;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-@SuppressWarnings("unused")
+//排序方法
 @Getter
 @AllArgsConstructor
 public enum SortEnum {

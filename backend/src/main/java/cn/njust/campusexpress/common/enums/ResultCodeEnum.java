@@ -3,6 +3,7 @@ package cn.njust.campusexpress.common.enums;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+//业务状态码
 @Getter
 @AllArgsConstructor
 public enum ResultCodeEnum {

@@ -26,7 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-
+//用户模块Controller
 @RestController
 @RequestMapping("/api/user")
 @RequiredArgsConstructor
@@ -37,7 +37,7 @@ public class UserController {
     private final UserBanRecordService userBanRecordService;
     private final VerifyCodeService verifyCodeService;
 
-    //注册（手机号或邮箱已存在且密码正确时，为本人追加一个新角色）
+    //注册（手机号或邮箱已存在且密码正确时，为该账号追加一个新角色）
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     Result<Void> register(@Valid @ModelAttribute UserRegisterDTO registerDTO,
                           @RequestPart(value = "material", required = false) MultipartFile material) {
@@ -45,7 +45,7 @@ public class UserController {
         return Result.success();
     }
 
-    //登录：loginId 即 user.id，本次登录所选的角色存入 token session
+    //登录
     @PostMapping("/login")
     Result<Void> login(@Valid @RequestBody UserLoginDTO loginDTO) {
         Long userId = userService.login(loginDTO);
@@ -63,7 +63,7 @@ public class UserController {
         return Result.success();
     }
 
-    // 首页探测登录状态：匿名或失效会话正常返回空数据，不触发未登录异常。
+    //首页探测登录状态，匿名或失效会话返回空数据
     @GetMapping("/session")
     Result<UserProfileVO> getSession() {
         if (!StpUtil.isLogin()) {
@@ -72,7 +72,7 @@ public class UserController {
         return Result.success(userService.getProfile(SessionUtil.userId(), SessionUtil.role()));
     }
 
-    //获取账号信息（受保护接口，未登录仍返回401）
+    //获取账号信息
     @GetMapping("/profile")
     @SaCheckLogin
     Result<UserProfileVO> getProfile() {
@@ -80,7 +80,7 @@ public class UserController {
         return Result.success(profile);
     }
 
-    //更新用户名（非空由 UserUsernameDTO 的 @NotBlank 保证）
+    //更新用户名
     @PutMapping("/username")
     @SaCheckLogin
     Result<UserProfileVO> updateUsername(@Valid @RequestBody UserUsernameDTO dto) {
@@ -88,7 +88,7 @@ public class UserController {
         return Result.success(profile);
     }
 
-    //更新性别（非空由 UserGenderDTO 的 @NotNull 保证）
+    //更新性别
     @PutMapping("/gender")
     @SaCheckLogin
     Result<UserProfileVO> updateGender(@Valid @RequestBody UserGenderDTO dto) {
@@ -112,7 +112,7 @@ public class UserController {
         return Result.success();
     }
 
-    //注销账号（仅注销当前角色，user 主表与其他角色账户保留）
+    //注销账号
     @DeleteMapping("/account")
     @SaCheckLogin
     Result<Void> deleteAccount() {
@@ -120,7 +120,7 @@ public class UserController {
         return Result.success();
     }
 
-    //发送验证码（桩版：直接返回验证码，由前端展示以模拟发送）
+    //发送验证码
     @PostMapping("/verify-code")
     Result<String> sendVerifyCode(@Valid @RequestBody SendCodeDTO dto) {
         if (dto.getScene() == VerifySceneEnum.FORGOT_PASSWORD) {
@@ -130,7 +130,7 @@ public class UserController {
         return Result.success(code);
     }
 
-    //忘记密码第一步校验验证码，不在这里消费，最终重置成功时再消费
+    //忘记密码第一步，校验验证码
     @PostMapping("/verify-code/check")
     Result<Void> checkVerifyCode(@Valid @RequestBody VerifyCodeDTO dto) {
         if (dto.getScene() != VerifySceneEnum.FORGOT_PASSWORD) {
@@ -141,7 +141,7 @@ public class UserController {
         return Result.success();
     }
 
-    //忘记密码：凭验证码重置密码
+    //忘记密码第二部，重置密码
     @PostMapping("/reset-password")
     Result<Void> resetPassword(@Valid @RequestBody ResetPasswordDTO dto) {
         userService.resetPassword(dto);
@@ -180,7 +180,7 @@ public class UserController {
         return Result.success();
     }
 
-    //获取所有账号信息（一人持多角色时，每个角色各占一行）
+    //获取所有账号信息
     @GetMapping("/all-users")
     @SaCheckRole(UserRoleEnum.ROLE_ADMIN)
     Result<PageResult<UserProfileAdminVO>> getAllUsers(@Valid UserQueryDTO dto) {
@@ -188,7 +188,7 @@ public class UserController {
         return Result.success(PageResult.of(page));
     }
 
-    //封禁账号：服务层同步踢出被禁用户的在线会话，其后续请求将返回 KICKED_OUT
+    //封禁账号
     @PostMapping("/{userId}/roles/{role}/ban")
     @SaCheckRole(UserRoleEnum.ROLE_ADMIN)
     Result<Void> banUser(@PathVariable Long userId, @PathVariable UserRoleEnum role, @Valid @RequestBody UserBanDTO dto) {

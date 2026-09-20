@@ -1,5 +1,6 @@
 package cn.njust.campusexpress.model.user.dto;
 
+import cn.njust.campusexpress.common.util.StringUtil;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
@@ -11,6 +12,6 @@ public class UserUsernameDTO {
     private String username;
 
     public void setUsername(String username) {
-        this.username = username == null ? null : username.trim();
+        this.username = StringUtil.clean(username);
     }
 }

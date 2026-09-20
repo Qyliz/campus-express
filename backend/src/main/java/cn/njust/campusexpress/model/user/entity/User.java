@@ -8,10 +8,7 @@ import lombok.Data;
 
 import java.util.Date;
 
-/**
- * 用户主表：凭证（手机号/邮箱/密码）与共有资料（用户名/性别/头像）。
- * 一个用户可以在 customer / courier / admin 三张角色表中各持有一个账户。
- */
+//用户主表，一个用户可以在customer、courier、admin三张角色表中各持有一个账户。
 @Data
 public class User {
     private Long id;

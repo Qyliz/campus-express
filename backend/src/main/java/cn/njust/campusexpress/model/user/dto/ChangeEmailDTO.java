@@ -1,11 +1,12 @@
 package cn.njust.campusexpress.model.user.dto;
 
+import cn.njust.campusexpress.common.util.StringUtil;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
-@SuppressWarnings("unused")
+//换绑邮箱DTO
 @Data
 public class ChangeEmailDTO {
 
@@ -18,10 +19,10 @@ public class ChangeEmailDTO {
     private String code;
 
     public void setNewEmail(String newEmail) {
-        this.newEmail = newEmail == null ? null : newEmail.trim();
+        this.newEmail = StringUtil.clean(newEmail);
     }
 
     public void setCode(String code) {
-        this.code = code == null ? null : code.trim();
+        this.code = StringUtil.clean(code);
     }
 }

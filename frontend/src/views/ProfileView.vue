@@ -358,11 +358,6 @@ async function onDeleteAccount() {
           </el-button>
         </el-form-item>
       </el-form>
-
-      <p class="muted note">
-        用户名和性别各有一个保存按钮：后端就是一个字段一个接口，这里 1:1
-        对应，不做假的「全部保存」。
-      </p>
     </el-card>
 
     <el-card shadow="never" class="page-card">
@@ -615,11 +610,11 @@ async function onDeleteAccount() {
 
 .inline-form {
   margin-bottom: 4px;
+  max-width: 460px;
 }
 
 .inline-input {
   flex: 1 1 220px;
-  max-width: 460px;
 }
 
 .inline-choice {

@@ -22,7 +22,7 @@
         INNER JOIN courier co ON r.courier_id = co.id
         INNER JOIN user u ON co.user_id = u.id
         <where>
-            <!-- deleted 为空则不过滤（完整留痕）；true 仅已注销；false 仅活跃 -->
+            <!-- deleted 为空则不过滤；true 仅已注销；false 仅活跃 -->
             <if test="dto.deleted != null">
                 <choose>
                     <when test="dto.deleted">

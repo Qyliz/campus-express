@@ -21,17 +21,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 
-
+//配送员审核模块ServiceImpl
 @Service
 @RequiredArgsConstructor
 public class UserAuditRecordServiceImpl extends CrudRepository<UserAuditRecordMapper, UserAuditRecord>
         implements UserAuditRecordService {
 
     private final UserAuditRecordMapper mapper;
-    //审核只针对配送员，角色是确定的，直接用 CourierService 而不走角色路由器
     private final CourierService courierService;
 
-    //获取审核记录
+    //分页查询配送员审核记录
     @Override
     public Page<UserAuditRecordVO> getRecordPage(UserAuditQueryDTO dto) {
         Page<UserAuditRecordVO> page = PageResult.pageOf(dto.getCurrentPage());
@@ -40,7 +39,7 @@ public class UserAuditRecordServiceImpl extends CrudRepository<UserAuditRecordMa
         return page;
     }
 
-    //审核账号
+    //审核配送员申请
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void auditUser(Long recordId, UserAuditDTO dto) {
@@ -58,16 +57,16 @@ public class UserAuditRecordServiceImpl extends CrudRepository<UserAuditRecordMa
         if (Objects.requireNonNull(oldState1) == AuditStatusEnum.NORMAL) {
             throw new BusinessException(ResultCodeEnum.ACCOUNT_REVIEWED);
         }
-        //更新user_audit_record表
+        //审核记录与配送员账户状态在同一事务内同步更新
         record.setStatus(dto.getStatus());
         record.setReason(dto.getReason());
         updateById(record);
-        //获取courier表数据
+        //根据审核记录读取对应配送员账户
         Courier courier = courierService.getById(record.getCourierId());
         if (courier == null) {
             throw new BusinessException(ResultCodeEnum.USER_NOT_FOUND);
         }
-        //检查账号状态
+        //只允许审核仍处于待审核或已驳回状态的配送员
         UserStatusEnum oldState2 = courier.getStatus();
         switch (oldState2) {
             case NORMAL ->

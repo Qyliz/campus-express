@@ -34,12 +34,12 @@ public class AdminUserTest extends IntegrationTestSupport {
 
     @BeforeEach
     void adminLogin() throws Exception {
-        //管理员由 data.sql 在启动时种子（TestAccounts 记录的凭证）
+        //使用种子管理员凭证登录
         adminCookie = login(TestAccounts.ADMIN_EMAIL, TestAccounts.ADMIN_PASSWORD, "ADMIN");
         Assertions.assertNotNull(adminCookie, "管理员登录应返回 satoken");
     }
 
-    //管理员分页查询所有账号（A1 查询串绑定）
+    //管理员分页查询所有角色账号并绑定查询条件
     @Test
     void getAllUsersOk() throws Exception {
         mockMvc.perform(get("/api/user/all-users")
@@ -51,7 +51,7 @@ public class AdminUserTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.data.records").isArray());
     }
 
-    //非法页码触发查询参数校验失败 -> PARAM_ERROR（验证 BindException 处理器）
+    //非法页码返回参数错误
     @Test
     void getAllUsersInvalidPage() throws Exception {
         mockMvc.perform(get("/api/user/all-users")
@@ -61,7 +61,7 @@ public class AdminUserTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.PARAM_ERROR.getCode()));
     }
 
-    //一人持多角色时管理端列表每个角色各占一行；同时验证 UNION 派生表下 MP 自动生成的 COUNT 正确
+    //多角色用户在管理列表中按角色分行并正确参与总数统计
     @Test
     void getAllUsersCountsOneRowPerRole() throws Exception {
         mockMvc.perform(cn.njust.campusexpress.user.RegistrationTestSupport.registration(registrationCodes)
@@ -73,7 +73,7 @@ public class AdminUserTest extends IntegrationTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
 
-        //同手机号 + 同密码追加配送员角色；此处填的用户名/性别应被忽略
+        //使用相同手机号和密码追加配送员角色且不覆盖用户资料
         mockMvc.perform(cn.njust.campusexpress.user.RegistrationTestSupport.registration(registrationCodes)
                         .file(new MockMultipartFile("material", "m.png", "image/png", new byte[]{1, 2, 3}))
                         .param("username", "ignored")
@@ -108,7 +108,7 @@ public class AdminUserTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.data.records").isArray());
     }
 
-    //非管理员（收寄件人）访问管理端接口 -> 403 NO_PERMISSION
+    //收寄件人访问管理端接口时返回无权限
     @Test
     void customerAccessDenied() throws Exception {
         registerCustomer("cus_denied", "13900000101");
@@ -120,7 +120,7 @@ public class AdminUserTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.NO_PERMISSION.getCode()));
     }
 
-    //封禁 -> 在线会话被踢 -> 解封恢复登录 -> 封禁记录可查
+    //验证封禁踢出会话、记录查询和解封恢复登录的完整流程
     @Test
     void banKickoutAndUnban() throws Exception {
         Long userId = registerCustomer("cus_ban", "13900000102");
@@ -139,7 +139,7 @@ public class AdminUserTest extends IntegrationTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
 
-        //A2/SEC1：被禁账号的旧会话被踢出 -> 401 KICKED_OUT
+        //被封禁账号的旧会话返回已被踢下线
         mockMvc.perform(get("/api/user/profile").cookie(customerCookie))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.KICKED_OUT.getCode()));
@@ -180,7 +180,7 @@ public class AdminUserTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.SUCCESS.getCode()));
     }
 
-    //对未被封禁的账号执行解封 -> ACCOUNT_NOT_BANNED
+    //解封未被封禁的账号时返回账号未封禁
     @Test
     void unbanNotBannedAccount() throws Exception {
         Long userId = registerCustomer("cus_notban", "13900000103");
@@ -192,7 +192,7 @@ public class AdminUserTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.ACCOUNT_NOT_BANNED.getCode()));
     }
 
-    //封禁不存在的账号 -> USER_NOT_FOUND（验证 S1 NPE 修复）
+    //封禁不存在的账号时返回用户不存在
     @Test
     void banNonexistentUser() throws Exception {
         Long userId = 999999999999L;
@@ -204,7 +204,7 @@ public class AdminUserTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.USER_NOT_FOUND.getCode()));
     }
 
-    //审核结果非通过/驳回 -> PARAM_ERROR（验证 A3 入口守卫）
+    //审核结果不是通过或驳回时返回参数错误
     @Test
     void auditInvalidStatus() throws Exception {
         mockMvc.perform(put("/api/user/audit/12345")
@@ -215,7 +215,7 @@ public class AdminUserTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.PARAM_ERROR.getCode()));
     }
 
-    //合法审核结果 + 不存在的记录 -> USER_NOT_FOUND
+    //审核不存在的记录时返回用户不存在
     @Test
     void auditValidStatusNotFound() throws Exception {
         mockMvc.perform(put("/api/user/audit/12345")
@@ -226,7 +226,7 @@ public class AdminUserTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.USER_NOT_FOUND.getCode()));
     }
 
-    //C1：收寄件人不产生审核记录，配送员产生一条
+    //收寄件人注册不产生审核记录而配送员注册产生一条
     @Test
     void auditRecordOnlyForReviewRoles() throws Exception {
         mockMvc.perform(cn.njust.campusexpress.user.RegistrationTestSupport.registration(registrationCodes)
@@ -265,7 +265,7 @@ public class AdminUserTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.data.records[0].material").isNotEmpty());
     }
 
-    //F7：配送员注册未提交材料 -> FILE_EMPTY
+    //配送员注册未提交材料时返回文件为空
     @Test
     void courierRegisterRequiresMaterial() throws Exception {
         mockMvc.perform(cn.njust.campusexpress.user.RegistrationTestSupport.registration(registrationCodes)
@@ -278,7 +278,7 @@ public class AdminUserTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.FILE_EMPTY.getCode()));
     }
 
-    //D2：管理员强制下线 -> 被踢账号旧 token 返回 KICKED_OUT
+    //管理员强制下线后目标账号的旧会话返回已被踢下线
     @Test
     void adminKickoutUser() throws Exception {
         Long userId = registerCustomer("cus_kick", "13900000301");
@@ -300,7 +300,7 @@ public class AdminUserTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.code").value(ResultCodeEnum.KICKED_OUT.getCode()));
     }
 
-    //F8：管理员重置他人密码 -> 旧会话被踢、新密码可登、旧密码失效
+    //管理员重置密码后旧会话被踢出且仅新密码可登录
     @Test
     void adminResetPassword() throws Exception {
         Long userId = registerCustomer("cus_reset", "13900000501");

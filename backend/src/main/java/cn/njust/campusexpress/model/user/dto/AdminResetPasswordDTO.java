@@ -1,14 +1,11 @@
 package cn.njust.campusexpress.model.user.dto;
 
+import cn.njust.campusexpress.common.util.StringUtil;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
-/**
- * 管理员重置他人密码。密码存于 user 主表、由该用户名下所有角色共享，因此不需要指定角色。
- */
-@SuppressWarnings("unused")
+//管理员重置账号密码DTO
 @Data
 public class AdminResetPasswordDTO {
 
@@ -17,6 +14,6 @@ public class AdminResetPasswordDTO {
     private String newPassword;
 
     public void setNewPassword(String newPassword) {
-        this.newPassword = newPassword == null ? null : newPassword.trim();
+        this.newPassword = StringUtil.clean(newPassword);
     }
 }

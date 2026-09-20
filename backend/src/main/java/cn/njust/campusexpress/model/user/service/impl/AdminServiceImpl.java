@@ -6,6 +6,7 @@ import cn.njust.campusexpress.model.user.service.AdminService;
 import com.baomidou.mybatisplus.spring.repository.CrudRepository;
 import org.springframework.stereotype.Service;
 
+//管理员账户基础ServiceImpl
 @Service
 public class AdminServiceImpl extends CrudRepository<AdminMapper, Admin>
         implements AdminService {

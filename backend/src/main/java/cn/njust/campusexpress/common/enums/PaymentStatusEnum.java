@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.EnumValue;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-/** 支付状态：数据库保存数字，接口使用枚举名称。 */
+//支付状态
 @Getter
 @AllArgsConstructor
 public enum PaymentStatusEnum {

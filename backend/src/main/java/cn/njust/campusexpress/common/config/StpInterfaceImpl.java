@@ -16,6 +16,7 @@ public class StpInterfaceImpl implements StpInterface {
         return List.of();
     }
 
+    //获取角色，用于鉴权
     @Override
     public List<String> getRoleList(Object loginId, String loginType) {
         String role = (String) StpUtil.getTokenSession().get(SessionUtil.ROLE_KEY);

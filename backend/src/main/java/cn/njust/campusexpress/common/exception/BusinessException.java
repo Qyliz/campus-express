@@ -13,7 +13,7 @@ public class BusinessException extends BaseException {
         super(resultCode, message);
     }
 
-    /** PARAM_ERROR 的简写工厂，业务校验失败时使用，调用方静态导入后直接写 invalid("提示")。 */
+    //PARAM_ERROR 的简写工厂，业务校验失败时使用
     public static BusinessException invalid(String message) {
         return new BusinessException(ResultCodeEnum.PARAM_ERROR, message);
     }

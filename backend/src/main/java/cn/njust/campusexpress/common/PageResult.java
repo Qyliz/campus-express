@@ -5,14 +5,10 @@ import lombok.Data;
 
 import java.util.List;
 
-/**
- * 统一分页返回结构，屏蔽 MyBatis-Plus Page 的内部字段，只暴露前端需要的分页信息。
- */
+//向前端返回分页数据
 @Data
 public class PageResult<T> {
-    /** 服务层分页查询统一使用的默认每页条数。 */
     public static final int DEFAULT_PAGE_SIZE = 10;
-
     private List<T> records;
     private long total;
     private long current;
@@ -29,12 +25,12 @@ public class PageResult<T> {
         return vo;
     }
 
-    /** 按默认页大小构造分页参数，页码为空时默认第 1 页。 */
+    //构建分页对象，页码为空时默认第1页。
     public static <T> Page<T> pageOf(Integer currentPage) {
         return new Page<>(currentPage == null ? 1 : currentPage, DEFAULT_PAGE_SIZE);
     }
 
-    /** 空分页结果，用于无需查库即可确定没有数据的场景。 */
+    //空分页结果，用于无需查库即可确定没有数据的场景。
     public static <T> PageResult<T> empty() {
         PageResult<T> vo = new PageResult<>();
         vo.setRecords(List.of());

@@ -3,8 +3,10 @@ package cn.njust.campusexpress.model.order.entity;
 import cn.njust.campusexpress.common.enums.ExceptionResolutionEnum;
 import cn.njust.campusexpress.common.enums.ExceptionStatusEnum;
 import cn.njust.campusexpress.common.enums.ExceptionTypeEnum;
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import lombok.Data;
+
 import java.util.Date;
 
 @Data

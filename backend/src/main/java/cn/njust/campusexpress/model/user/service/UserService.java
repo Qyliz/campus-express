@@ -17,46 +17,48 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.repository.IRepository;
 import org.springframework.web.multipart.MultipartFile;
 
+//用户模块Service
 public interface UserService extends IRepository<User> {
 
-    /**
-     * 注册。手机号或邮箱已属于某个账号且密码正确时，视为本人追加一个新角色；
-     * 追加时不会覆盖已有的用户名、性别、头像。
-     */
+    //注册新用户，或凭密码为已有用户追加角色
     void register(UserRegisterDTO registerDTO, MultipartFile material);
 
-    /**
-     * 登录校验
-     *
-     * @return user 表主键，直接用作 Sa-Token 的 loginId
-     */
+    //校验登录信息，返回用户ID
     Long login(UserLoginDTO loginDTO);
 
+    //查询当前用户资料
     UserProfileVO getProfile(Long userId, UserRoleEnum role);
 
+    //更新当前用户的用户名
     UserProfileVO updateUsername(Long userId, UserRoleEnum role, String username);
 
+    //更新当前用户的性别
     UserProfileVO updateGender(Long userId, UserRoleEnum role, UserGenderEnum gender);
 
+    //更新当前用户的头像
     UserProfileVO updateAvatar(Long userId, UserRoleEnum role, MultipartFile file);
 
+    //校验旧密码并修改当前用户密码
     void updatePassword(Long userId, UserPasswordDTO dto);
 
-    /**
-     * 注销：只逻辑删除当前角色的账户行，user 主表与其他角色账户保留
-     */
+    //注销当前角色账户
     void deleteAccount(Long userId, UserRoleEnum role);
 
-    /** 校验用于找回密码的手机号或邮箱格式正确且属于现有账号。 */
+    //校验找回密码账号
     void validatePasswordResetAccount(String account);
 
+    //通过验证码重置密码
     void resetPassword(ResetPasswordDTO dto);
 
+    //管理员重置指定用户密码
     void adminResetPassword(Long userId, AdminResetPasswordDTO dto);
 
+    //换绑当前用户手机号
     void updatePhone(Long userId, ChangePhoneDTO dto);
 
+    //换绑当前用户邮箱
     void updateEmail(Long userId, ChangeEmailDTO dto);
 
+    //管理员分页查询用户及其角色账户
     Page<UserProfileAdminVO> getAllUsers(UserQueryDTO dto);
 }

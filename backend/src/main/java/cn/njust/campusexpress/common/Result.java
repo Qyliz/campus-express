@@ -4,7 +4,7 @@ import cn.njust.campusexpress.common.enums.ResultCodeEnum;
 import cn.njust.campusexpress.common.exception.BaseException;
 import lombok.Data;
 
-@SuppressWarnings("unused")
+//向前端统一返回结果
 @Data
 public class Result<T> {
     private Integer code;

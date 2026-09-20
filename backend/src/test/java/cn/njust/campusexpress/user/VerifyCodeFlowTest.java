@@ -117,7 +117,7 @@ public class VerifyCodeFlowTest extends IntegrationTestSupport {
     @Test
     void resetPasswordWithoutCode() throws Exception {
         registerCustomer("fp_nocode", "13900000404");
-        //从未发送验证码 -> 存储中不存在 -> EXPIRED
+        //从未发送的验证码按已过期处理
         mockMvc.perform(post("/api/user/reset-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"account\":\"13900000404\",\"code\":\"123456\",\"newPassword\":\"newpass1\"}"))

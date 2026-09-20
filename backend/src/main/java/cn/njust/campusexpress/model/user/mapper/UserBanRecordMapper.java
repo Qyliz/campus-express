@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.ibatis.annotations.Param;
 
 
+@SuppressWarnings("UnusedReturnValue")
 public interface UserBanRecordMapper extends BaseMapper<UserBanRecord> {
 
     /**
